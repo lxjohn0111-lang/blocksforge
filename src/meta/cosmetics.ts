@@ -1,0 +1,185 @@
+// Cosmetic catalogue: camos, outfits, banners and titles. Everything is
+// earned with in-game coins or through play — there are no real-money items.
+
+import { CAMOS } from '../render/camos';
+import type { Look, Headgear } from '../render/characters';
+
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type CosKind = 'camo' | 'outfit' | 'banner' | 'title';
+
+export interface Cosmetic {
+  id: string; // e.g. camo:ember
+  kind: CosKind;
+  name: string;
+  rarity: Rarity;
+  source: string; // human description of how to unlock
+  price?: number; // shop price in coins (if purchasable)
+}
+
+export interface OutfitDef {
+  id: string;
+  name: string;
+  rarity: Rarity;
+  shirt: number;
+  jacket: number | null;
+  pants: number;
+  boots: number;
+  gloves: number;
+  vest: number | null;
+  headgear: Headgear;
+  hat: number;
+  backpack: number | null;
+  accent: number;
+  camo: string | null;
+  goggles?: boolean;
+  scarf?: number | null;
+}
+
+export const OUTFITS: Record<string, OutfitDef> = {
+  recruit: { id: 'recruit', name: 'Recruit', rarity: 'common', shirt: 0x4a5a3a, jacket: null, pants: 0x3a3f46, boots: 0x2a2018, gloves: 0x1c1c1c, vest: null, headgear: 'cap', hat: 0x3a4a2a, backpack: null, accent: 0xf2a93b, camo: null },
+  ranger: { id: 'ranger', name: 'Ranger', rarity: 'rare', shirt: 0x5a4a3a, jacket: 0x3d4a2a, pants: 0x4a3f30, boots: 0x3a2a1a, gloves: 0x4a3a2a, vest: null, headgear: 'beanie', hat: 0x6a3a1a, backpack: 0x4a5a3a, accent: 0xffe14a, camo: 'woodland' },
+  scout: { id: 'scout', name: 'Scout', rarity: 'common', shirt: 0x9a8a6a, jacket: null, pants: 0x6a5a40, boots: 0x4a3a2a, gloves: 0x5a4a3a, vest: 0x6a5a40, headgear: 'bandana', hat: 0x8a2a1a, backpack: 0x6a5a40, accent: 0xff7a2a, camo: null },
+  arctic_ops: { id: 'arctic_ops', name: 'Arctic Ops', rarity: 'epic', shirt: 0xdfe4e8, jacket: 0xc8d0d8, pants: 0xb8c0c8, boots: 0x5a6670, gloves: 0x9aa6b0, vest: 0x8a96a0, headgear: 'helmet', hat: 0xdfe4e8, backpack: 0xc8d0d8, accent: 0x4ab0ff, camo: 'arctic', goggles: true },
+  desert_fox: { id: 'desert_fox', name: 'Desert Fox', rarity: 'rare', shirt: 0xc2a878, jacket: 0x9a7a52, pants: 0xb09468, boots: 0x6a5238, gloves: 0x8a7050, vest: 0x8a7050, headgear: 'visor', hat: 0xc2a878, backpack: null, accent: 0xff9a2a, camo: 'desert', scarf: 0xd8c8a0 },
+  night_owl: { id: 'night_owl', name: 'Night Owl', rarity: 'epic', shirt: 0x1a1c22, jacket: 0x23262e, pants: 0x1a1c22, boots: 0x0e0e10, gloves: 0x0e0e10, vest: 0x2a2f38, headgear: 'headset', hat: 0x1a1c22, backpack: 0x23262e, accent: 0x7d5aff, camo: null },
+  ember_guard: { id: 'ember_guard', name: 'Ember Guard', rarity: 'epic', shirt: 0x2a1410, jacket: 0x6a1a10, pants: 0x2a1410, boots: 0x1a0a08, gloves: 0x1a0a08, vest: 0x3a1a10, headgear: 'helmet', hat: 0x3a1a10, backpack: null, accent: 0xff5a1a, camo: 'ember' },
+  forgeknight: { id: 'forgeknight', name: 'Forgeknight', rarity: 'legendary', shirt: 0x3a3f46, jacket: 0x5a6068, pants: 0x3a3f46, boots: 0x2a2d31, gloves: 0x5a6068, vest: 0x6a7078, headgear: 'helmet', hat: 0x8a9098, backpack: 0x4a5058, accent: 0xff8a2a, camo: null, goggles: true },
+  daily_veteran: { id: 'daily_veteran', name: 'Veteran', rarity: 'rare', shirt: 0x3a4a5a, jacket: 0x2a3a4a, pants: 0x2a2f36, boots: 0x1a1a1a, gloves: 0x2a2a2a, vest: 0x3a3f2a, headgear: 'beret', hat: 0x7a1a1a, backpack: 0x3a3f2a, accent: 0xe8c040, camo: null },
+  harvest_hunter: { id: 'harvest_hunter', name: 'Harvest Hunter', rarity: 'epic', shirt: 0x6a3a14, jacket: 0x4a2a10, pants: 0x3a2a1a, boots: 0x2a1a0a, gloves: 0x4a2a10, vest: 0x8a4a14, headgear: 'hood', hat: 0x5a2a0a, backpack: 0x6a3a14, accent: 0xff8a1a, camo: 'harvest' },
+  frost_warden: { id: 'frost_warden', name: 'Frost Warden', rarity: 'epic', shirt: 0xa8d8f0, jacket: 0x5aa0d0, pants: 0x3a6a8a, boots: 0x2a4a6a, gloves: 0x5aa0d0, vest: 0xe8f6ff, headgear: 'beanie', hat: 0xe8f6ff, backpack: 0x5aa0d0, accent: 0x9ae8ff, camo: 'glacier', scarf: 0xe8f6ff },
+  storm_runner: { id: 'storm_runner', name: 'Storm Runner', rarity: 'epic', shirt: 0x2a3440, jacket: 0x3a4a5a, pants: 0x2a3440, boots: 0x1a1f26, gloves: 0x1a1f26, vest: 0x4a6a8a, headgear: 'hood', hat: 0x2a3440, backpack: 0x3a4a5a, accent: 0xbfe0ff, camo: 'stormfront', goggles: true },
+  sun_warden: { id: 'sun_warden', name: 'Sun Warden', rarity: 'legendary', shirt: 0xffd25a, jacket: 0xff9a2a, pants: 0x8a3a10, boots: 0x4a1a08, gloves: 0x8a3a10, vest: 0xffb84a, headgear: 'visor', hat: 0xffd25a, backpack: null, accent: 0xffe0a0, camo: 'sunforged' },
+  vanguard: { id: 'vanguard', name: 'Season Vanguard', rarity: 'epic', shirt: 0x2a2f38, jacket: 0x3a2a4a, pants: 0x23262e, boots: 0x15161a, gloves: 0x23262e, vest: 0x4a3a6a, headgear: 'helmet', hat: 0x3a2a4a, backpack: null, accent: 0xb779ff, camo: null },
+};
+
+export const BANNERS: Record<string, { name: string; css: string; rarity: Rarity }> = {
+  stone: { name: 'Bedrock', css: 'linear-gradient(135deg,#2a2d33,#3a3f47)', rarity: 'common' },
+  meadow: { name: 'Meadow', css: 'linear-gradient(135deg,#2f5a2a,#6a9a3a)', rarity: 'common' },
+  tide: { name: 'Tide', css: 'linear-gradient(135deg,#123a5a,#2a8ab0)', rarity: 'rare' },
+  ember: { name: 'Ember', css: 'linear-gradient(135deg,#3a0e08,#c2401a 70%,#ff9a3a)', rarity: 'rare' },
+  dusk: { name: 'Dusk', css: 'linear-gradient(135deg,#2a1a3a,#8a3a5a 60%,#f2a05a)', rarity: 'rare' },
+  forest: { name: 'Canopy', css: 'linear-gradient(135deg,#0e2a1a,#2a5a3a)', rarity: 'common' },
+  circuit: { name: 'Circuit', css: 'repeating-linear-gradient(90deg,#0a1a14 0 10px,#123a2a 10px 12px),linear-gradient(#0a1a14,#0a1a14)', rarity: 'epic' },
+  aurora: { name: 'Aurora', css: 'linear-gradient(135deg,#0a1a3a,#1a8a7a 50%,#7a4aff)', rarity: 'epic' },
+  sunrise: { name: 'Sunrise', css: 'linear-gradient(135deg,#ff7a2a,#ffd25a 60%,#fff2c0)', rarity: 'epic' },
+  void: { name: 'Voidglass', css: 'linear-gradient(135deg,#05030a,#2a1a48 60%,#9a5aff)', rarity: 'legendary' },
+};
+
+export const TITLES = [
+  'Rookie', 'Scrapper', 'Survivor', 'Sharpshooter', 'Architect', 'Demolisher', 'Last Block Standing', 'Centurion', 'Marksman',
+  'Scavenger', 'Grenadier', 'Apex', 'Veteran', 'Tactician', 'Forgemaster',
+];
+
+export const DEFAULT_OWNED = ['camo:factory', 'outfit:recruit', 'banner:stone', 'title:Rookie'];
+
+/** Level-up unlocks */
+export const LEVEL_UNLOCKS: Record<number, string> = {
+  2: 'camo:woodland',
+  3: 'banner:meadow',
+  5: 'outfit:ranger',
+  8: 'banner:forest',
+  10: 'camo:slate',
+  15: 'outfit:night_owl',
+  20: 'camo:redwood',
+  25: 'camo:circuit',
+  30: 'outfit:forgeknight',
+  40: 'banner:aurora',
+  50: 'camo:gilded',
+};
+
+const PRICE: Record<Rarity, number> = { common: 400, rare: 800, epic: 1500, legendary: 2400 };
+
+export function catalog(): Cosmetic[] {
+  const out: Cosmetic[] = [];
+  const levelOf = (id: string) => Object.entries(LEVEL_UNLOCKS).find(([, v]) => v === id)?.[0];
+  const eventCos = new Set(['camo:harvest', 'camo:glacier', 'camo:sunforged', 'camo:stormfront', 'outfit:harvest_hunter', 'outfit:frost_warden', 'outfit:storm_runner', 'outfit:sun_warden', 'banner:sunrise']);
+  for (const c of Object.values(CAMOS)) {
+    const id = 'camo:' + c.id;
+    const lvl = levelOf(id);
+    let source = 'Armory';
+    let price: number | undefined = PRICE[c.rarity];
+    if (c.id === 'factory') { source = 'Default'; price = undefined; }
+    else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
+    else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
+    else if (c.id.startsWith('rank_')) { source = 'Ranked season reward'; price = undefined; }
+    out.push({ id, kind: 'camo', name: c.name, rarity: c.rarity, source, price });
+  }
+  for (const o of Object.values(OUTFITS)) {
+    const id = 'outfit:' + o.id;
+    const lvl = levelOf(id);
+    let source = 'Armory';
+    let price: number | undefined = PRICE[o.rarity];
+    if (o.id === 'recruit') { source = 'Default'; price = undefined; }
+    else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
+    else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
+    else if (o.id === 'daily_veteran') { source = 'Daily reward · Day 7'; price = undefined; }
+    else if (o.id === 'vanguard') { source = 'Reach Gold in any season'; price = undefined; }
+    out.push({ id, kind: 'outfit', name: o.name, rarity: o.rarity, source, price });
+  }
+  for (const [k, b] of Object.entries(BANNERS)) {
+    const id = 'banner:' + k;
+    const lvl = levelOf(id);
+    let source = 'Armory';
+    let price: number | undefined = PRICE[b.rarity];
+    if (k === 'stone') { source = 'Default'; price = undefined; }
+    else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
+    else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
+    else if (k === 'dusk') { source = 'Daily reward · Day 4'; price = undefined; }
+    else if (k === 'circuit') { source = 'Achievement: Architect'; price = undefined; }
+    else if (k === 'void') { source = 'Reach Obsidian'; price = undefined; }
+    out.push({ id, kind: 'banner', name: b.name, rarity: b.rarity, source, price });
+  }
+  return out;
+}
+
+export function cosmeticName(id: string): string {
+  const [kind, key] = id.split(':');
+  if (kind === 'camo') return (CAMOS[key]?.name ?? key) + ' Camo';
+  if (kind === 'outfit') return (OUTFITS[key]?.name ?? key) + ' Outfit';
+  if (kind === 'banner') return (BANNERS[key]?.name ?? key) + ' Banner';
+  if (kind === 'title') return `Title: ${key}`;
+  return id;
+}
+
+export function cosmeticRarity(id: string): Rarity {
+  const [kind, key] = id.split(':');
+  if (kind === 'camo') return CAMOS[key]?.rarity ?? 'common';
+  if (kind === 'outfit') return OUTFITS[key]?.rarity ?? 'common';
+  if (kind === 'banner') return BANNERS[key]?.rarity ?? 'common';
+  return 'rare';
+}
+
+export interface BaseLook {
+  skin: number;
+  hair: number;
+  hairStyle: Look['hairStyle'];
+  eyes: number;
+}
+
+export function composeLook(base: BaseLook, outfitId: string): Look {
+  const o = OUTFITS[outfitId] ?? OUTFITS.recruit;
+  return {
+    skin: base.skin,
+    hair: base.hair,
+    hairStyle: base.hairStyle,
+    eyes: base.eyes,
+    shirt: o.shirt,
+    jacket: o.jacket,
+    pants: o.pants,
+    boots: o.boots,
+    gloves: o.gloves,
+    vest: o.vest,
+    headgear: o.headgear,
+    hat: o.hat,
+    backpack: o.backpack,
+    accent: o.accent,
+    camo: o.camo,
+    beard: false,
+    goggles: !!o.goggles,
+    scarf: o.scarf ?? null,
+  };
+}
+
+export const SKIN_TONES = [0xf5d5b8, 0xf1c8a4, 0xe0ac86, 0xc68a62, 0xa0663e, 0x7a4a2a, 0x5a3520];
+export const HAIR_COLORS = [0x1d1510, 0x3a2414, 0x6a3e1e, 0xa66a2c, 0xd8b058, 0x8a8a8a, 0xb03a22, 0xe6e0d0];
+export const HAIR_STYLES: Look['hairStyle'][] = ['short', 'buzz', 'long', 'pony', 'mohawk', 'curly', 'bald'];
