@@ -21,6 +21,7 @@ page.setDefaultTimeout(300000);
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(e.message));
+page.on('crash', () => { console.log('FAIL  page crashed'); process.exit(1); });
 
 let failed = 0;
 const check = (ok, msg) => {

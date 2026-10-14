@@ -41,6 +41,8 @@ export class BotBrain {
   private hopFails = 0;
   private stuckCount = 0;
   private lastPos = new THREE.Vector3();
+  private progressPos = new THREE.Vector3();
+  private progressT = 0;
   private thinkT = Math.random() * 0.3;
   private aimErr = new THREE.Vector2();
   private strafeDir = 1;
@@ -122,7 +124,8 @@ export class BotBrain {
     const m = this.match;
     const eye = c.eye();
     const fwd = new THREE.Vector3(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
-    const range = m.cfg.mode === 'tdm' ? 95 : 130;
+    // heads-down looting narrows awareness (gunfire still gets noticed, see below)
+    const range = (m.cfg.mode === 'tdm' ? 95 : 130) * (this.state === 'loot' ? 0.5 : 1);
     let best: Combatant | null = null;
     let bestScore = Infinity;
     const cands = m.combatants
@@ -136,7 +139,7 @@ export class BotBrain {
       const to = o.body.pos.clone().sub(c.body.pos).setY(0).normalize();
       const cos = to.dot(fwd);
       const recentlyHit = c.lastAttacker === o.id && this.now - c.lastHurt < 2;
-      const fov = d < 6 ? -1 : recentlyHit ? -0.5 : 0.35 - this.skill * 0.25;
+      const fov = d < 6 ? -1 : recentlyHit ? -0.5 : (this.state === 'loot' ? 0.55 : 0.35) - this.skill * 0.25;
       if (cos < fov) continue;
       // crouched / still targets are harder to notice at range
       let eff = d;
@@ -694,6 +697,8 @@ export class BotBrain {
     it.forward = d > 3 ? 1 : 0;
     it.strafe = 0;
     c.pitch = -0.6;
+    // far from the landing spot: open the glider early for a longer flight
+    it.jump = c.dropping && d > 45;
   }
 
   // ------------------------------------------------------------ navigation
@@ -734,7 +739,10 @@ export class BotBrain {
     }
     this.pathPending = true;
     const zone = this.hooks.zone?.();
-    const avoid = zone ? (x: number, z: number) => (Math.hypot(x - zone.cx, z - zone.cz) > zone.r ? 3 : 0) : undefined;
+    // keep safe bots from routing through the storm; a bot already caught outside just needs the
+    // shortest way in (a flat penalty on every cell would turn A* into a budget-starved flood fill)
+    const startOutside = !!zone && Math.hypot(c.body.pos.x - zone.cx, c.body.pos.z - zone.cz) > zone.r;
+    const avoid = zone && !startOutside ? (x: number, z: number) => (Math.hypot(x - zone.cx, z - zone.cz) > zone.r ? 3 : 0) : undefined;
     this.match.nav.request(c.body.pos, target, (r) => {
       this.pathPending = false;
       this.path = r ? r.points : [];
@@ -772,6 +780,11 @@ export class BotBrain {
         else {
           this.goal = null;
         }
+      } else {
+        // path request still queued: head straight for the goal instead of standing still
+        const dx = this.goal.x - c.body.pos.x;
+        const dz = this.goal.z - c.body.pos.z;
+        if (Math.hypot(dx, dz) > 2) moveDir = new THREE.Vector3(dx, 0, dz).normalize();
       }
       if (this.now > this.repathAt && this.goal) this.requestPath();
     }
@@ -802,6 +815,30 @@ export class BotBrain {
       it.strafe = 0;
     }
     it.yaw = c.yaw;
+    // progress watchdog: whatever the cause (odd geometry, a waypoint we can't reach, being
+    // wedged mid-air), a bot with somewhere to be that hasn't covered ground in 3 s re-plans
+    // around the obstacle instead of waiting it out
+    const wantsToMove = !!this.goal && this.goal.distanceTo(c.body.pos) > 3 && this.state !== 'fight' && this.state !== 'heal' && this.state !== 'hold';
+    if (!wantsToMove || c.body.pos.distanceTo(this.progressPos) > 1.5) {
+      this.progressPos.copy(c.body.pos);
+      this.progressT = this.now;
+    } else if (this.now - this.progressT > 3) {
+      this.progressPos.copy(c.body.pos);
+      this.progressT = this.now;
+      this.path = [];
+      this.pathI = 0;
+      this.wantJump = true;
+      const g = this.goal!;
+      const side = new THREE.Vector3(g.z - c.body.pos.z, 0, c.body.pos.x - g.x).setLength(6 * (Math.random() < 0.5 ? 1 : -1));
+      const detour = c.body.pos.clone().add(side).add(g.clone().sub(c.body.pos).setY(0).setLength(4));
+      detour.y = this.match.world.groundY(detour.x, detour.z, Math.floor(c.body.pos.y + 6)) + 1;
+      const final = g.clone();
+      this.goal = detour;
+      this.requestPath();
+      this.match.after(2.5, () => {
+        if (this.c.alive && this.goal === detour) this.setGoal(final);
+      });
+    }
     // stuck handling
     const moved = c.body.pos.distanceTo(this.lastPos);
     this.lastPos.copy(c.body.pos);
@@ -887,7 +924,12 @@ export class BotBrain {
     // strafing targets) — better bots wobble less, nobody is a laser
     const tgt = this.state === 'fight' ? this.target : null;
     const tv = tgt ? Math.hypot(tgt.body.vel.x, tgt.body.vel.z) : 0;
-    const wob = (0.75 + (1 - this.skill) * 1.5) * DEG * (1 + Math.min(1.4, tv / 5)) * (c.ads > 0.5 ? 0.7 : 1);
+    const angWob = (0.75 + (1 - this.skill) * 1.5) * DEG;
+    // close up, tracking error is better described as a distance at the target than an angle:
+    // people over/under-correct by a body width when someone strafes at arm's length
+    const tdist = tgt ? Math.max(1, tgt.body.pos.distanceTo(c.body.pos)) : 30;
+    const linWob = Math.atan2(0.24 + (1 - this.skill) * 0.48, tdist);
+    const wob = Math.max(angWob, linWob) * (1 + Math.min(1.4, tv / 5)) * (c.ads > 0.5 ? 0.75 : 1);
     const ph = this.c.id * 1.37;
     yaw += (Math.sin(this.now * 2.3 + ph) * 0.6 + Math.sin(this.now * 5.3 + ph * 2.1) * 0.4) * wob;
     pitch += (Math.sin(this.now * 1.9 + ph * 1.6) * 0.6 + Math.sin(this.now * 4.4 + ph) * 0.4) * wob * 0.6;

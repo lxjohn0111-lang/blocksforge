@@ -123,7 +123,8 @@ export class BRMatch extends Match {
       const rel = new THREE.Vector3(t.x - s.from.x, 0, t.z - s.from.z);
       const along = rel.dot(s.dir);
       const off = Math.abs(rel.x * -s.dir.z + rel.z * s.dir.x);
-      const reach = Math.exp(-Math.max(0, off - 45) / 25);
+      // a glider opened early carries a competitor roughly 100 blocks sideways
+      const reach = Math.exp(-Math.max(0, off - 90) / 25);
       // aggressive players chase hot drops, looters avoid them
       const pull = b.p.aggression > 0.6 ? t.weight : b.p.archetype === 'looter' ? 1 / Math.sqrt(t.weight) : Math.sqrt(t.weight);
       // spread the lobby out: every competitor already heading somewhere makes it less attractive

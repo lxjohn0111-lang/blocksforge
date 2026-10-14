@@ -10,6 +10,7 @@ page.setDefaultTimeout(240000);
 const logs = [];
 page.on('console', (m) => { const t = m.type(); if (t === 'error' || t === 'warning') logs.push(`[${t}] ${m.text()}`); });
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack ?? ''}`));
+page.on('crash', () => { console.log('PAGE CRASHED'); process.exit(3); });
 const h = {
   logs,
   async waitFor(fn, timeout = 240000, arg) {
