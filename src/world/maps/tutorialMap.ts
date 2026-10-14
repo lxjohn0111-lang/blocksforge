@@ -17,7 +17,7 @@ export function buildTraining(): MapData {
       const d = Math.min(x, z, W - 1 - x, D - 1 - z);
       const h = d < 4 ? G + (4 - d) * 3 : G;
       const base = (z * W + x) * H;
-      for (let y = 0; y <= h; y++) w.blocks[base + y] = y === 0 ? B.BEDROCK : y === h ? (d < 4 ? B.STONE : B.GRASS) : y > h - 3 ? B.DIRT : B.STONE;
+      for (let y = 0; y <= h; y++) w.blocks[base + y] = y === 0 ? B.BEDROCK : y === h ? B.GRASS : y > h - 2 ? B.DIRT : B.STONE;
     }
   const Y = G + 1;
   // central concrete path

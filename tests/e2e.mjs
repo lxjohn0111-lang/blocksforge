@@ -69,11 +69,13 @@ try {
     bf.simulate(30);
     const landed = !m.player.dropping && !m.player.gliding;
     bf.simulate(90);
-    return { landed, n: m.combatants.length, alive: m.aliveCount, zone: m.zone.phase, loot: m.combatants.filter((c) => !c.isPlayer && c.weapons.some(Boolean)).length };
+    const bots = m.combatants.filter((c) => !c.isPlayer && c.alive);
+    return { landed, n: m.combatants.length, alive: m.aliveCount, zone: m.zone.phase, bots: bots.length, armed: bots.filter((c) => c.weapons.some(Boolean)).length };
   });
   check(br.n === 24, `BR: 24 competitors (${br.n})`);
   check(br.landed, 'BR: player dropped, glided and landed');
-  check(br.loot >= 12, `BR: bots found weapons (${br.loot}/23)`);
+  check(br.bots > 0 && br.armed / br.bots >= 0.6, `BR: living bots found weapons (${br.armed}/${br.bots})`);
+  check(br.alive >= 6, `BR: lobby not wiped out in the first two minutes (${br.alive} alive)`);
   check(br.zone >= 0, `BR: storm running (phase ${br.zone})`);
   check(await leaveToResults(), 'BR: leave -> results screen');
 

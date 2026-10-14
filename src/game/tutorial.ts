@@ -73,7 +73,7 @@ export class TutorialMatch extends Match {
       { id: 'chest', title: 'Open the supply chest', hint: `Chests by the firing line hold better loot. ${k('interact')} to open.` },
       { id: 'scope', title: 'Scope in', hint: `Equip the Longshot, hold ${k('aim')}, scroll to change zoom, hit a far dummy.` },
       { id: 'harvest', title: 'Harvest materials', hint: `Harvest tool ${k('tool')}. Hit trees and boulders for 30 wood.`, progress: () => `${this.player.mats.wood}/30` },
-      { id: 'build', title: 'Build up to the ledge', hint: `Build mode ${k('build')} · ${k('slot3')} ramp · ${k('fire')} place · ${k('rotate')} rotate · ${k('material')} material` },
+      { id: 'build', title: 'Build up to the ledge', hint: `Build mode ${k('build')} · ${k('slot3')} ramp · ${k('slot4')} block · ${k('fire')} place · ${k('rotate')} rotate · ${k('build')} again for weapons` },
       { id: 'craft', title: 'Craft bandages', hint: `Open ${k('inventory')} and craft Bandages from cloth.` },
       { id: 'grenade', title: 'Flush out cover', hint: `Hold ${k('grenade')} to aim the arc, release to throw over the wall.` },
       { id: 'duel', title: 'Final test', hint: 'Defeat the sparring bot in the arena. Use cover, heal with ' + k('heal') + '.' },

@@ -378,7 +378,7 @@ function arbiter(): WeaponModel {
     body, mag,
     sight: [0, 3.9, 4.6], muzzle: [0, 0.92, -29.2], eject: [0.9, 1.3, 0],
     rightHand: [0, -2.4, 1.3], leftHand: [0, -0.9, -13.5], magGrab: [0, -6.0, -3.3],
-    scope: true, hipOffset: [0, 0, 0], shell: 'rifle',
+    scope: true, hipOffset: [0.015, -0.02, -0.1], shell: 'rifle',
   };
 }
 
@@ -427,7 +427,7 @@ function longshot(): WeaponModel {
     body, mag, bolt,
     sight: [0, 4.6, 6.2], muzzle: [0, 1.0, -37.2], eject: [0.9, 1.4, 1.5],
     rightHand: [0, -2.8, 3.2], leftHand: [0, -1.8, -10.5], magGrab: [0, -3.2, -1.3],
-    scope: true, hipOffset: [0, 0, 0], shell: 'rifle',
+    scope: true, hipOffset: [0.02, -0.03, -0.16], shell: 'rifle',
   };
 }
 
@@ -551,11 +551,12 @@ export function hammerModel(): VBox[] {
 
 export function bandageModel(): VBox[] {
   return [
-    b([-1.6, -1.6, -1.5], [1.6, 1.6, 1.5], 0xe8e0d0, 'cloth'),
-    b([-0.5, -0.5, -1.55], [0.5, 0.5, 1.55], 0xc8bca8, 'cloth'),
-    b([-1.6, -1.65, -0.8], [1.6, -1.2, 2.6], 0xe8e0d0, 'cloth'),
-    b([-0.25, -0.9, 1.5], [0.25, 0.9, 1.56], 0xd02a2a, 'cloth'),
-    b([-0.9, -0.25, 1.5], [0.9, 0.25, 1.56], 0xd02a2a, 'cloth'),
+    b([-1.6, -1.6, -1.5], [1.6, 1.6, 1.5], 0xcfc2a4, 'cloth'),
+    b([-1.62, -0.45, -1.52], [1.62, 0.45, 1.52], 0xb3a483, 'cloth'),
+    b([-0.5, -0.5, -1.55], [0.5, 0.5, 1.55], 0xa8987a, 'cloth'),
+    b([-1.6, -1.65, -0.8], [1.6, -1.2, 2.6], 0xcfc2a4, 'cloth'),
+    b([-0.3, -1.05, 1.5], [0.3, 1.05, 1.58], 0xc42424, 'cloth'),
+    b([-1.05, -0.3, 1.5], [1.05, 0.3, 1.58], 0xc42424, 'cloth'),
   ];
 }
 

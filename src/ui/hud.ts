@@ -42,7 +42,7 @@ function itemCanvas(kind: string) {
   const key = 'i:' + kind;
   if (!iconCache.has(key)) {
     const m: Record<string, () => HTMLCanvasElement> = {
-      bandage: () => boxIcon(bandageModel(), 60, 40),
+      bandage: () => boxIcon(bandageModel(), 60, 40, undefined, 'front'),
       medkit: () => boxIcon(medkitModel(), 60, 40),
       plate: () => boxIcon(plateModel(), 60, 40, undefined, 'front'),
       frag: () => boxIcon(fragModel(), 60, 40),
@@ -439,6 +439,7 @@ export class HUD {
         });
         E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.material)), h('span', null, pc.buildMat)));
         E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.rotate)), h('span', null, 'Rotate')));
+        E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.build)), h('span', null, 'Weapons')));
       }
     } else E.buildbar.style.display = 'none';
 

@@ -13,7 +13,7 @@ import { snapStand, standable } from './nav';
 import { clamp, wrapAngle, DEG } from '../../core/mathx';
 import { RECIPES, canAfford } from '../crafting';
 
-type State = 'drop' | 'loot' | 'roam' | 'rotate' | 'fight' | 'chase' | 'heal' | 'investigate' | 'push' | 'harvest' | 'hold';
+type State = 'drop' | 'loot' | 'roam' | 'rotate' | 'fight' | 'chase' | 'heal' | 'investigate' | 'push' | 'harvest' | 'hold' | 'evade';
 
 export interface BotHooks {
   /** BR: zone info */
@@ -212,8 +212,18 @@ export class BotBrain {
     const lowHp = c.hp + c.armor * 0.5 < 45 + this.p.caution * 30;
     const prev = this.state;
 
-    if (this.targetVisible && this.target && hasGun) this.state = 'fight';
-    else if (this.target && this.target.alive && this.now - this.lastSeenTime < 5 + this.p.aggression * 6 && hasGun && !lowHp) this.state = 'chase';
+    const tgt = this.target;
+    const tgtD = tgt ? tgt.body.pos.distanceTo(c.body.pos) : Infinity;
+    const provoked = !!tgt && c.lastAttacker === tgt.id && this.now - c.lastHurt < 6;
+    const tgtArmed = !!tgt && tgt.weapons.some((w) => !!w && (w.mag > 0 || tgt.ammo[w.def.ammo] > 0));
+    // opening minute of a BR: gear up first, don't start long-range fights unless shot at
+    const earlyPassive = m.cfg.mode === 'br' && m.time < 80 && !provoked && tgtD > 16 + this.p.aggression * 30;
+    // empty-handed and spotted by an armed enemy: get out of sight instead of looting toward them
+    const flee = !hasGun && this.targetVisible && tgtArmed && tgtD < 35;
+
+    if (flee) this.state = 'evade';
+    else if (this.targetVisible && tgt && hasGun && !earlyPassive) this.state = 'fight';
+    else if (tgt && tgt.alive && this.now - this.lastSeenTime < 5 + this.p.aggression * 6 && hasGun && !lowHp && !earlyPassive) this.state = 'chase';
     else if (lowHp && this.canHeal() && !this.targetVisible) this.state = 'heal';
     else if (zone && this.zoneUrgent(zone)) this.state = 'rotate';
     else if (m.cfg.mode === 'br' && this.needsLoot()) this.state = 'loot';
@@ -246,6 +256,15 @@ export class BotBrain {
       case 'loot':
         this.thinkLoot();
         break;
+      case 'evade': {
+        const away = c.body.pos.clone().sub(tgt!.body.pos).setY(0);
+        if (away.lengthSq() < 0.01) away.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+        away.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), (Math.random() - 0.5) * 0.9);
+        const g = c.body.pos.clone().addScaledVector(away, 16 + Math.random() * 8);
+        g.y = m.world.groundY(g.x, g.z, Math.floor(c.body.pos.y + 6)) + 1;
+        if (!this.goal || this.goal.distanceTo(c.body.pos) < 4) this.setGoal(g);
+        break;
+      }
       case 'rotate':
       case 'hold':
         this.thinkRotate(zone);

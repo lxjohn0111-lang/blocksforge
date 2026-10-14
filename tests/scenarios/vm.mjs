@@ -3,7 +3,7 @@ export default async function (page, h) {
   await h.waitFor(() => window.__bf && window.__bf.state === 'menu');
   await h.eval(() => { window.__bf.settings.dynamicRes = false; window.__bf.play({ mode: 'tutorial', ranked: false, tdmMap: 'rotation', loadout: 'assault' }); });
   await h.waitFor(() => window.__bf.state === 'match', 400000);
-  const weapons = (process.env.VM_WEAPONS || 'ranger,longshot,breacher,p9').split(',');
+  const weapons = (process.env.VM_WEAPONS || 'p9,ranger,longshot,arbiter').split(',');
   for (const w of weapons) {
     await h.eval((w) => {
       const bf = window.__bf; const m = bf.match; const p = m.player; window.__pause = true;

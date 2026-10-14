@@ -93,7 +93,11 @@ export class Viewmodel {
   events: ((name: string) => void) | null = null;
   private firedEvents = new Set<string>();
 
-  constructor(private camera: THREE.Camera) {
+  /**
+   * @param camera the live world camera (already updated this frame)
+   * @param vmCamera the viewmodel camera; kept in sync here so muzzle/eject reprojection never uses a stale pose
+   */
+  constructor(private camera: THREE.Camera, private vmCamera?: THREE.Camera) {
     this.root.add(this.pivot);
     this.rightArm = this.makeArm();
     this.leftArm = this.makeArm();
@@ -281,9 +285,15 @@ export class Viewmodel {
 
   update(dt: number, u: VMUpdate) {
     this.time += dt;
-    // follow camera
+    // follow the camera pose of *this* frame (following the viewmodel camera, which is only
+    // synced at render time, made the weapon trail one frame behind when moving or turning)
     this.root.position.copy(this.camera.position);
     this.root.quaternion.copy(this.camera.quaternion);
+    if (this.vmCamera) {
+      this.vmCamera.position.copy(this.camera.position);
+      this.vmCamera.quaternion.copy(this.camera.quaternion);
+      this.vmCamera.updateMatrixWorld();
+    }
     this.root.visible = !u.hideForScope && this.holding.kind !== 'none';
 
     // springs

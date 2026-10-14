@@ -23,12 +23,16 @@ export default async function (page, h) {
       },
       step() { const m = bf.match; return m.step.id; },
       st() { return bf.match.map.stations; },
-      killDummy(key, ads = false, max = 12) {
+      killDummy(key, ads = true, max = 15) {
         const m = bf.match; const d = m.dummies.find((x) => x.key === key); let t = 0;
         if (ads) { T.press('Mouse2'); bf.simulate(0.45); }
-        while (t < max && d.c.alive) { const q = d.c.body.pos; T.aimAt(q.x, q.y + 1.3, q.z); T.press('Mouse0'); bf.simulate(0.1); t += 0.1; const g = P().gun; if (g && g.mag === 0 && g.reloading <= 0) { T.release('Mouse0'); T.tap('KeyR'); bf.simulate(2.6); } }
+        while (t < max && d.c.alive) {
+          const q = d.c.body.pos; T.aimAt(q.x, q.y + 1.2, q.z); T.press('Mouse0'); bf.simulate(0.2); T.release('Mouse0');
+          const q2 = d.c.body.pos; T.aimAt(q2.x, q2.y + 1.2, q2.z); bf.simulate(0.2); t += 0.4;
+          const g = P().gun; if (g && g.mag === 0 && g.reloading <= 0) { T.tap('KeyR'); bf.simulate(2.8); if (ads) { T.press('Mouse2'); bf.simulate(0.45); } }
+        }
         T.release('Mouse0'); if (ads) T.release('Mouse2'); bf.simulate(0.1);
-        return { alive: d.c.alive, t: +t.toFixed(1) };
+        return { alive: d.c.alive, t: +t.toFixed(1), mag: P().gun?.mag, reserve: P().gun ? P().ammo[P().gun.def.ammo] : 0 };
       },
     };
   });
@@ -45,7 +49,11 @@ export default async function (page, h) {
   await h.eval(() => { const s = __t.st().jump; __t.walkTo(s.x, s.z, 1.2, 12, ['Space', 'ShiftLeft']); __t.sim(0.6); });
   await log('after jump');
   // loot rifle
-  await h.eval(() => { const s = __t.st().weapon; __t.walkTo(s.x, s.z + 1.6, 0.6); __t.aimAt(s.x, s.y + 0.2, s.z); __t.tap('KeyE'); __t.aimAt(s.x + 1.5, s.y + 0.2, s.z); __t.tap('KeyE'); __t.sim(0.8); });
+  await h.eval(() => {
+    const s = __t.st().weapon; __t.walkTo(s.x, s.z + 1.6, 0.6); __t.aimAt(s.x, s.y + 0.2, s.z); __t.tap('KeyE'); __t.sim(0.3);
+    const ammo = window.__bf.match.items.find((it) => it.spec.kind === 'ammo'); if (ammo) { __t.aimAt(ammo.pos.x, ammo.pos.y + 0.1, ammo.pos.z); __t.tap('KeyE'); }
+    __t.sim(0.8);
+  });
   await log('after loot');
   await view('tut_loot');
   // shoot two dummies from the range
@@ -58,7 +66,7 @@ export default async function (page, h) {
   await h.eval(() => { __t.aimAt(35.5, 12, 40); __t.press('Mouse0'); __t.sim(0.3); __t.release('Mouse0'); __t.tap('KeyR'); __t.sim(3); });
   await log('after reload');
   // ads
-  console.log('dummy3', JSON.stringify(await h.eval(() => __t.killDummy('dummy3', true, 3))));
+  console.log('dummy3', JSON.stringify(await h.eval(() => __t.killDummy('dummy3', true, 6))));
   await h.eval(() => __t.sim(0.6));
   await log('after ads');
   await view('tut_ads');
@@ -74,7 +82,7 @@ export default async function (page, h) {
   });
   await log('after pickups');
   await h.eval(() => { const s = __t.st().range; __t.walkTo(s.x, s.z, 0.8); });
-  console.log('far1', JSON.stringify(await h.eval(() => { __t.press('Mouse2'); __t.sim(0.6); const r = __t.killDummy('far1', true, 6); return r; })));
+  console.log('far1', JSON.stringify(await h.eval(() => __t.killDummy('far1', true, 10))));
   await view('tut_scope');
   await h.eval(() => { __t.release('Mouse2'); __t.sim(0.5); });
   await log('after scope');
@@ -94,13 +102,14 @@ export default async function (page, h) {
   await log('after harvest');
   // build: one ramp + one block up onto the ledge west of the pit
   await h.eval(() => {
-    __t.walkTo(42.5, 57.5, 0.3, 30); __t.sim(0.3);
+    __t.walkTo(28, 54, 0.8, 20); __t.walkTo(42.5, 57.5, 0.3, 30); __t.sim(0.3);
     __t.tap('KeyQ'); __t.sim(0.3); __t.tap('Digit3'); __t.sim(0.2);
     __t.aimAt(44.5, 10.95, 57.5); __t.tap('Mouse0'); __t.sim(0.4);
     __t.walkTo(46.5, 57.5, 0.3, 8); __t.sim(0.3);
     __t.tap('Digit4'); __t.sim(0.2);
     __t.aimAt(48.02, 14.5, 57.5); __t.tap('Mouse0'); __t.sim(0.4);
     __t.walkTo(50.5, 57.5, 0.4, 8); __t.sim(0.8);
+    __t.tap('KeyQ'); __t.sim(0.6); // back to weapons
   });
   await log('after build');
   await view('tut_build');
@@ -129,10 +138,13 @@ export default async function (page, h) {
     let t = 0;
     while (t < 40 && m.step.id === 'duel') {
       const b = m.duelBot?.c; if (!b || !b.alive) { __t.sim(0.5); t += 0.5; continue; }
-      const q = b.body.pos; __t.aimAt(q.x, q.y + 1.3, q.z); __t.press('Mouse0'); __t.sim(0.1); t += 0.1;
-      const g = m.player.gun; if (g && g.mag === 0 && g.reloading <= 0) { __t.release('Mouse0'); __t.tap('KeyR'); __t.sim(2.6); t += 2.6; }
+      __t.press('Mouse2');
+      const q = b.body.pos; __t.aimAt(q.x, q.y + 1.2, q.z); __t.press('Mouse0'); __t.sim(0.2); __t.release('Mouse0');
+      const q2 = b.body.pos; __t.aimAt(q2.x, q2.y + 1.2, q2.z); __t.sim(0.15); t += 0.35;
+      if (m.player.hp < 45 && m.player.heals.bandage + m.player.heals.plate > 0) { __t.release('Mouse2'); __t.tap('KeyH'); __t.sim(2.5); t += 2.5; }
+      const g = m.player.gun; if (g && g.mag === 0 && g.reloading <= 0) { __t.tap('KeyR'); __t.sim(2.6); t += 2.6; }
     }
-    __t.release('Mouse0'); __t.sim(1);
+    __t.release('Mouse0'); __t.release('Mouse2'); __t.sim(1);
   });
   await log('after duel');
   await h.eval(() => { window.__noRender = false; window.__pause = false; });

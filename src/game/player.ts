@@ -42,7 +42,7 @@ export class PlayerController {
 
   constructor(public match: Match, public input: Input, public settings: Settings) {
     const eng = match.engine;
-    this.vm = new Viewmodel(eng.vmCamera);
+    this.vm = new Viewmodel(eng.camera, eng.vmCamera);
     eng.vmScene.add(this.vm.root);
     this.vm.setLook(match.player.ident.look);
     this.vm.setCamo(CAMOS[match.cfg.camo] ?? null);
