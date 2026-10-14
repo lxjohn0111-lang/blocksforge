@@ -102,6 +102,8 @@ export class TutorialMatch extends Match {
       const d = this.dummies.find((x) => x.c === e.target);
       if (d?.key === 'dummy3' && this.time - aimedShot < 1.5) this.flags.add('ads_hit');
       if ((d?.key === 'far1' || d?.key === 'far2') && this.time - scopedShot < 1.5) this.flags.add('scope_hit');
+      // any blast that reaches the dummy behind the wall teaches the lesson
+      if (d?.key === 'nadeDummy' && e.kind === 'explosion') this.flags.add('nade');
     });
   }
 

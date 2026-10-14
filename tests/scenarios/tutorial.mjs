@@ -124,9 +124,19 @@ export default async function (page, h) {
   await h.eval(() => {
     const s = __t.st().nade;
     __t.walkTo(40, 52, 0.8, 12); __t.walkTo(s.x, s.z, 0.6, 30); __t.sim(0.3);
-    for (let k = 0; k < 4 && window.__bf.match.step.id === 'grenade'; k++) {
-      const d = __t.st().nadeDummy; __t.aimAt(d.x, d.y + 6 + k, d.z);
-      __t.press('KeyG'); __t.sim(0.5); __t.release('KeyG'); __t.sim(3.5);
+    const m = window.__bf.match; const p = m.player;
+    for (let k = 0; k < 4 && m.step.id === 'grenade'; k++) {
+      // use the arc preview like a player would: pick the pitch whose predicted landing is nearest
+      const d = __t.st().nadeDummy; let best = null;
+      for (const hold of [0.25, 0.4, 0.55, 0.7])
+        for (let pt = 0.05; pt < 1.3; pt += 0.05) {
+          __t.aimAt(d.x, d.y, d.z); p.pitch = pt;
+          const arc = m.predictArc(p, hold); const end = arc[arc.length - 1];
+          const err = Math.hypot(end.x - d.x, end.z - d.z) + Math.abs(end.y - d.y) * 0.5;
+          if (!best || err < best.err) best = { pt, hold, err };
+        }
+      __t.aimAt(d.x, d.y, d.z); p.pitch = best.pt + (k ? (k % 2 ? 0.05 : -0.05) : 0);
+      __t.press('KeyG'); __t.sim(best.hold); __t.release('KeyG'); __t.sim(3.5);
     }
   });
   await log('after grenade');

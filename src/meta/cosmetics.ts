@@ -56,7 +56,7 @@ export const BANNERS: Record<string, { name: string; css: string; rarity: Rarity
   stone: { name: 'Bedrock', css: 'linear-gradient(135deg,#2a2d33,#3a3f47)', rarity: 'common' },
   meadow: { name: 'Meadow', css: 'linear-gradient(135deg,#2f5a2a,#6a9a3a)', rarity: 'common' },
   tide: { name: 'Tide', css: 'linear-gradient(135deg,#123a5a,#2a8ab0)', rarity: 'rare' },
-  ember: { name: 'Ember', css: 'linear-gradient(135deg,#3a0e08,#c2401a 70%,#ff9a3a)', rarity: 'rare' },
+  ember: { name: 'Ember Glow', css: 'linear-gradient(135deg,#3a0e08,#c2401a 70%,#ff9a3a)', rarity: 'rare' },
   dusk: { name: 'Dusk', css: 'linear-gradient(135deg,#2a1a3a,#8a3a5a 60%,#f2a05a)', rarity: 'rare' },
   forest: { name: 'Canopy', css: 'linear-gradient(135deg,#0e2a1a,#2a5a3a)', rarity: 'common' },
   circuit: { name: 'Circuit', css: 'repeating-linear-gradient(90deg,#0a1a14 0 10px,#123a2a 10px 12px),linear-gradient(#0a1a14,#0a1a14)', rarity: 'epic' },

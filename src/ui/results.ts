@@ -4,7 +4,7 @@
 
 import { h, fmt } from './dom';
 import { ICON, rankEmblem, avatarCanvas } from './icons';
-import { showReveal } from './menu';
+import { showReveal, clearReveals } from './menu';
 import type { MatchResult } from '../game/match';
 import type { ResultSummary, Reward } from '../meta/meta';
 import { rankOf, TIERS } from '../meta/ranks';
@@ -36,8 +36,8 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
     h('div', { class: 'res-head' },
       h('div', null, h('div', { class: 'label' }, r.ranked ? 'Ranked match' : r.mode === 'tutorial' ? 'Tutorial' : 'Casual match'), h('div', { class: 'res-title ' + cls }, title), h('div', { class: 'dim', style: { marginTop: '8px', letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: '13px' } }, sub)),
       h('div', { class: 'row' },
-        r.mode !== 'tutorial' ? h('button', { class: 'btn big primary', onclick: () => { root.remove(); cb.again(); } }, h('span', { html: ICON.play(16) }), 'Play again') : null,
-        h('button', { class: 'btn big', onclick: () => { root.remove(); cb.menu(); } }, 'Main menu'))),
+        r.mode !== 'tutorial' ? h('button', { class: 'btn big primary', onclick: () => { clearReveals(); root.remove(); cb.again(); } }, h('span', { html: ICON.play(16) }), 'Play again') : null,
+        h('button', { class: 'btn big', onclick: () => { clearReveals(); root.remove(); cb.menu(); } }, 'Main menu'))),
   );
   const grid = h('div', { class: 'res-grid' });
   wrap.appendChild(grid);
@@ -189,7 +189,7 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
     setTimeout(() => {
       const rewards: Reward[] = s.levelUps.flatMap((u) => u.rewards);
       showReveal(parent, 'Level up', `Level ${s.levelAfter}`, rewards);
-    }, 900 + s.levelUps.length * 700 + (s.rp?.promoted ? 3000 : 0));
+    }, 900 + s.levelUps.length * 700);
   }
   void avatarCanvas;
   return root;

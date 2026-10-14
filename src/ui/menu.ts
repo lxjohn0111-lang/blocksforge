@@ -75,6 +75,31 @@ export function rewardArt(rw: Reward | { id?: string; kind: string; amount?: num
   return h('div', null, '?');
 }
 
+// Reveals (rewards, promotions, level-ups) play one at a time: each waits for the previous
+// Continue instead of stacking on top of it.
+const revealQueue: { box: HTMLElement; parent: HTMLElement }[] = [];
+let revealActive: HTMLElement | null = null;
+
+function pumpReveals() {
+  if (revealActive?.isConnected) return;
+  revealActive = null;
+  while (revealQueue.length) {
+    const next = revealQueue.shift()!;
+    if (!next.parent.isConnected) continue;
+    next.parent.appendChild(next.box);
+    revealActive = next.box;
+    audio.ui('reward', 0.9);
+    return;
+  }
+}
+
+/** Drop pending and visible reveals (when the screen that queued them closes). */
+export function clearReveals() {
+  revealQueue.length = 0;
+  revealActive?.remove();
+  revealActive = null;
+}
+
 export function showReveal(parent: HTMLElement, kicker: string, title: string, rewards: Reward[], onDone?: () => void, extra?: HTMLElement) {
   const box = h('div', { class: 'reveal' }, h('div', { class: 'rays' }), h('div', { class: 'kicker' }, kicker), h('div', { class: 'big' }, title));
   if (extra) box.appendChild(extra);
@@ -84,10 +109,10 @@ export function showReveal(parent: HTMLElement, kicker: string, title: string, r
     items.appendChild(card);
   });
   if (rewards.length) box.appendChild(items);
-  const btn = h('button', { class: 'btn primary big', onclick: () => { audio.ui('click'); box.remove(); onDone?.(); } }, 'Continue');
+  const btn = h('button', { class: 'btn primary big', onclick: () => { audio.ui('click'); box.remove(); onDone?.(); pumpReveals(); } }, 'Continue');
   box.appendChild(btn);
-  parent.appendChild(box);
-  audio.ui('reward', 0.9);
+  revealQueue.push({ box, parent });
+  pumpReveals();
   return box;
 }
 
@@ -461,7 +486,7 @@ export class Menu {
     const upd = () => (cd.textContent = `Rotates in ${fmtDuration(nx - Date.now())}`);
     upd();
     this.timers.push(upd);
-    page.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between' } }, h('div', null, h('div', { class: 'h1' }, 'Armory'), h('div', { class: 'dim', style: { marginTop: '6px' } }, 'Daily rotating cosmetics, bought only with Forge Coins earned in play. No real-money purchases exist in BlockForge.')), cd));
+    page.appendChild(h('div', { class: 'row panel', style: { justifyContent: 'space-between', padding: '16px 20px' } }, h('div', null, h('div', { class: 'h1' }, 'Armory'), h('div', { class: 'dim', style: { marginTop: '6px' } }, 'Daily rotating cosmetics, bought only with Forge Coins earned in play. No real-money purchases exist in BlockForge.')), cd));
     const grid = h('div', { class: 'items', style: { gridTemplateColumns: 'repeat(3, 1fr)', alignContent: 'start' } });
     for (const c of meta.shopItems()) {
       const own = meta.owns(c.id);

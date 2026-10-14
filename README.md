@@ -57,6 +57,19 @@ BlockForge is designed to feel like an online shooter, but there are no real pla
 
 Your profile, settings and the AI competitors' records are saved in `localStorage` on your device. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
 
+## Testing
+
+`npm run test:e2e` drives the production bundle, so run `npm run build` first. The test starts its own preview server and uses headless Chromium. It boots the game, plays fast-forwarded slices of Battle Royale, Team Deathmatch and the tutorial, finishes each match through the results screen, and checks that progress survives a reload.
+
+`tests/scenarios/` holds longer scripted sessions that also save screenshots to `tests/screens/`. Run them with `node tests/drive.mjs tests/scenarios/<name>.mjs` against `npm run preview`:
+
+- `brfull`: a full ranked Battle Royale, logging every elimination.
+- `tdm`: a full Team Deathmatch. Set `TDM_MAP` to choose the arena.
+- `tutorial`: plays all 14 training steps through the real input layer.
+- `ranked`: promotion, demotion, the ladder and a season rollover.
+- `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
+- Diagnostics: `vm`, `build` and `perf`.
+
 ## Project layout
 
 ```
