@@ -68,7 +68,7 @@ Your profile, settings and the AI competitors' records are saved in `localStorag
 - `tutorial`: plays all 14 training steps through the real input layer.
 - `ranked`: promotion, demotion, the ladder and a season rollover.
 - `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
-- Diagnostics: `vm`, `build` and `perf`.
+- Diagnostics: `vm` (weapon viewmodels at the hip and aiming down sights), `build` (placement onto the training ledge), `brearly` (landing spread, bot accuracy and early eliminations), `perf` (simulation cost and a CPU profile) and `mem` (geometry and memory across modes).
 
 ## Project layout
 

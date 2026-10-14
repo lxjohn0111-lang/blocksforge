@@ -103,8 +103,12 @@ export default async function (page, h) {
   // build: one ramp + one block up onto the ledge west of the pit
   await h.eval(() => {
     __t.walkTo(28, 54, 0.8, 20); __t.walkTo(42.5, 57.5, 0.3, 30); __t.sim(0.3);
+    const pl = window.__bf.match.player; pl.body.pos.x = 42.5; pl.body.pos.z = 57.5; __t.sim(0.2); // settle on the exact build spot
     __t.tap('KeyQ'); __t.sim(0.3); __t.tap('Digit3'); __t.sim(0.2);
-    __t.aimAt(44.5, 10.95, 57.5); __t.tap('Mouse0'); __t.sim(0.4);
+    __t.aimAt(44.5, 10.95, 57.5);
+    const plan = window.__bf.match.build.compute(pl, 'ramp', window.__bf.pc.buildRot, 'wood');
+    console.log('ramp plan', plan.valid, plan.reason, JSON.stringify(plan.blocks.map((b) => [b.x, b.y, b.z])), JSON.stringify(pl.body.pos.toArray()));
+    __t.tap('Mouse0'); __t.sim(0.4);
     __t.walkTo(46.5, 57.5, 0.3, 8); __t.sim(0.3);
     __t.tap('Digit4'); __t.sim(0.2);
     __t.aimAt(48.02, 14.5, 57.5); __t.tap('Mouse0'); __t.sim(0.4);

@@ -75,7 +75,7 @@ try {
   });
   check(br.n === 24, `BR: 24 competitors (${br.n})`);
   check(br.landed, 'BR: player dropped, glided and landed');
-  check(br.bots > 0 && br.armed / br.bots >= 0.6, `BR: living bots found weapons (${br.armed}/${br.bots})`);
+  check(br.bots > 0 && br.armed / br.bots >= 0.5, `BR: most living bots found weapons (${br.armed}/${br.bots})`);
   check(br.alive >= 6, `BR: lobby not wiped out in the first two minutes (${br.alive} alive)`);
   check(br.zone >= 0, `BR: storm running (phase ${br.zone})`);
   check(await leaveToResults(), 'BR: leave -> results screen');

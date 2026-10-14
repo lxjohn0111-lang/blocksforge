@@ -54,6 +54,9 @@ export class BotBrain {
   private coverUntil = 0;
   private lootItem: WorldItem | null = null;
   private lootChest: { x: number; y: number; z: number } | null = null;
+  /** loot this bot gave up on (unreachable roof, sealed room...) */
+  private lootIgnore = new Set<object>();
+  private lootSince = 0;
   private harvestBlock: { x: number; y: number; z: number } | null = null;
   private threat: THREE.Vector3 | null = null;
   private threatTime = -100;
@@ -228,6 +231,8 @@ export class BotBrain {
     else if (this.targetVisible && tgt && hasGun && !earlyPassive) this.state = 'fight';
     else if (tgt && tgt.alive && this.now - this.lastSeenTime < 5 + this.p.aggression * 6 && hasGun && !lowHp && !earlyPassive) this.state = 'chase';
     else if (lowHp && this.canHeal() && !this.targetVisible) this.state = 'heal';
+    // empty-handed: grab a weapon nearby before rotating, unless the storm is already here
+    else if (m.cfg.mode === 'br' && !hasGun && !(zone && Math.hypot(c.body.pos.x - zone.cx, c.body.pos.z - zone.cz) > zone.r - 8) && this.findLoot(18)) this.state = 'loot';
     else if (zone && this.zoneUrgent(zone)) this.state = 'rotate';
     else if (m.cfg.mode === 'br' && this.needsLoot()) this.state = 'loot';
     else if (this.investigatePos && hasGun && this.p.aggression > 0.3) this.state = 'investigate';
@@ -513,7 +518,7 @@ export class BotBrain {
     let bestS = 0;
     const p = c.body.pos;
     for (const it of m.items) {
-      if (it.taken || !it.resting) continue;
+      if (it.taken || !it.resting || this.lootIgnore.has(it)) continue;
       const d = it.pos.distanceTo(p);
       if (d > radius) continue;
       const v = this.itemValue(it.spec);
@@ -526,7 +531,7 @@ export class BotBrain {
       }
     }
     for (const ch of m.map.chests) {
-      if (m.world.get(ch.x, ch.y, ch.z) !== B.CHEST) continue;
+      if (this.lootIgnore.has(ch) || m.world.get(ch.x, ch.y, ch.z) !== B.CHEST) continue;
       const pos = new THREE.Vector3(ch.x + 0.5, ch.y, ch.z + 0.5);
       const d = pos.distanceTo(p);
       if (d > radius) continue;
@@ -549,11 +554,21 @@ export class BotBrain {
       if (f) {
         this.lootItem = f.item ?? null;
         this.lootChest = f.chest ?? null;
+        this.lootSince = this.now;
       } else {
         // wander toward the nearest structure-ish area
         if (!this.goal || this.goal.distanceTo(c.body.pos) < 4) this.setGoal(this.randomNearby(40));
         return;
       }
+    }
+    // can't get to it in reasonable time: forget it and look elsewhere
+    if (this.now - this.lootSince > 12) {
+      this.lootIgnore.add((this.lootItem ?? this.lootChest)!);
+      this.lootItem = null;
+      this.lootChest = null;
+      this.goal = null;
+      this.path = [];
+      return;
     }
     const pos = this.lootItem ? this.lootItem.pos : new THREE.Vector3(this.lootChest!.x + 0.5, this.lootChest!.y, this.lootChest!.z + 0.5);
     const d = Math.hypot(pos.x - c.body.pos.x, pos.z - c.body.pos.z);
