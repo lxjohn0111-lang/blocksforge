@@ -17,6 +17,10 @@ export class Input {
   onLockChange: ((locked: boolean) => void) | null = null;
   onEscape: (() => void) | null = null;
   private ignoreClickUntil = 0;
+  /** pointer lock refused by this page's host (some embedded views): steer with plain mouse movement */
+  private fallback = false;
+  private lastUnlock = -1e9;
+  private requestedWithGesture = false;
 
   constructor(private canvas: HTMLElement, public settings: Settings) {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -45,11 +49,20 @@ export class Input {
       if (document.hidden) this.clearAll();
     });
     document.addEventListener('pointerlockchange', () => {
+      if (this.fallback) return;
       const was = this.locked;
       this.locked = document.pointerLockElement === this.canvas;
-      if (!this.locked) this.clearAll();
-      else this.ignoreClickUntil = performance.now() + 120;
+      if (!this.locked) {
+        this.clearAll();
+        this.lastUnlock = performance.now();
+      } else this.ignoreClickUntil = performance.now() + 120;
       if (was !== this.locked) this.onLockChange?.(this.locked);
+    });
+    // Chrome refuses a re-lock for about a second after Esc; any other refusal means the host
+    // doesn't allow pointer lock at all, so switch to cursor steering instead of a dead camera
+    // (a request made without a click is refused by every browser, so only a refused click counts)
+    document.addEventListener('pointerlockerror', () => {
+      if (this.requestedWithGesture && performance.now() - this.lastUnlock > 2500) this.enterFallback();
     });
     window.addEventListener('contextmenu', (e) => {
       if (this.locked) e.preventDefault();
@@ -58,6 +71,13 @@ export class Input {
 
   requestLock() {
     if (this.locked) return;
+    const el = this.canvas as HTMLElement & { requestPointerLock?: unknown };
+    if (this.fallback || typeof el.requestPointerLock !== 'function') {
+      this.enterFallback();
+      return;
+    }
+    const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+    this.requestedWithGesture = ua ? ua.isActive : false;
     try {
       const p = (this.canvas as any).requestPointerLock?.({ unadjustedMovement: true });
       if (p && typeof p.catch === 'function') p.catch(() => (this.canvas as any).requestPointerLock?.());
@@ -71,7 +91,31 @@ export class Input {
   }
 
   exitLock() {
+    if (this.fallback) {
+      this.setFallbackLocked(false);
+      return;
+    }
     if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  /** true when the camera is steered by the visible cursor because pointer lock is unavailable */
+  get cursorSteering() {
+    return this.fallback;
+  }
+
+  private enterFallback() {
+    this.fallback = true;
+    this.setFallbackLocked(true);
+  }
+
+  private setFallbackLocked(v: boolean) {
+    const was = this.locked;
+    this.locked = v;
+    if (!v) {
+      this.clearAll();
+      this.lastUnlock = performance.now();
+    } else this.ignoreClickUntil = performance.now() + 120;
+    if (was !== v) this.onLockChange?.(v);
   }
 
   clearAll() {
@@ -92,7 +136,9 @@ export class Input {
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
     if (e.code === 'Escape') {
-      if (isDown) this.onEscape?.();
+      // cursor steering has no browser-managed lock to drop, so Esc releases it here (which pauses)
+      if (isDown && this.fallback && this.locked) this.setFallbackLocked(false);
+      else if (isDown) this.onEscape?.();
       return;
     }
     if (e.code === 'Tab' || e.code === 'Space' || (this.locked && (e.ctrlKey || e.code.startsWith('Digit')))) e.preventDefault();

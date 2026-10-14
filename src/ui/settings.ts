@@ -129,13 +129,23 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
       main.appendChild(p('BlockForge is a single-player voxel shooter. Every other participant — teammates, opponents and everyone on the ladder — is an AI player with a persistent identity, rank and play style. There are no real players, servers, accounts or chat.'));
       main.appendChild(p('Ranked points, seasons, daily quests and events run locally on your device clock. The ladder compares you with the AI competitor profiles only; it is not a global ranking.'));
       main.appendChild(p('All art, textures, models, sounds and music are generated procedurally by the game. Cosmetics are earned through play and never affect gameplay. There are no purchases.'));
-      main.appendChild(h('div', { class: 'setrow' }, h('div', null, 'Reset progress', h('div', { class: 'd' }, 'Erase level, coins, unlocks, rank and history on this device.')), h('button', { class: 'btn danger', style: { justifySelf: 'end' }, onclick: () => {
-        if (confirm('Erase all BlockForge progress on this device? This cannot be undone.')) {
-          resetProfile();
-          resetPool();
-          location.reload();
+      // two-step confirm in the page itself (browser confirm dialogs are blocked in embedded frames)
+      let armed = false;
+      const resetBtn: HTMLButtonElement = h('button', { class: 'btn danger', style: { justifySelf: 'end' }, onclick: () => {
+        if (!armed) {
+          armed = true;
+          resetBtn.lastChild!.textContent = 'Erase everything';
+          window.setTimeout(() => {
+            armed = false;
+            if (resetBtn.isConnected) resetBtn.lastChild!.textContent = 'Reset';
+          }, 4000);
+          return;
         }
-      } }, h('span', { html: ICON.close(12) }), 'Reset')));
+        resetProfile();
+        resetPool();
+        location.reload();
+      } }, h('span', { html: ICON.close(12) }), 'Reset') as HTMLButtonElement;
+      main.appendChild(h('div', { class: 'setrow' }, h('div', null, 'Reset progress', h('div', { class: 'd' }, 'Erase level, coins, unlocks, rank and history on this device. Click twice to confirm; this cannot be undone.')), resetBtn));
     }
   };
   render();
