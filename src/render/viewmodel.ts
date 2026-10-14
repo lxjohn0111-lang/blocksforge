@@ -565,8 +565,7 @@ export class Viewmodel {
     const dir = hand.clone().sub(shoulder);
     const len = dir.length();
     arm.position.copy(shoulder);
-    arm.lookAt(hand.clone().applyMatrix4(this.root.matrixWorld));
-    // lookAt for non-root objects uses world space; we compute orientation in root space instead
+    // orientation computed in root space (Object3D.lookAt would use world space)
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir.clone().normalize());
     arm.quaternion.copy(q);
     sleeve.scale.set(0.085, 0.085, Math.max(0.05, len - 0.04));

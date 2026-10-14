@@ -38,6 +38,7 @@ export class BotBrain {
   private pathPending = false;
   private repathAt = 0;
   private stuckT = 0;
+  private hopFails = 0;
   private stuckCount = 0;
   private lastPos = new THREE.Vector3();
   private thinkT = Math.random() * 0.3;
@@ -393,9 +394,9 @@ export class BotBrain {
     c.throwSel = 'frag';
     if (this.match.startThrow(c)) {
       this.lastNade = this.now;
-      setTimeout(() => {
+      this.match.after(0.35, () => {
         if (c.alive && c.throwHold >= 0) this.match.releaseThrow(c, vel.add(new THREE.Vector3((Math.random() - 0.5) * (1 - this.skill) * 3, 0, (Math.random() - 0.5) * (1 - this.skill) * 3)));
-      }, 350);
+      });
     }
   }
 
@@ -703,9 +704,12 @@ export class BotBrain {
     let target = this.goal;
     const d = target.distanceTo(c.body.pos);
     // long trips: go in hops
-    if (d > 45) {
+    const hopping = d > 45;
+    if (hopping) {
       const dir = target.clone().sub(c.body.pos).setY(0).normalize();
-      const hop = c.body.pos.clone().addScaledVector(dir, 38);
+      // after failed hops fan out left/right and shorten the hop to find a way around cliffs and water
+      if (this.hopFails) dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), (this.hopFails % 2 ? 1 : -1) * Math.ceil(this.hopFails / 2) * 0.55);
+      const hop = c.body.pos.clone().addScaledVector(dir, this.hopFails > 2 ? 22 : 38);
       hop.y = this.match.world.groundY(hop.x, hop.z, Math.floor(c.body.pos.y + 20)) + 1;
       target = hop;
     }
@@ -715,6 +719,7 @@ export class BotBrain {
     this.match.nav.request(c.body.pos, target, (r) => {
       this.pathPending = false;
       this.path = r ? r.points : [];
+      if (hopping) this.hopFails = r ? 0 : (this.hopFails + 1) % 7;
       this.pathI = 0;
       this.repathAt = this.now + 4 + Math.random() * 2;
     }, 2200, avoid);
@@ -859,6 +864,14 @@ export class BotBrain {
     const dx = target.x - e.x, dy = target.y - e.y, dz = target.z - e.z;
     let yaw = Math.atan2(-dx, -dz) + this.aimErr.x;
     let pitch = Math.atan2(dy, Math.hypot(dx, dz)) + this.aimErr.y;
+    // residual tracking wobble never fully settles (hand tremor, tracking lag on
+    // strafing targets) — better bots wobble less, nobody is a laser
+    const tgt = this.state === 'fight' ? this.target : null;
+    const tv = tgt ? Math.hypot(tgt.body.vel.x, tgt.body.vel.z) : 0;
+    const wob = (0.75 + (1 - this.skill) * 1.5) * DEG * (1 + Math.min(1.4, tv / 5)) * (c.ads > 0.5 ? 0.7 : 1);
+    const ph = this.c.id * 1.37;
+    yaw += (Math.sin(this.now * 2.3 + ph) * 0.6 + Math.sin(this.now * 5.3 + ph * 2.1) * 0.4) * wob;
+    pitch += (Math.sin(this.now * 1.9 + ph * 1.6) * 0.6 + Math.sin(this.now * 4.4 + ph) * 0.4) * wob * 0.6;
     // recoil compensation is imperfect
     pitch -= c.recoilPitch * (0.25 + this.skill * 0.55);
     yaw -= c.recoilYaw * (0.2 + this.skill * 0.5);

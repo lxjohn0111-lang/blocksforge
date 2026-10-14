@@ -148,7 +148,7 @@ class BillboardSystem {
   aPosSize: THREE.InstancedBufferAttribute;
   aColor: THREE.InstancedBufferAttribute;
   aParams: THREE.InstancedBufferAttribute;
-  constructor(public cap: number, additive: boolean) {
+  constructor(public cap: number, public additive: boolean) {
     const base = new THREE.PlaneGeometry(1, 1);
     this.geo = new THREE.InstancedBufferGeometry();
     this.geo.index = base.index;
@@ -197,7 +197,7 @@ class BillboardSystem {
     }
     this.items = keep;
     // sort alpha back-to-front for smoke
-    if (this.mesh.material && !(this.mesh.material as THREE.ShaderMaterial).blending.toString().includes('Add')) {
+    if (!this.additive) {
       keep.sort((a, b) => b.p.distanceToSquared(camPos) - a.p.distanceToSquared(camPos));
     }
     const n = keep.length;

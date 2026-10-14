@@ -169,6 +169,8 @@ export class App {
           const lo = ['assault', 'cqb', 'marksman', 'heavy', 'recon', 'demo'][parseInt(m[1], 10) - 1];
           this.match.playerLoadout = lo;
           this.meta.p.lastLoadout = lo;
+          this.hud.refreshLoadouts?.();
+          audio.ui('click', 0.5);
         }
       }
       if (e.repeat) return;

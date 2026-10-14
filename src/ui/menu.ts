@@ -170,7 +170,7 @@ export class Menu {
     const left = h('div', { class: 'menu-left' });
     const modes: [PlaySelection['mode'], string, string, string[]][] = [
       ['br', 'Battle Royale', '24 players drop onto Ashcrown Isle. Loot, build, craft — outlast the storm.', ['24 players', 'Building', 'Crafting', 'Storm']],
-      ['tdm', 'Team Deathmatch', '6v6 on handcrafted arenas. First team to 40 eliminations wins.', ['6 v 6', 'Loadouts', 'Respawns', '7 min']],
+      ['tdm', 'Team Deathmatch', '6v6 on handcrafted arenas. First team to 50 eliminations wins.', ['6 v 6', 'Loadouts', 'Respawns', '8 min']],
       ['tutorial', 'Training Grounds', 'Learn aiming, looting, building and crafting in a guided course.', p.tutorialDone ? ['Completed', 'Practice'] : ['Recommended', '+300 coins']],
     ];
     for (const [id, title, sub, tags] of modes) {

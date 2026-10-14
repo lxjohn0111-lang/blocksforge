@@ -88,11 +88,20 @@ export class TutorialMatch extends Match {
     this.events.on('craft', ({ c }) => {
       if (c === this.player) this.flags.add('crafted');
     });
+    // judge "aimed" when the shot leaves the barrel: bolt-actions drop out of the
+    // scope to cycle before a projectile reaches a distant target
+    let aimedShot = -9;
+    let scopedShot = -9;
+    this.events.on('fire', ({ c, def }) => {
+      if (c !== this.player) return;
+      if (c.ads > 0.55) aimedShot = this.time;
+      if (def.id === 'longshot' && c.ads > 0.85) scopedShot = this.time;
+    });
     this.events.on('damage', (e) => {
       if (e.attacker !== this.player) return;
       const d = this.dummies.find((x) => x.c === e.target);
-      if (d?.key === 'dummy3' && this.player.ads > 0.7) this.flags.add('ads_hit');
-      if ((d?.key === 'far1' || d?.key === 'far2') && this.player.gun?.def.id === 'longshot' && this.player.ads > 0.85) this.flags.add('scope_hit');
+      if (d?.key === 'dummy3' && this.time - aimedShot < 1.5) this.flags.add('ads_hit');
+      if ((d?.key === 'far1' || d?.key === 'far2') && this.time - scopedShot < 1.5) this.flags.add('scope_hit');
     });
   }
 
@@ -121,6 +130,17 @@ export class TutorialMatch extends Match {
     audio.ui('quest', 0.8);
     const id = this.step.id;
     const p = this.player;
+    if (id === 'scope') {
+      // chest loot is random: make sure a Longshot is always within reach for this step
+      const st = this.map.stations!;
+      const has = p.weapons.some((w) => w?.def.id === 'longshot') || this.items.some((it) => it.spec.kind === 'weapon' && it.spec.weapon === 'longshot');
+      if (!has) {
+        const at = new THREE.Vector3(st.range.x + 2, st.range.y + 0.5, st.range.z);
+        this.spawnItem({ kind: 'weapon', weapon: 'longshot' }, at, new THREE.Vector3(0, 3, 0));
+        this.events.emit('toast', { text: 'A Longshot was dropped at the firing line', kind: 'loot' });
+      }
+      if (p.ammo.heavy < 10) this.spawnItem({ kind: 'ammo', ammo: 'heavy', count: 20 }, new THREE.Vector3(st.range.x + 3, st.range.y + 0.5, st.range.z), new THREE.Vector3(0, 3, 0));
+    }
     if (id === 'harvest') this.switchSlotIfNeeded();
     if (id === 'craft') {
       p.addMat('cloth', 8);

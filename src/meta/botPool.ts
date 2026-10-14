@@ -7,7 +7,7 @@ import { RNG, hashString } from '../core/rng';
 import { randomLook } from '../render/characters';
 import { makePersonality, type Personality } from '../game/ai/personality';
 import type { Identity } from '../game/combatant';
-import { loadJSON, saveJSON } from '../core/storage';
+import { loadJSON, saveJSON, removeKey } from '../core/storage';
 import { CAMOS } from '../render/camos';
 
 export const POOL_SIZE = 420;
@@ -106,6 +106,11 @@ export function getPool(): PoolEntry[] {
     pool.push({ ident, baseSkill: skill, state: st });
   }
   return pool;
+}
+
+export function resetPool() {
+  removeKey(KEY);
+  pool = null;
 }
 
 export function savePool() {

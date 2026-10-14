@@ -199,7 +199,9 @@ export class PlayerController {
 
     // ---------------- slot selection
     const slotKeys: [string, SlotIndex][] = [['slot1', 0], ['slot2', 1], ['slot3', 2], ['slot4', 3], ['slot5', 4]];
-    for (const [a, sl] of slotKeys) if (inp.wasPressed(a as any)) m.switchSlot(p, sl);
+    // in build mode 1-4 pick the piece instead of a weapon slot (handled below)
+    const inBuild = p.slot === 6;
+    for (const [a, sl] of slotKeys) if (inp.wasPressed(a as any) && !(inBuild && sl <= 3)) m.switchSlot(p, sl);
     if (inp.wasPressed('tool') && m.harvestEnabled) m.switchSlot(p, p.slot === 5 ? p.lastGunSlot : 5);
     if (inp.wasPressed('build') && m.buildingEnabled) m.switchSlot(p, p.slot === 6 ? p.lastGunSlot : 6);
     const g = p.gun;

@@ -27,9 +27,9 @@ export const LOADOUTS: Loadout[] = [
 
 export class TDMMatch extends Match {
   scores: [number, number] = [0, 0];
-  scoreLimit = 40;
-  timeLimit = 420;
-  respawnDelay = 4;
+  scoreLimit = 50;
+  timeLimit = 480;
+  respawnDelay = 5;
   brains: BotBrain[] = [];
   playerLoadout = 'assault';
   private botLoadout = new Map<number, string>();

@@ -234,8 +234,21 @@ export class Match {
   }
 
   // =================================================================== update
+  private timers: { at: number; fn: () => void }[] = [];
+  /** run `fn` after `sec` seconds of game time (stays in sync with pauses, slow frames and fast-forward) */
+  after(sec: number, fn: () => void) {
+    this.timers.push({ at: this.time + sec, fn });
+  }
+
   update(dt: number) {
     this.time += dt;
+    if (this.timers.length) {
+      const due = this.timers.filter((t) => t.at <= this.time);
+      if (due.length) {
+        this.timers = this.timers.filter((t) => t.at > this.time);
+        for (const t of due) t.fn();
+      }
+    }
     for (const b of this.botBrains) if (b.c.alive) b.update(dt);
     for (const c of this.combatants) this.simulate(c, dt);
     this.updateProjectiles(dt);
@@ -349,7 +362,6 @@ export class Match {
         const fd = res.fallDist;
         if (fd > 4.8 && !c.body.inWater) this.damage(c, (fd - 4.8) * 7.5, { attacker: null, kind: 'fall', weapon: 'Fall' });
         if (fd > 1.2 && (c.isPlayer || this.near(c.body.pos, 25))) audio.play('land', { pos: c.isPlayer ? undefined : c.body.pos.clone(), vol: Math.min(1, fd / 6) * 0.7 });
-        if (c.isPlayer) this.events.emit('toast', { text: '', kind: 'info' });
       }
       // footsteps
       c.footDist += moved;
@@ -1135,11 +1147,11 @@ export class Match {
     // return to the previous slot after a short delay
     const back = c.quickThrowReturn;
     c.quickThrowReturn = null;
-    setTimeout(() => {
+    this.after(0.32, () => {
       if (!c.alive || c.slot !== 4) return;
       if (back !== null && back !== 4) this.switchSlot(c, back);
       else if (c.throws[c.throwSel] <= 0 && c.hasAnyGun()) this.switchSlot(c, c.lastGunSlot);
-    }, 320);
+    });
   }
 
   /** predicted grenade arc for UI */
@@ -1167,7 +1179,7 @@ export class Match {
     c.toolTimer = 0.45;
     this.events.emit('swing', { c });
     if (c.isPlayer || this.near(c.body.pos, 15)) audio.play('b_swing', { pos: c.isPlayer ? undefined : c.body.pos.clone(), vol: 0.5 });
-    setTimeout(() => this.toolHit(c), 170);
+    this.after(0.17, () => this.toolHit(c));
   }
 
   private toolHit(c: Combatant) {

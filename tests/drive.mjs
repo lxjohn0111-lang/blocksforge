@@ -36,7 +36,7 @@ const h = {
 };
 const mod = await import(path.resolve(scriptPath));
 try {
-  await page.goto('http://localhost:5173/');
+  await page.goto(process.env.BF_URL || 'http://localhost:4173/');
   await mod.default(page, h);
 } catch (e) {
   console.log('SCRIPT ERROR', e.message);

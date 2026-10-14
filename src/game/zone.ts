@@ -91,8 +91,8 @@ export class Zone {
     this.planNext();
   }
 
-  private planNext() {
-    const next = this.phase + 1;
+  /** plan the circle that phase `next` shrinks to */
+  private planNext(next = this.phase + 1) {
     if (next >= PHASES.length) return;
     const p = PHASES[next];
     const mapR = Math.min(this.world.sx, this.world.sz) * 0.5;
@@ -159,7 +159,7 @@ export class Zone {
         ev = 'phase_end';
         if (this.phase < PHASES.length) {
           this.dps = PHASES[this.phase].dps;
-          this.planNext();
+          this.planNext(this.phase);
         } else {
           this.closed = this.radius < 1;
           this.dps = 15;

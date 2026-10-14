@@ -88,7 +88,7 @@ export function buildHamlet(): MapData {
     // barracks shelter
     const bx = Math.min(mx(7), mx(10));
     mb.fill(bx, Y, 29, bx + 3, Y + 3, 29, B.DARK_PLANKS);
-    mb.fill(bx, Y + 3, 29, bx + 3, Y + 3, 33, B.WOOL_WHITE);
+    mb.fill(bx, Y + 3, 29, bx + 3, Y + 3, 33, flip ? B.WOOL_RED : B.WOOL_BLUE);
     mb.lampPost(mx(15), Y, 29);
     mb.lampPost(mx(15), Y, 42);
     mb.set(mx(8), Y, 41, B.CRATE);

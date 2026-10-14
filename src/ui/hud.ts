@@ -368,10 +368,10 @@ export class HUD {
       }
       if (!tdm) {
         const healCount = p.heals[p.healSel];
-        const hs = h('div', { class: 'slot small' + (p.slot === 3 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('slot4')), itemCanvas(p.healSel), h('span', { class: 'n' }, String(healCount)));
+        const hs = h('div', { class: 'slot small' + (p.slot === 3 ? ' on' : '') + (healCount ? '' : ' empty') }, h('span', { class: 'k' }, keyOf('slot4')), itemCanvas(p.healSel), h('span', { class: 'n' }, String(healCount)));
         S.appendChild(hs);
       }
-      const ts = h('div', { class: 'slot small' + (p.slot === 4 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
+      const ts = h('div', { class: 'slot small' + (p.slot === 4 ? ' on' : '') + (p.throws[p.throwSel] ? '' : ' empty') }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
       S.appendChild(ts);
       if (m.harvestEnabled) S.appendChild(h('div', { class: 'slot small' + (p.slot === 5 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('tool')), itemCanvas('pickaxe')));
       if (m.buildingEnabled) S.appendChild(h('div', { class: 'slot small' + (p.slot === 6 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('build')), itemCanvas('hammer')));
@@ -868,6 +868,9 @@ export class HUD {
     return h('div', { class: 'overlay', style: { background: 'rgba(6,8,11,0.45)' } }, h('div', { class: 'scoreboard panel' }, h('div', { class: 'teamhead' }, 'Players'), table(m.combatants.filter((c) => c.alive || c.stats.kills > 0).slice(0, 14))));
   }
 
+  /** re-render the TDM respawn loadout picker (after a hotkey choice) */
+  refreshLoadouts: (() => void) | null = null;
+
   showDeath() {
     const m = this.match;
     const p = m.player;
@@ -899,12 +902,15 @@ export class HUD {
         }
       };
       renderLo();
+      this.refreshLoadouts = renderLo;
       const el = h('div', { class: 'death', style: { background: 'linear-gradient(180deg, transparent 30%, rgba(10,14,24,0.7))' } },
         this.respawnEl,
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
         h('div', { class: 'label', style: { marginBottom: '8px' } }, 'Loadout for next spawn'),
+        h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, 'Press 1–6 to pick'),
         lo);
-      this.openOverlay('death', el);
+      // keep the pointer locked so the player is ready the moment they respawn
+      this.openOverlay('death', el, false);
     }
   }
 

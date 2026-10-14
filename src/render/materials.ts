@@ -209,7 +209,8 @@ void main() {
   bool below = uCamPos.y < vWorld.y && top;
   vec3 N = vec3(0.0, 1.0, 0.0);
   if (top) {
-    float strength = mix(1.4, 0.4, smoothstep(10.0, 120.0, dist));
+    // calmer normals at grazing angles keep reflections readable instead of noisy
+    float strength = mix(1.1, 0.35, smoothstep(10.0, 120.0, dist)) * mix(0.45, 1.0, smoothstep(0.05, 0.4, V.y));
     N = waterNormal(vWorld.xz, strength);
   } else if (vFace == 0) N = vec3(1,0,0);
   else if (vFace == 1) N = vec3(-1,0,0);
@@ -221,7 +222,9 @@ void main() {
   float fragDepth = -vViewPos.z;
   vec3 Nv = normalize((viewMatrix * vec4(N, 0.0)).xyz);
   // refraction
-  vec2 ruv = suv + Nv.xy * 0.035 * saturate(1.0 - dist / 80.0);
+  // distortion fades out in very shallow water so the bottom stays readable
+  float depth0 = max(texture(uScene, suv).a - fragDepth, 0.0);
+  vec2 ruv = suv + Nv.xy * 0.035 * saturate(1.0 - dist / 80.0) * saturate(depth0 * 0.5);
   vec4 sceneR = texture(uScene, ruv);
   if (sceneR.a < fragDepth) { ruv = suv; sceneR = texture(uScene, suv); }
   float waterDepth = max(sceneR.a - fragDepth, 0.0);
@@ -254,7 +257,8 @@ void main() {
     refl = mix(refl, (uAmbientSky * 1.2 + uLightColor * 0.35) * skyCurve, cd * 0.8);
   }
   if (uSSR > 0.5 && top) {
-    vec3 Rv = normalize(reflect(normalize(vViewPos), Nv));
+    vec3 Nflat = normalize((viewMatrix * vec4(normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.45)), 0.0)).xyz);
+    vec3 Rv = normalize(reflect(normalize(vViewPos), Nflat));
     vec3 p = vViewPos;
     float stepLen = 0.35 + fragDepth * 0.01;
     bool hit = false;
@@ -287,9 +291,8 @@ void main() {
       refl = mix(refl, sc, fade);
     }
   }
-  float NdotV = max(dot(N, V), 0.0);
+  float NdotV = max(dot(normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.5)), V), 0.0);
   float F = 0.02 + 0.98 * pow(1.0 - NdotV, 5.0);
-  F = mix(F, 1.0, 0.0);
   vec3 col = mix(refr, refl, F);
   // sun glint
   vec3 H = normalize(uLightDir + V);
@@ -297,10 +300,11 @@ void main() {
   col += uLightColor * spec * vis * 0.25;
   // shoreline foam
   if (top) {
-    float shore = 1.0 - smoothstep(0.0, 0.55, waterDepth);
-    float fn = texture(uNoiseTex, vWorld.xz * 0.35 + vec2(uTime * 0.05, -uTime * 0.04)).r;
-    float foam = shore * smoothstep(0.35, 0.65, fn + shore * 0.4);
-    col = mix(col, (ambient * 0.9 + sunL * 0.8) * 0.9, foam * 0.75);
+    // thin foam line where the surface meets the shore
+    float shore = 1.0 - smoothstep(0.0, 0.3, waterDepth);
+    float fn = texture(uNoiseTex, vWorld.xz * 0.5 + vec2(uTime * 0.05, -uTime * 0.04)).r;
+    float foam = shore * smoothstep(0.45, 0.7, fn + shore * 0.35);
+    col = mix(col, (ambient + sunL * 0.9) * 0.85, foam * 0.6);
   }
   col += pointLights(vWorld, N) * 0.3;
   col = applyFog(col, vWorld);

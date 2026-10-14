@@ -58,6 +58,7 @@ export class BRMatch extends Match {
   winner: Combatant | null = null;
   playerDeadResult: MatchResult | null = null;
   participants = 0;
+  private dropCounts: number[] = [];
   onPlayerJump: (() => void) | null = null;
 
   constructor(engine: Engine, map: MapData, cfg: MatchConfig) {
@@ -118,17 +119,25 @@ export class BRMatch extends Match {
     const targets = this.map.dropTargets;
     const s = this.ship;
     const len = s.from.distanceTo(s.to);
-    const weights = targets.map((t) => {
+    const weights = targets.map((t, i) => {
       const rel = new THREE.Vector3(t.x - s.from.x, 0, t.z - s.from.z);
       const along = rel.dot(s.dir);
       const off = Math.abs(rel.x * -s.dir.z + rel.z * s.dir.x);
       const reach = Math.exp(-Math.max(0, off - 45) / 25);
-      const hot = b.p.aggression > 0.6 ? t.weight * 1.4 : b.p.archetype === 'looter' ? 1 / (t.weight * 0.5 + 0.5) : 1;
-      return along > 0 && along < len ? reach * hot * t.weight : 0.001;
+      // aggressive players chase hot drops, looters avoid them
+      const pull = b.p.aggression > 0.6 ? t.weight : b.p.archetype === 'looter' ? 1 / Math.sqrt(t.weight) : Math.sqrt(t.weight);
+      // spread the lobby out: every competitor already heading somewhere makes it less attractive
+      const crowd = this.dropCounts[i] ?? 0;
+      const crowdPen = 1 / (1 + crowd * crowd * 0.8);
+      return (along > 0 && along < len ? reach : 0.02) * pull * crowdPen;
     });
     const t = this.rng.weighted(targets, weights);
-    const jx = t.x + (this.rng.next() - 0.5) * 30;
-    const jz = t.z + (this.rng.next() - 0.5) * 30;
+    const ti = targets.indexOf(t);
+    this.dropCounts[ti] = (this.dropCounts[ti] ?? 0) + 1;
+    const spread = 24 + this.rng.next() * 20;
+    const ja = this.rng.next() * Math.PI * 2;
+    const jx = t.x + Math.cos(ja) * spread * this.rng.next();
+    const jz = t.z + Math.sin(ja) * spread * this.rng.next();
     b.dropTarget = new THREE.Vector2(jx, jz);
     const rel = new THREE.Vector3(jx - s.from.x, 0, jz - s.from.z);
     const along = rel.dot(s.dir);
