@@ -129,13 +129,15 @@ export class BRMatch extends Match {
       const pull = b.p.aggression > 0.6 ? t.weight : b.p.archetype === 'looter' ? 1 / Math.sqrt(t.weight) : Math.sqrt(t.weight);
       // spread the lobby out: every competitor already heading somewhere makes it less attractive
       const crowd = this.dropCounts[i] ?? 0;
-      const crowdPen = 1 / (1 + crowd * crowd * 0.8);
+      const crowdPen = 1 / (1 + crowd * crowd * 1.6);
       return (along > 0 && along < len ? reach : 0.02) * pull * crowdPen;
     });
     const t = this.rng.weighted(targets, weights);
     const ti = targets.indexOf(t);
-    this.dropCounts[ti] = (this.dropCounts[ti] ?? 0) + 1;
-    const spread = 24 + this.rng.next() * 20;
+    const already = this.dropCounts[ti] ?? 0;
+    this.dropCounts[ti] = already + 1;
+    // later arrivals at a popular spot land on its outskirts
+    const spread = 24 + this.rng.next() * 20 + already * 14;
     const ja = this.rng.next() * Math.PI * 2;
     const jx = t.x + Math.cos(ja) * spread * this.rng.next();
     const jz = t.z + Math.sin(ja) * spread * this.rng.next();
@@ -203,7 +205,9 @@ export class BRMatch extends Match {
       }
     });
 
-    // zone
+    // zone: with few competitors left, holding phases pass faster so the endgame arrives sooner
+    const left = this.aliveCount;
+    this.zone.pace = left <= 3 ? 2.2 : left <= 6 ? 1.7 : left <= 10 ? 1.3 : 1;
     const ev = this.zone.update(dt);
     if (ev === 'shrink_start') {
       this.events.emit('announce', { title: 'Storm closing', sub: 'Move into the safe zone', kind: 'zone' });

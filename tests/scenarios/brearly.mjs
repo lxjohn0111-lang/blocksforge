@@ -17,7 +17,9 @@ export default async function (page, h) {
     const bots = m.brains.map((b) => b.c);
     const shots = bots.reduce((a, c) => a + c.stats.shots, 0), hits = bots.reduce((a, c) => a + c.stats.hits, 0);
     const skills = m.brains.map((b) => +b.skill.toFixed(2));
-    return { alive: m.aliveCount, targets, acc: +(hits / Math.max(1, shots)).toFixed(3), shots, hits, skills, kills };
+    const at80 = m.aliveCount;
+    bf.simulate(45);
+    return { alive: at80, alive125: m.aliveCount, targets, acc: +(hits / Math.max(1, shots)).toFixed(3), shots, hits, skills, kills };
   });
   console.log(JSON.stringify(out));
 }

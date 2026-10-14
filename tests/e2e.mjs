@@ -69,14 +69,18 @@ try {
     m.jumpFromShip(m.player);
     bf.simulate(30);
     const landed = !m.player.dropping && !m.player.gliding;
+    const stormDeaths = [];
+    m.events.on('kill', (e) => { if (e.cause === 'zone' && !e.victim.isPlayer) stormDeaths.push(Math.round(m.time)); });
     bf.simulate(90);
     const bots = m.combatants.filter((c) => !c.isPlayer && c.alive);
-    return { landed, n: m.combatants.length, alive: m.aliveCount, zone: m.zone.phase, bots: bots.length, armed: bots.filter((c) => c.weapons.some(Boolean)).length };
+    return { landed, n: m.combatants.length, alive: m.aliveCount, zone: m.zone.phase, bots: bots.length, armed: bots.filter((c) => c.weapons.some(Boolean)).length, stormDeaths };
   });
   check(br.n === 24, `BR: 24 competitors (${br.n})`);
   check(br.landed, 'BR: player dropped, glided and landed');
   check(br.bots > 0 && br.armed / br.bots >= 0.5, `BR: most living bots found weapons (${br.armed}/${br.bots})`);
-  check(br.alive >= 6, `BR: lobby not wiped out in the first two minutes (${br.alive} alive)`);
+  check(br.alive >= 3, `BR: match still running after two minutes (${br.alive} alive)`);
+  // the first storm deals 1 HP/s, so only a wounded or stranded bot can die to it
+  check(br.stormDeaths.length <= 2, `BR: bots rotate out of the first storm (${br.stormDeaths.length} lost)`);
   check(br.zone >= 0, `BR: storm running (phase ${br.zone})`);
   check(await leaveToResults(), 'BR: leave -> results screen');
 

@@ -18,7 +18,7 @@ You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with h
 
 ## Modes
 
-**Battle Royale (Ashcrown Isle).** 24 competitors ride an airship over a large handcrafted island and drop in. The island has meadows, forest, a snow-capped mountain range, desert mesas, a river delta, villages, a castle, a mine with tunnels, a lighthouse, a dam and other landmarks. Players loot weapons, ammo, armor, heals, grenades and materials from the ground and from supply chests. They harvest wood, stone and metal and use them to build walls, floors, ramps and blocks, and they craft at any time. A storm closes in over six phases, and the last player alive wins.
+**Battle Royale (Ashcrown Isle).** 24 competitors ride an airship over a large handcrafted island and drop in. The island has meadows, forest, a snow-capped mountain range, desert mesas, a river delta, villages, a castle, a mine with tunnels, a lighthouse, a dam and other landmarks. Players loot weapons, ammo, armor, heals, grenades and materials from the ground and from supply chests. They harvest wood, stone and metal and use them to build walls, floors, ramps and blocks, and they craft at any time. A storm closes in over six phases, and its waiting periods get shorter once only a few players remain. The last player alive wins.
 
 **Team Deathmatch.** 6v6 on three purpose-built arenas: *Hamlet* (sunset village), *Quarry* (noon, a terraced pit with a crane) and *Frostbite* (a snowy night outpost). You choose a loadout and respawn after each death. Spawn protection and restricted enemy spawn zones stop spawn camping. The first team to 50 kills wins, or the team ahead when the 8-minute clock runs out. Building is disabled in this mode.
 

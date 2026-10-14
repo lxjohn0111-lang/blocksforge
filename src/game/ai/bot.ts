@@ -57,6 +57,7 @@ export class BotBrain {
   /** loot this bot gave up on (unreachable roof, sealed room...) */
   private lootIgnore = new Set<object>();
   private lootSince = 0;
+  private retreatUntil = -100;
   private harvestBlock: { x: number; y: number; z: number } | null = null;
   private threat: THREE.Vector3 | null = null;
   private threatTime = -100;
@@ -223,11 +224,14 @@ export class BotBrain {
     const provoked = !!tgt && c.lastAttacker === tgt.id && this.now - c.lastHurt < 6;
     const tgtArmed = !!tgt && tgt.weapons.some((w) => !!w && (w.mag > 0 || tgt.ammo[w.def.ammo] > 0));
     // opening minute of a BR: gear up first, don't start long-range fights unless shot at
-    const earlyPassive = m.cfg.mode === 'br' && m.time < 80 && !provoked && tgtD > 16 + this.p.aggression * 30;
+    const earlyPassive = m.cfg.mode === 'br' && (m.time < 80 || (m.time < 150 && this.gearScore() < 6)) && !provoked && tgtD > 16 + this.p.aggression * 30;
+    // badly hurt with a fight going on: cautious players break line of sight and patch up
+    if (hasGun && this.targetVisible && tgt && c.hp + c.armor < 30 && tgtD > 7 && this.now > this.retreatUntil + 6 && Math.random() < this.p.caution * 0.8) this.retreatUntil = this.now + 3.5;
+    const retreating = this.now < this.retreatUntil && !!tgt;
     // empty-handed and spotted by an armed enemy: get out of sight instead of looting toward them
     const flee = !hasGun && this.targetVisible && tgtArmed && tgtD < 35;
 
-    if (flee) this.state = 'evade';
+    if (flee || retreating) this.state = 'evade';
     else if (this.targetVisible && tgt && hasGun && !earlyPassive) this.state = 'fight';
     else if (tgt && tgt.alive && this.now - this.lastSeenTime < 5 + this.p.aggression * 6 && hasGun && !lowHp && !earlyPassive) this.state = 'chase';
     else if (lowHp && this.canHeal() && !this.targetVisible) this.state = 'heal';
@@ -943,7 +947,9 @@ export class BotBrain {
     // close up, tracking error is better described as a distance at the target than an angle:
     // people over/under-correct by a body width when someone strafes at arm's length
     const tdist = tgt ? Math.max(1, tgt.body.pos.distanceTo(c.body.pos)) : 30;
-    const linWob = Math.atan2(0.24 + (1 - this.skill) * 0.48, tdist);
+    // and the first moment after snapping onto someone is the shakiest
+    const snap = 1 + 1.2 * Math.exp(-Math.max(0, this.now - this.spottedAt) * 1.6);
+    const linWob = Math.atan2((0.32 + (1 - this.skill) * 0.55) * snap, tdist);
     const wob = Math.max(angWob, linWob) * (1 + Math.min(1.4, tv / 5)) * (c.ads > 0.5 ? 0.75 : 1);
     const ph = this.c.id * 1.37;
     yaw += (Math.sin(this.now * 2.3 + ph) * 0.6 + Math.sin(this.now * 5.3 + ph * 2.1) * 0.4) * wob;

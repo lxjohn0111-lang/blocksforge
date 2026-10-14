@@ -63,6 +63,8 @@ export class Zone {
   dps = 0;
   mesh: THREE.Mesh;
   private rng: RNG;
+  /** how fast holding phases tick (BR speeds them up when few competitors remain) */
+  pace = 1;
   /** true while the final circle has fully closed */
   closed = false;
 
@@ -124,7 +126,7 @@ export class Zone {
   get countdown() {
     if (this.phase >= PHASES.length) return 0;
     const p = PHASES[Math.max(0, this.phase)];
-    return this.shrinking ? p.shrink - this.timer : (this.phase < 0 ? PHASES[0].wait : p.wait) - this.timer;
+    return this.shrinking ? p.shrink - this.timer : ((this.phase < 0 ? PHASES[0].wait : p.wait) - this.timer) / this.pace;
   }
 
   start() {
@@ -141,7 +143,7 @@ export class Zone {
       return null;
     }
     const p = PHASES[this.phase];
-    this.timer += dt;
+    this.timer += this.shrinking ? dt : dt * this.pace;
     if (!this.shrinking) {
       if (this.timer >= p.wait) {
         this.shrinking = true;
