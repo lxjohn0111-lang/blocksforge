@@ -30,7 +30,7 @@ const TEMPLATES: QuestTemplate[] = [
   { id: 'harvest', text: 'Harvest {n} materials', stat: 'harvested', targets: [80, 150, 250], xp: 350, coins: 90 },
   { id: 'assists', text: 'Get {n} assists', stat: 'assists', targets: [3, 5], xp: 400, coins: 100 },
   { id: 'travel', text: 'Travel {n}m', stat: 'distance', targets: [1200, 2500], xp: 300, coins: 80 },
-  { id: 'longshot', text: 'Get {n} eliminations from 50m+', stat: 'longshots', targets: [1, 2], xp: 550, coins: 140 },
+  { id: 'longshot', text: 'Get {n} elimination{s} from 50m+', stat: 'longshots', targets: [1, 2], xp: 550, coins: 140 },
   { id: 'nades', text: 'Get a grenade elimination', stat: 'grenadeKills', targets: [1], xp: 500, coins: 130 },
 ];
 
@@ -51,7 +51,7 @@ export function generateQuests(date: string, salt: number, reroll = 0): QuestSta
   const picked = pool.slice(0, 3);
   return picked.map((t, i) => {
     const target = t.targets[Math.min(t.targets.length - 1, i === 0 ? 0 : r.int(0, t.targets.length - 1))];
-    return { id: t.id, text: t.text.replace('{n}', target.toLocaleString()), stat: t.stat, target, progress: 0, xp: t.xp, coins: t.coins, claimed: false };
+    return { id: t.id, text: t.text.replace('{n}', target.toLocaleString()).replace('{s}', target === 1 ? '' : 's'), stat: t.stat, target, progress: 0, xp: t.xp, coins: t.coins, claimed: false };
   });
 }
 

@@ -429,6 +429,10 @@ export class Match {
     const a = c.anim;
     const hs = Math.hypot(c.body.vel.x, c.body.vel.z);
     a.speed = hs;
+    // velocity relative to facing: drives side-stepping vs running legs
+    const sy = Math.sin(c.yaw), cy = Math.cos(c.yaw);
+    a.forward = -sy * c.body.vel.x - cy * c.body.vel.z;
+    a.strafe = cy * c.body.vel.x - sy * c.body.vel.z;
     a.onGround = c.body.onGround;
     a.crouch = c.crouchBlend;
     a.pitch = c.pitch;

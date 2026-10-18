@@ -46,7 +46,6 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
         const count = h('div', { class: 'h1', style: { fontSize: '36px' } });
         head.appendChild(h('div', { class: 'label' }, `${o.mode === 'br' ? 'Battle Royale' : 'Team Deathmatch'} · ${o.ranked ? 'Ranked' : 'Casual'}`));
         head.appendChild(count);
-        head.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, o.ranked ? 'Matched to your rank' : 'Casual playlist'));
         root.appendChild(head);
         const grid = h('div', { class: 'grid' });
         root.appendChild(grid);

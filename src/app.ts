@@ -582,6 +582,7 @@ export class App {
             prompt: pc.interactPrompt,
             buildMode: pc.buildMode,
             hasGun: !!p.gun,
+            canBuild: match.buildingEnabled,
             hasMap: !(match instanceof TDMMatch),
             bagLabel: match instanceof TDMMatch ? 'Scoreboard' : match.craftingEnabled ? 'Inventory' : '',
             throws: p.throws.frag + p.throws.smoke,

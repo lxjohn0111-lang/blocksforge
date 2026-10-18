@@ -215,6 +215,11 @@ function shade(c: number, f: number) {
   return (r << 16) | (g << 8) | b;
 }
 
+// The model is built facing -Z (that's where the face is), but the pose below is written facing +Z
+// (positive X rotation swings a limb forward). Mirroring every bone and the held item through the
+// XY plane once the pose is done puts arms, gun, lean and head pitch on the side the face looks at.
+const MIRROR_Z = new THREE.Matrix4().makeScale(1, 1, -1);
+
 // pivots in character pixels
 const PIVOTS: [number, number, number][] = [
   [0, 12, 0], // body (hips)
@@ -399,9 +404,14 @@ export class CharacterModel {
       legR = Math.sin(performance.now() * 0.008) * 0.5;
       legL = -legR;
     }
+    // strafing (common while shooting) side-steps instead of running in place
+    const side = moving ? Math.min(1, Math.abs(s.strafe) / Math.max(0.5, s.speed)) : 0;
+    legR *= 1 - side * 0.7;
+    legL *= 1 - side * 0.7;
+    const legSide = swing * 0.45 * side;
     const kneel = -crouch * 0.55;
-    this.setBone(B_RLEG, legR + kneel, 0, 0.02, 0, drop * 0.5, crouch * 0.12);
-    this.setBone(B_LLEG, legL + kneel, 0, -0.02, 0, drop * 0.5, crouch * 0.12);
+    this.setBone(B_RLEG, legR + kneel, 0, 0.02 + legSide, 0, drop * 0.5, crouch * 0.12);
+    this.setBone(B_LLEG, legL + kneel, 0, -0.02 - legSide, 0, drop * 0.5, crouch * 0.12);
 
     // arms
     let rArm: [number, number, number] = [-swing * 0.6, 0, 0.05];
@@ -464,12 +474,16 @@ export class CharacterModel {
       this.weaponMesh.matrixWorldNeedsUpdate = true;
     }
     this.glider.visible = s.gliding;
+    // pivots sit on z = 0, so the mirror keeps every joint in place and only flips front and back
+    for (const b of this.bones) b.premultiply(MIRROR_Z).multiply(MIRROR_Z);
+    if (this.weaponMesh) this.weaponMesh.matrix.premultiply(MIRROR_Z).multiply(MIRROR_Z);
 
     // death topple: rotate root around feet
     if (s.dead > 0) {
       const t = Math.min(1, s.dead / 0.45);
       const e = 1 - Math.pow(1 - t, 3);
-      this.mesh.rotation.set(-e * Math.PI / 2 * Math.cos(s.deathDir), 0, e * Math.PI / 2 * Math.sin(s.deathDir));
+      // deathDir is where the shot came from (0 = in front): fall away from it
+      this.mesh.rotation.set(e * Math.PI / 2 * Math.cos(s.deathDir), 0, -e * Math.PI / 2 * Math.sin(s.deathDir));
       this.mesh.position.y = e * 0.15;
       if (this.weaponMesh) this.weaponMesh.visible = false;
     } else {

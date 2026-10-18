@@ -177,8 +177,8 @@ export class Menu {
       h('div', { class: 'tabs' }, ...tabs.map(([t, l]) => h('button', { class: 'tab' + (this.tab === t ? ' on' : ''), onclick: () => { audio.ui('click', 0.5); this.tab = t; this.render(); }, onmouseenter: () => audio.ui('hover', 0.3) }, l))),
       h('div', { class: 'wallet' },
         h('div', { class: 'coin', title: 'Forge Coins — earned by playing. Spend them in the Armory.' }, h('span', { html: ICON.coin(18) }), fmt(p.coins)),
-        h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'label xpl', style: { fontSize: '9.5px' } }, `${fmt(p.xp)} / ${fmt(need)} XP`), h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
-        h('div', { class: 'row who', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name), h('span', { class: 'dim', style: { fontSize: '10.5px', letterSpacing: '0.08em', textTransform: 'uppercase' } }, p.equipped.title))),
+        h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
+        h('div', { class: 'row who', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
         h('div', { class: 'iconbtn', onclick: () => this.api.openSettings(), title: 'Settings', html: ICON.gear(18) }),
       ),
     );
@@ -193,9 +193,9 @@ export class Menu {
     // left: modes
     const left = h('div', { class: 'menu-left' });
     const modes: [PlaySelection['mode'], string, string, string[]][] = [
-      ['br', 'Battle Royale', '24 players drop onto Ashcrown Isle. Loot, build, craft — outlast the storm.', ['24 players', 'Building', 'Crafting', 'Storm']],
-      ['tdm', 'Team Deathmatch', '6v6 on handcrafted arenas. First team to 50 eliminations wins.', ['6 v 6', 'Loadouts', 'Respawns', '8 min']],
-      ['tutorial', 'Training Grounds', 'Learn aiming, looting, building and crafting in a guided course.', p.tutorialDone ? ['Completed', 'Practice'] : ['Recommended', '+300 coins']],
+      ['br', 'Battle Royale', '24 players. Loot, build, outlast the storm.', []],
+      ['tdm', 'Team Deathmatch', '6 v 6. First team to 50 eliminations.', []],
+      ['tutorial', 'Training Grounds', 'Learn to shoot, loot and build.', p.tutorialDone ? [] : ['+300 coins']],
     ];
     for (const [id, title, sub, tags] of modes) {
       left.appendChild(
@@ -203,7 +203,7 @@ export class Menu {
           h('div', { class: 'art', html: id === 'br' ? ICON.storm(120) : id === 'tdm' ? ICON.people(120) : ICON.crosshair(120) }),
           h('div', { class: 'title' }, title),
           h('div', { class: 'sub' }, sub),
-          h('div', { class: 'meta' }, ...tags.map((t) => h('span', { class: 'chip' }, t)))),
+          tags.length ? h('div', { class: 'meta' }, ...tags.map((t) => h('span', { class: 'chip' }, t))) : null),
       );
     }
     if (this.sel.mode !== 'tutorial') {
@@ -213,7 +213,6 @@ export class Menu {
           h('button', { class: !this.sel.ranked ? 'on' : '', onclick: () => { this.sel.ranked = false; this.render(); } }, 'Casual'),
           h('button', { class: this.sel.ranked ? 'on rk' : '', onclick: () => { this.sel.ranked = true; this.render(); } }, `Ranked · ${rk.label}`)),
       );
-      left.appendChild(h('div', { class: 'honesty' }, h('span', { html: ICON.info(14) }), this.sel.ranked ? 'Ranked: ladder points (RP) change after every match. Higher divisions bring tougher, better coordinated opponents.' : 'Casual: relaxed opponents, full XP and quest progress, no RP at stake.'));
     }
     if (this.sel.mode === 'tdm') {
       const st = eventStatus();
@@ -335,7 +334,6 @@ export class Menu {
     card.appendChild(h('div', { class: 'head row', style: { justifyContent: 'space-between' } }, h('span', { class: 'row' }, live ? h('span', { class: 'chip live' }, 'Live event') : h('span', { class: 'chip' }, 'Upcoming event'), h('span', { html: ICON.flame(14), style: { color: def.accent } })), cd));
     card.appendChild(h('div', { class: 'ename', style: { color: def.accent } }, def.name));
     card.appendChild(h('div', { style: { fontSize: '13px', marginTop: '2px' } }, def.tagline));
-    card.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '6px', lineHeight: '1.45' } }, def.desc));
     const row = h('div', { class: 'col', style: { marginTop: '10px', gap: '6px' } });
     for (const ch of def.challenges) {
       const prog = live ? ev.progress[ch.id] ?? 0 : 0;
@@ -350,7 +348,6 @@ export class Menu {
         live ? (claimed ? h('span', { class: 'chip' }, 'Claimed') : done ? h('button', { class: 'btn primary', style: { padding: '4px 10px', fontSize: '11px' }, onclick: () => { const r = meta.claimEvent(ch); if (r) showReveal(this.parent, def.name, 'Event reward', [r], () => this.render()); } }, 'Claim') : h('span', { class: 'mono dim', style: { fontSize: '11px' } }, `${fmt(prog)}/${fmt(ch.target)}`)) : h('span', { html: ICON.lock(14), class: 'dim' })));
     }
     card.appendChild(row);
-    if (!live) card.appendChild(h('div', { class: 'dim', style: { fontSize: '11px', marginTop: '8px' } }, `Weekend events run Friday 00:00 → Monday 00:00 (your local time).`));
     return card;
   }
 
@@ -416,7 +413,6 @@ export class Menu {
     const left = h('div', { class: 'panel' }, h('div', { class: 'h2', style: { marginBottom: '12px' } }, 'Locker'));
     for (const [c, l] of cats) left.appendChild(h('button', { class: 'btn' + (this.lockerCat === c ? ' primary' : ''), style: { justifyContent: 'flex-start', marginBottom: '6px' }, onclick: () => { this.lockerCat = c; this.render(); } }, l));
     left.appendChild(h('div', { style: { marginTop: 'auto' } }, playerCard({ id: 'player', name: p.name, look: composeLook(p.base, p.equipped.outfit), isBot: false, level: p.level, rp: p.rank.rp, title: p.equipped.title, banner: p.equipped.banner, camo: p.equipped.camo, skill: 0 })));
-    left.appendChild(h('div', { class: 'dim', style: { fontSize: '11.5px', marginTop: '8px' } }, 'Cosmetics never affect gameplay. Unlock them through levels, quests, events, ranked seasons, or the Armory with coins earned in matches.'));
     page.appendChild(left);
     page.appendChild(h('div', { class: 'preview3d' }));
     const right = h('div', { class: 'panel scroll' });
@@ -485,7 +481,7 @@ export class Menu {
     const upd = () => (cd.textContent = `Rotates in ${fmtDuration(nx - Date.now())}`);
     upd();
     this.timers.push(upd);
-    page.appendChild(h('div', { class: 'row panel', style: { justifyContent: 'space-between', padding: '16px 20px' } }, h('div', null, h('div', { class: 'h1' }, 'Armory'), h('div', { class: 'dim', style: { marginTop: '6px' } }, 'Daily rotating cosmetics, bought only with Forge Coins earned in play. No real-money purchases exist in BlockForge.')), cd));
+    page.appendChild(h('div', { class: 'row panel', style: { justifyContent: 'space-between', padding: '16px 20px' } }, h('div', { class: 'h1' }, 'Armory'), cd));
     const grid = h('div', { class: 'items shopgrid' });
     for (const c of meta.shopItems()) {
       const own = meta.owns(c.id);
@@ -555,7 +551,6 @@ export class Menu {
         t.camo ? h('span', { class: 'dim', style: { fontSize: '11px' } }, reached ? 'Season reward earned' : `Reward: ${CAMOS[t.camo].name}`) : null));
     });
     right.appendChild(tiers);
-    right.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '14px', lineHeight: '1.5' } }, `Seasons last 8 weeks. When a season ends your rating is softly reset and you receive the camo of every tier you reached, plus coins. After a tier promotion you get 3 matches of demotion protection.`));
     page.appendChild(right);
     this.body.appendChild(page);
   }

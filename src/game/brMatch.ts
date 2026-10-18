@@ -47,6 +47,8 @@ function airshipBoxes(): VBox[] {
   return o;
 }
 
+const START_WOOD = 30;
+
 export class BRMatch extends Match {
   zone: Zone;
   brains: BotBrain[] = [];
@@ -95,10 +97,13 @@ export class BRMatch extends Match {
     const cfg = this.cfg;
     const p = this.addCombatant(cfg.player, 0, true, this.ship.from.clone());
     p.slot = 5;
+    // everyone lands with enough wood for a few pieces, so building is an option from the first fight
+    p.mats.wood = START_WOOD;
     this.inShip.add(p);
     cfg.bots.forEach((b, i) => {
       const c = this.addCombatant(b.ident, i + 1, false, this.ship.from.clone());
       c.slot = 5;
+      c.mats.wood = START_WOOD;
       this.inShip.add(c);
       const brain = new BotBrain(c, this, b.skill, {
         zone: () => ({

@@ -12,8 +12,10 @@ import { weaponIcon, boxIcon, bandageModel, medkitModel, plateModel, fragModel, 
 import { blockIconCanvas } from '../render/textures';
 import { B } from '../world/blocks';
 import { RECIPES, canAfford } from '../game/crafting';
-import { PIECES, PIECE_LABEL, PIECE_COST } from '../game/building';
+import { PIECES, PIECE_LABEL, PIECE_COST, type Piece } from '../game/building';
+import type { BuildMat } from '../world/blocks';
 import { keyLabel, type Settings, type Action } from '../core/settings';
+import { loadJSON, saveJSON } from '../core/storage';
 import { audio } from '../audio/audio';
 import { clamp, fmtTime } from '../core/mathx';
 
@@ -61,6 +63,19 @@ function matCanvas(m: MaterialKind) {
   return cloneCanvas(iconCache.get(key)!);
 }
 
+/** what each build piece is for, in a word */
+const PIECE_USE: Record<Piece, string> = { wall: 'Cover', floor: 'Bridge', ramp: 'Climb', block: 'Fill' };
+const BUILD_MATS: BuildMat[] = ['wood', 'stone', 'metal'];
+
+/** one-time coaching state, kept across matches */
+interface Tips {
+  /** the build coach card was read */
+  build?: boolean;
+  /** pieces the player has placed, ever: tips stop once building is a habit */
+  built?: number;
+}
+const TIPS_KEY = 'blockforge.tips.v1';
+
 interface Hooks {
   resume(): void;
   leave(): void;
@@ -95,6 +110,11 @@ export class HUD {
   private crossSpread = 0;
   /** touch-screen controls are active (changes hint text and tappable controls) */
   touch = false;
+  private tips: Tips = loadJSON<Tips>(TIPS_KEY) ?? {};
+  private tipTimer = 0;
+  private lastBuildTip = -1e9;
+  private buildTime = 0;
+  private wasAirborne = true;
 
   constructor(parent: HTMLElement, public match: Match, public pc: PlayerController, public settings: Settings, private hooks: Hooks) {
     this.root = h('div', { class: 'hud mode-' + match.cfg.mode });
@@ -121,7 +141,7 @@ export class HUD {
     const segs = (cls: string) => h('div', { class: 'segbar ' + cls }, ...Array.from({ length: 10 }, () => h('i', null, h('b'))));
     mk(
       'vitals',
-      h('div', { class: 'vitals' }, h('div', { class: 'nm' }, h('span', { 'data-k': 'name' }), h('span', { 'data-k': 'lvl' })), segs('ar'), segs('hp'), h('div', { class: 'nums' }, h('span', { 'data-k': 'hp' }), h('span', { 'data-k': 'ar' }))),
+      h('div', { class: 'vitals' }, segs('ar'), segs('hp'), h('div', { class: 'nums' }, h('span', { 'data-k': 'hp' }), h('span', { 'data-k': 'ar' }))),
     );
     mk('slots', h('div', { class: 'slots' }));
     mk('ammo', h('div', { class: 'ammo' }, h('div', { class: 'wn' }), h('div', { class: 'mag' }), h('div', { class: 'extra' })));
@@ -131,7 +151,6 @@ export class HUD {
     const strip = h('div', { class: 'strip' });
     mk('compass', h('div', { class: 'compass' }, strip, h('div', { class: 'center' })));
     E.strip = strip;
-    mk('heading', h('div', { class: 'heading' }));
     const mm = h('canvas', { width: 392, height: 392 });
     mk('minimap', h('div', { class: 'minimap' }, mm));
     this.miniCtx = mm.getContext('2d')!;
@@ -144,6 +163,10 @@ export class HUD {
     mk('shield', h('div', { class: 'spawnshield', style: { display: 'none' } }, 'Spawn protection'));
     mk('fps', h('div', { class: 'fps', style: { display: settings.showFps ? 'block' : 'none' } }));
     mk('tut', h('div', { class: 'tut panel', style: { display: 'none' } }));
+    // tips sit at the top of the toast stack so the two never overlap
+    E.tip = h('div', { class: 'tipbar', style: { display: 'none' } });
+    E.toasts.appendChild(E.tip);
+    mk('coach', h('div', { class: 'coach panel clickable', style: { display: 'none' } }));
     this.buildCompass();
     this.applyCrossColor();
 
@@ -156,8 +179,12 @@ export class HUD {
     m.events.on('pickup', ({ c, spec }) => {
       if (c === p) this.toast('+ ' + itemName(spec), 'loot');
     });
-    m.events.on('harvest', ({ c, res, amount }) => {
-      if (c === p) this.toast(`+${amount} ${MATERIALS[res as MaterialKind]?.name ?? res}`, 'loot');
+    m.events.on('built', ({ c }) => {
+      if (c !== p) return;
+      this.tips.built = (this.tips.built ?? 0) + 1;
+      saveJSON(TIPS_KEY, this.tips);
+      if (this.els.tip.dataset.kind === 'build') this.tipTimer = 0;
+      if (!this.tips.build && this.els.coach.style.display !== 'none') this.dismissCoach();
     });
     m.events.on('craft', ({ c, recipe }) => {
       if (c === p) {
@@ -180,11 +207,15 @@ export class HUD {
     for (const el of [this.els.slots, this.els.buildbar]) {
       el.classList.add('clickable');
       el.addEventListener('pointerdown', (e) => {
+        const mat = (e.target as HTMLElement).closest('[data-mat]') as HTMLElement | null;
         const t = (e.target as HTMLElement).closest('[data-act]') as HTMLElement | null;
-        if (!t) return;
+        if (!mat && !t) return;
         e.preventDefault();
         e.stopPropagation();
-        this.pc.input.tapAction(t.dataset.act as Action);
+        if (mat) {
+          this.pc.buildMat = mat.dataset.mat as BuildMat;
+          audio.ui('click', 0.5);
+        } else this.pc.input.tapAction(t!.dataset.act as Action);
       });
     }
     this.last.tut = '';
@@ -237,7 +268,8 @@ export class HUD {
   toast(text: string, kind = 'info') {
     const t = h('div', { class: 'toast ' + kind }, text);
     this.els.toasts.appendChild(t);
-    while (this.els.toasts.children.length > 4) this.els.toasts.firstChild!.remove();
+    const shown = this.els.toasts.querySelectorAll('.toast');
+    for (let i = 0; i < shown.length - (this.touch ? 2 : 3); i++) shown[i].remove();
     setTimeout(() => t.remove(), 2600);
   }
 
@@ -267,6 +299,14 @@ export class HUD {
       const dz = e.from.z - p.body.pos.z;
       this.dmgDirs.push({ yaw: Math.atan2(-dx, -dz), t: 1.2 });
     }
+    const m = this.match;
+    if (e.target === p && e.attacker && e.attacker !== p && m.buildingEnabled && p.slot !== 6 && (this.tips.built ?? 0) < 3 && m.time - this.lastBuildTip > 40) {
+      const mats = p.mats.wood + p.mats.stone + p.mats.metal;
+      if (mats >= PIECE_COST.wall) {
+        this.lastBuildTip = m.time;
+        this.showTip(this.touch ? `${ICON.wall(16)} Under fire? Tap build for a wall` : `Under fire? <span class="kbd">${keyLabel(this.settings.bindings.build)}</span> builds a wall`, 'build', 5);
+      }
+    }
   }
 
   private onKill(e: KillEvent) {
@@ -290,7 +330,60 @@ export class HUD {
       this.toast(`Eliminated ${e.victim.name}${e.headshot ? ' · Headshot' : ''}${e.distance > 50 ? ` · ${Math.round(e.distance)}m` : ''}`, 'good');
       if (streak >= 3) this.toast(`${streak} elimination streak`, 'warn');
     }
-    for (const a of e.assists) if (a === p) this.toast(`Assist · ${e.victim.name}`, 'info');
+  }
+
+  private showTip(html: string, kind: string, sec: number) {
+    const t = this.els.tip;
+    t.innerHTML = html;
+    t.dataset.kind = kind;
+    t.style.display = 'flex';
+    this.tipTimer = sec;
+  }
+
+  /** the panel shown while the hammer is out: what each piece is for, what it costs, what you have */
+  private renderBuildPanel() {
+    const pc = this.pc;
+    const p = this.match.player;
+    const E = this.els;
+    const kb = (a: keyof Settings['bindings']) => keyLabel(this.settings.bindings[a]);
+    const cost = PIECE_COST[pc.buildPiece];
+    const pieces = h('div', { class: 'bp-row' }, ...PIECES.map((pp, i) =>
+      h('div', { class: 'bp-piece' + (pc.buildPiece === pp ? ' on' : ''), 'data-act': 'slot' + (i + 1) },
+        this.touch ? null : h('span', { class: 'bk' }, kb(('slot' + (i + 1)) as 'slot1')),
+        h('span', { class: 'ic', html: (ICON as any)[pp](22) }),
+        h('b', null, PIECE_LABEL[pp]),
+        h('small', null, PIECE_USE[pp]))));
+    const mats = h('div', { class: 'bp-row' }, ...BUILD_MATS.map((k) =>
+      h('div', { class: 'bp-mat' + (pc.buildMat === k ? ' on' : '') + (p.mats[k] < cost ? ' low' : ''), 'data-mat': k, title: MATERIALS[k].name },
+        matCanvas(k), h('b', null, String(p.mats[k])))),
+      h('div', { class: 'bp-cost' }, `${cost} per piece`),
+      this.touch ? h('div', { class: 'bp-act', 'data-act': 'rotate', html: ICON.refresh(18) + '<small>Turn</small>' }) : null,
+      this.touch ? h('div', { class: 'bp-act', 'data-act': 'build', html: ICON.close(18) + '<small>Exit</small>' }) : null);
+    const total = p.mats.wood + p.mats.stone + p.mats.metal;
+    const hint = total < PIECE_COST.block
+      ? h('div', { class: 'bp-hint warn' }, this.touch ? 'No materials: hit trees and rocks with the pick' : `No materials: hit trees and rocks with the pick (${kb('tool')})`)
+      : this.touch ? null : h('div', { class: 'bp-hint' }, `${kb('fire')} place · ${kb('aim')} remove · ${kb('rotate')} turn · ${kb('material')} material · ${kb('build')} exit`);
+    clear(E.buildbar);
+    E.buildbar.append(pieces, mats);
+    if (hint) E.buildbar.appendChild(hint);
+  }
+
+  private renderCoach() {
+    const c = this.els.coach;
+    clear(c);
+    c.append(
+      h('div', { class: 'h' }, h('span', { html: ICON.wall(18) }), 'Building'),
+      h('p', null, 'Walls stop bullets. Ramps get you to high ground.'),
+      h('p', null, this.touch ? 'Pick a piece below, aim, then tap fire to place it. Pieces cost materials from trees and rocks.' : `Pick a piece, aim, then click to place it. Pieces cost materials: hit trees and rocks with the pick (${keyLabel(this.settings.bindings.tool)}).`),
+      h('button', { class: 'btn primary', onclick: () => this.dismissCoach() }, 'Got it'),
+    );
+  }
+
+  private dismissCoach() {
+    this.tips.build = true;
+    saveJSON(TIPS_KEY, this.tips);
+    this.els.coach.style.display = 'none';
+    this.root.classList.remove('coaching');
   }
 
   // ===================================================================
@@ -348,14 +441,12 @@ export class HUD {
     if (scopeA > 0.01) {
       E.scope.style.opacity = String(scopeA);
       const z = g?.def.scope?.zooms[Math.min(pc.scopeZoom, (g?.def.scope?.zooms.length ?? 1) - 1)] ?? 1;
-      this.set('zoom', E.scope.children[2] as HTMLElement, `${z}×${(g?.def.scope?.zooms.length ?? 1) > 1 ? ' · scroll to zoom' : ''}`);
+      this.set('zoom', E.scope.children[2] as HTMLElement, `${z}×`);
     }
     m.engine.post.uniforms.uScope.value = scopeA;
 
     // vitals
     const vit = E.vitals;
-    this.set('vname', vit.querySelector('[data-k=name]') as HTMLElement, p.name);
-    this.set('vlvl', vit.querySelector('[data-k=lvl]') as HTMLElement, `LV ${p.ident.level}`);
     const fillSegs = (bar: Element, val: number) => {
       const segs = bar.children;
       for (let i = 0; i < 10; i++) {
@@ -369,8 +460,8 @@ export class HUD {
     fillSegs(bars[0], p.armor);
     fillSegs(bars[1], p.hp);
     bars[1].classList.toggle('low', p.hp < 30);
-    this.setHTML('vhp', vit.querySelector('[data-k=hp]') as HTMLElement, `${Math.ceil(p.hp)} <small>HP</small>`);
-    this.setHTML('var', vit.querySelector('[data-k=ar]') as HTMLElement, `<small>ARMOR</small> ${Math.ceil(p.armor)}`);
+    this.set('vhp', vit.querySelector('[data-k=hp]') as HTMLElement, String(Math.ceil(p.hp)));
+    this.set('var', vit.querySelector('[data-k=ar]') as HTMLElement, p.armor > 0 ? String(Math.ceil(p.armor)) : '');
 
     // slots
     const slotKey = JSON.stringify([p.slot, p.weapons.map((w) => w?.def.id ?? null), p.healSel, p.throwSel, p.heals, p.throws, br ? 1 : 0, tdm ? 1 : 0]);
@@ -406,29 +497,22 @@ export class HUD {
       const reloading = g.reloading > 0;
       mag = `${g.mag}<small>/ ${p.ammo[g.def.ammo]}</small>`;
       low = g.mag <= Math.ceil(g.def.mag * 0.25);
-      extra = `<span>${AMMO_NAMES[g.def.ammo]}</span><span>${g.def.action === 'auto' ? 'AUTO' : g.def.action === 'semi' ? 'SEMI' : g.def.action.toUpperCase()}</span>${reloading ? '<span style="color:#ffcf7a">RELOADING</span>' : ''}`;
+      extra = reloading ? '<span style="color:#ffcf7a">RELOADING</span>' : '';
     } else if (p.slot === 3) {
       wn = HEALS[p.healSel].name;
       mag = `${p.heals[p.healSel]}`;
-      extra = `<span>${HEALS[p.healSel].blurb}</span><span>${keyLabel(this.settings.bindings.slot4)} cycle</span>`;
     } else if (p.slot === 4) {
       wn = THROWABLES[p.throwSel].name;
       mag = `${p.throws[p.throwSel]}`;
-      extra = `<span>Hold ${keyLabel(this.settings.bindings.fire)} to aim</span>`;
     } else if (p.slot === 5) {
       wn = 'Forge Pick';
-      mag = '∞';
-      extra = '<span>Harvest trees, rocks & ore</span>';
-    } else if (p.slot === 6) {
-      wn = 'Build · ' + PIECE_LABEL[pc.buildPiece];
-      mag = `${p.mats[pc.buildMat]}`;
-      extra = `<span>${pc.buildMat.toUpperCase()} · ${PIECE_COST[pc.buildPiece]} per piece</span>`;
+      extra = '<span>Hit trees and rocks for materials</span>';
     }
     this.set('wn', A.children[0] as HTMLElement, wn);
     this.setHTML('mag', A.children[1] as HTMLElement, mag);
     (A.children[1] as HTMLElement).classList.toggle('low', low);
     this.setHTML('extra', A.children[2] as HTMLElement, extra);
-    A.style.display = p.alive && !inShip ? 'block' : 'none';
+    A.style.display = p.alive && !inShip && p.slot !== 6 ? 'block' : 'none';
     E.slots.style.display = p.alive && !inShip ? 'flex' : 'none';
     vit.style.display = !inShip ? 'block' : 'none';
 
@@ -438,30 +522,51 @@ export class HUD {
       if (this.last.mats !== mk) {
         this.last.mats = mk;
         clear(E.mats);
-        for (const k of ['wood', 'stone', 'metal', 'cloth', 'powder'] as MaterialKind[]) {
-          E.mats.appendChild(h('div', { class: 'm' + (p.slot === 6 && pc.buildMat === k ? ' sel' : '') }, matCanvas(k), h('span', null, String(p.mats[k]))));
-        }
+        for (const k of BUILD_MATS) E.mats.appendChild(h('div', { class: 'm' }, matCanvas(k), h('span', null, String(p.mats[k]))));
       }
-      E.mats.style.display = p.alive && !inShip ? 'flex' : 'none';
+      E.mats.style.display = p.alive && !inShip && p.slot !== 6 && m.buildingEnabled ? 'flex' : 'none';
     } else E.mats.style.display = 'none';
 
-    // build bar (on touch screens it takes the hotbar's place)
-    this.root.classList.toggle('building', p.slot === 6 && p.alive);
-    if (p.slot === 6 && p.alive) {
+    // build panel (on touch screens it takes the hotbar's place) and the first-time coach card
+    const building = p.slot === 6 && p.alive;
+    this.root.classList.toggle('building', building);
+    if (building) {
       E.buildbar.style.display = 'flex';
-      const bk = `${pc.buildPiece}|${pc.buildMat}|${pc.buildRot}`;
+      const bk = [pc.buildPiece, pc.buildMat, p.mats.wood, p.mats.stone, p.mats.metal].join('|');
       if (this.last.bb !== bk) {
         this.last.bb = bk;
-        clear(E.buildbar);
-        const keys = ['slot1', 'slot2', 'slot3', 'slot4'];
-        PIECES.forEach((pp, i) => {
-          E.buildbar.appendChild(h('div', { class: 'p' + (pc.buildPiece === pp ? ' on' : ''), 'data-act': keys[i] }, h('span', { html: (ICON as any)[pp](20) }), h('span', null, h('span', { class: 'kk' }, keyLabel(this.settings.bindings[keys[i] as 'slot1']) + ' '), PIECE_LABEL[pp])));
-        });
-        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'material' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.material)), h('span', null, pc.buildMat)));
-        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'rotate' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.rotate)), h('span', null, 'Rotate')));
-        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'build' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.build)), h('span', null, 'Weapons')));
+        this.renderBuildPanel();
       }
-    } else E.buildbar.style.display = 'none';
+      this.buildTime += dt;
+      if (!this.tips.build) {
+        if (E.coach.style.display === 'none') {
+          this.renderCoach();
+          E.coach.style.display = 'block';
+          this.root.classList.add('coaching');
+        }
+        // reading it once is enough
+        if (this.buildTime > 15) this.dismissCoach();
+      }
+    } else {
+      E.buildbar.style.display = 'none';
+      E.coach.style.display = 'none';
+      this.root.classList.remove('coaching');
+    }
+
+    // one short pointer to building and harvesting right after landing, until the player builds
+    const airborne = inShip || p.dropping || p.gliding;
+    if (this.wasAirborne && !airborne && p.alive && m.buildingEnabled && br && (this.tips.built ?? 0) < 3) {
+      const b = this.settings.bindings;
+      this.showTip(this.touch ? `${ICON.wall(16)} Build cover with the build button · harvest with the pick` : `<span class="kbd">${keyLabel(b.build)}</span> build cover <span class="sep"></span> <span class="kbd">${keyLabel(b.tool)}</span> harvest materials`, 'land', 7);
+    }
+    this.wasAirborne = airborne;
+    if (this.tipTimer > 0) {
+      this.tipTimer -= dt;
+      if (this.tipTimer <= 0 || building) {
+        this.tipTimer = 0;
+        E.tip.style.display = 'none';
+      }
+    }
 
     // prompt
     let prompt = '';
@@ -544,7 +649,6 @@ export class HUD {
     // compass
     const deg = ((((-p.yaw * 180) / Math.PI) % 360) + 360) % 360;
     E.strip.style.left = `${260 - (deg + 180) * 4}px`;
-    this.set('heading', E.heading, `${Math.round(deg).toString().padStart(3, '0')}°`);
     if (br) {
       const zc = br.zone;
       const dx = zc.to.x - p.body.pos.x;
@@ -572,16 +676,13 @@ export class HUD {
 
     // status rows
     const st: string[] = [];
+    // one compact row of numbers; words only when something is wrong
     if (br) {
-      st.push(`<div class="r"><span>${ICON.people(14)} ALIVE</span><b>${br.aliveCount}</b></div>`);
-      st.push(`<div class="r"><span>${ICON.skull(13)} ELIMS</span><b>${p.stats.kills}</b></div>`);
       const outside = br.zone.outside(p.body.pos.x, p.body.pos.z);
-      st.push(`<div class="r storm"><span>${ICON.storm(14)} ${br.zone.phase >= 6 ? 'FINAL' : br.zone.shrinking ? 'CLOSING' : 'STORM'}</span><b>${fmtTime(br.zone.countdown)}</b></div>`);
-      if (outside && p.alive) st.push(`<div class="r" style="color:#ffb3a8"><span>IN STORM</span><b>-${br.zone.dps}/s</b></div>`);
-    } else if (tut) {
-      st.push(`<div class="r"><span>TRAINING</span><b>${tut.doneCount}/${tut.done.length}</b></div>`);
+      st.push(`<div class="r"><span title="Players left">${ICON.people(13)}<b>${br.aliveCount}</b></span><span title="Eliminations">${ICON.skull(12)}<b>${p.stats.kills}</b></span><span class="storm${br.zone.shrinking ? ' closing' : ''}" title="Storm">${ICON.storm(13)}<b>${fmtTime(br.zone.countdown)}</b></span></div>`);
+      if (outside && p.alive) st.push(`<div class="r warn">IN STORM <b>-${br.zone.dps}/s</b></div>`);
     } else if (tdm) {
-      st.push(`<div class="r"><span>${ICON.skull(13)} K/D/A</span><b>${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}</b></div>`);
+      st.push(`<div class="r"><span title="Eliminations / deaths">${ICON.skull(12)}<b>${p.stats.kills}/${p.stats.deaths}</b></span></div>`);
     }
     this.setHTML('status', E.status, st.join(''));
     // TDM scorebar
@@ -590,7 +691,6 @@ export class HUD {
       const ot = 1 - p.team;
       this.setHTML('score', E.score, `<div class="s a">${tdm.scores[p.team]}</div><div class="tm">${tdm.statusText}</div><div class="s b">${tdm.scores[ot]}</div><div class="lim">FIRST TO ${tdm.scoreLimit}</div>`);
       E.compass.style.top = '64px';
-      E.heading.style.top = '98px';
     }
 
     // announcements
@@ -604,9 +704,8 @@ export class HUD {
       let dt2 = '';
       if (inShip) {
         const over = br.ship.t > 0.1;
-        dt2 = `<div class="big">${over ? (this.touch ? 'Tap jump to drop' : `Press <span class="kbd" style="font-size:20px;height:30px">${keyLabel(this.settings.bindings.jump)}</span> to jump`) : 'Approaching Ashcrown Isle'}</div><div class="dim">${br.inShip.size} players aboard · auto-drop at the end of the flight</div>`;
-      } else if (p.dropping) dt2 = `<div class="big">Freefall</div><div class="dim">Glider deploys automatically · ${this.touch ? 'tap jump' : keyLabel(this.settings.bindings.jump)} to deploy early</div>`;
-      else if (p.gliding) dt2 = `<div class="big" style="font-size:22px">Gliding</div>`;
+        dt2 = over ? `<div class="big">${this.touch ? 'Tap jump to drop' : `<span class="kbd" style="font-size:20px;height:30px">${keyLabel(this.settings.bindings.jump)}</span> to drop`}</div>` : '';
+      } else if (p.dropping) dt2 = `<div class="dim">${this.touch ? 'Tap jump' : keyLabel(this.settings.bindings.jump)} to open the glider</div>`;
       E.drop.style.display = dt2 ? 'block' : 'none';
       this.setHTML('drop', E.drop, dt2);
     }
@@ -622,7 +721,7 @@ export class HUD {
         this.last.tut = key;
         clear(E.tut);
         const total = tut.done.length;
-        E.tut.appendChild(h('div', { class: 'step' }, s.id === 'done' ? 'Complete' : `${tut.doneCount} of ${total} done · any order`));
+        E.tut.appendChild(h('div', { class: 'step' }, s.id === 'done' ? 'Complete' : `${tut.doneCount}/${total} · any order`));
         E.tut.appendChild(h('div', { class: 'tt' }, s.title));
         E.tut.appendChild(h('div', { class: 'hint' }, s.hint));
         if (s.progress) E.tut.appendChild(h('div', { class: 'prog' }, s.progress()));
@@ -744,11 +843,9 @@ export class HUD {
         'div',
         { class: 'pause panel' },
         h('div', { class: 'h2' }, 'Paused'),
-        h('div', { class: 'dim', style: { fontSize: '12px', marginBottom: '8px' } }, this.match.cfg.mode === 'tutorial' ? 'Training Grounds' : `${this.match.map.name} · ${this.match.cfg.ranked ? 'Ranked' : 'Casual'}`),
         h('button', { class: 'btn primary', onclick: () => this.hooks.resume() }, ICON.play(14) && h('span', { html: ICON.play(14) }), 'Resume'),
         h('button', { class: 'btn', onclick: () => this.hooks.settings() }, h('span', { html: ICON.gear(14) }), 'Settings'),
         h('button', { class: 'btn danger', onclick: () => this.hooks.leave() }, h('span', { html: ICON.close(14) }), this.match.cfg.mode === 'tutorial' ? 'Exit training' : this.match.cfg.ranked ? 'Leave (counts as a loss)' : 'Leave match'),
-        h('div', { class: 'dim', style: { marginTop: '10px', fontSize: '12px' } }, 'The match keeps running while paused.'),
       ),
     );
     this.openOverlay('pause', el);
@@ -786,7 +883,7 @@ export class HUD {
     left.appendChild(mg);
     const right = h('div', { class: 'col' });
     right.appendChild(h('h3', null, 'Crafting'));
-    right.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '-6px', marginBottom: '6px' } }, this.touch ? 'Instant. Tap a recipe to craft it. Harvest with the Forge Pick to gather wood, stone and ore.' : 'Instant. Click a recipe or press its number. Harvest with the Forge Pick to gather wood, stone and ore.'));
+    right.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '-6px', marginBottom: '6px' } }, this.touch ? 'Tap a recipe to craft it.' : 'Click a recipe or press its number to craft it.'));
     const rg = h('div', { class: 'recipes' });
     this.recipeEls = [];
     RECIPES.forEach((r, i) => {
@@ -922,7 +1019,7 @@ export class HUD {
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
         h('div', { class: 'row' },
           h('button', { class: 'btn primary', onclick: () => this.hooks.continueAfterDeath() }, 'Continue'),
-          by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name} · ${this.touch ? 'pause button' : 'Esc'} for menu`, 'info'); } }, 'Spectate') : null),
+          by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name}`, 'info'); } }, 'Spectate') : null),
       );
       this.openOverlay('death', el);
     } else if (tdm) {
@@ -943,7 +1040,7 @@ export class HUD {
         this.respawnEl,
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
         h('div', { class: 'label', style: { marginBottom: '8px' } }, 'Loadout for next spawn'),
-        h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, this.touch ? 'Tap a loadout to pick it' : 'Press 1–6 to pick'),
+        this.touch ? null : h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, 'Press 1–6 to pick'),
         lo);
       // keep the pointer locked so the player is ready the moment they respawn
       this.openOverlay('death', el, false);

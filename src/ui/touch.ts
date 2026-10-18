@@ -15,6 +15,7 @@ export interface TouchState {
   prompt: string;
   buildMode: boolean;
   hasGun: boolean;
+  canBuild: boolean;
   hasMap: boolean;
   bagLabel: string;
   throws: number;
@@ -39,6 +40,7 @@ const GLYPH = {
   crouch: svg('<path d="M5 9l7 7 7-7M12 16V3"/>'),
   reload: svg('<path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/>'),
   hand: svg('<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4a1.5 1.5 0 0 1 3 0v7M14 10.5V6a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-.5a6 6 0 0 1-5-2.7L3.5 13a1.5 1.5 0 0 1 2.5-1.6L8 14"/>', 22),
+  place: svg('<path d="M4 20h16M7 20V10h10v10M7 14h10" />', 32),
   rotate: svg('<rect x="3" y="7" width="18" height="11" rx="1"/><path d="M8 3h8M12 3v2" stroke-width="1.6"/>', 54),
   pause: svg('<path d="M8 5v14M16 5v14"/>', 20),
   bag: svg('<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/>', 20),
@@ -75,6 +77,7 @@ export class TouchControls {
     // quick-use gear (the hotbar is tappable too: pick, hammer, heals and throwables live there)
     this.b.grenade = this.button('t-gren small', ICON.grenade(20), 'grenade');
     this.b.heal = this.button('t-heal small', ICON.medkit(20), 'heal', { tap: true });
+    this.b.build = this.button('t-build small', ICON.wall(20), 'build', { tap: true });
     // corner buttons
     this.b.pause = this.button('t-pause corner', GLYPH.pause, null, { onTap: () => this.hooks.pause() });
     this.b.bag = this.button('t-bag corner', GLYPH.bag, null, { onTap: () => this.hooks.bag() });
@@ -212,7 +215,7 @@ export class TouchControls {
     // toggles don't survive death, the drop or switching to the hammer (aim removes blocks there)
     if (this.aimOn && (!play || s.buildMode || !s.hasGun)) this.toggle('aim');
     if (this.crouchOn && !play) this.toggle('crouch');
-    const key = [s.alive, s.inShip, s.falling, s.prompt, s.buildMode, s.hasGun, s.hasMap, s.bagLabel, s.throws > 0, s.heals > 0].join('|');
+    const key = [s.alive, s.inShip, s.falling, s.prompt, s.buildMode, s.hasGun, s.canBuild, s.hasMap, s.bagLabel, s.throws > 0, s.heals > 0].join('|');
     if (key === this.last) return;
     this.last = key;
     const show = (k: string, on: boolean) => (this.b[k].style.display = on ? '' : 'none');
@@ -224,6 +227,11 @@ export class TouchControls {
     show('interact', play && !!s.prompt);
     show('grenade', play && s.throws > 0 && !s.buildMode);
     show('heal', play && s.heals > 0 && !s.buildMode);
+    show('build', play && s.canBuild);
+    this.b.build.classList.toggle('on', s.buildMode);
+    // in build mode the fire button places the piece
+    this.b.fire.innerHTML = s.buildMode ? GLYPH.place : GLYPH.fire;
+    this.b.fire.classList.toggle('placing', s.buildMode);
     show('map', s.hasMap);
     show('bag', !!s.bagLabel);
     this.b.bag.title = s.bagLabel;

@@ -13,7 +13,7 @@ export default async function (page, h) {
     return true;
   };
   const overlaps = (label) => h.eval((label) => {
-    const groups = ['.touch-ui .tbtn', '.touch-ui .tstick', '.hud .vitals', '.hud .slots', '.hud .buildbar', '.hud .ammo', '.hud .mats', '.hud .compass', '.hud .minimap', '.hud .mstatus', '.hud .scorebar', '.hud .feed .k', '.hud .toasts .toast', '.hud .tut', '.hud .prompt', '.hud .droptip', '.hud .spawnshield'];
+    const groups = ['.touch-ui .tbtn', '.touch-ui .tstick', '.hud .vitals', '.hud .slots', '.hud .buildbar', '.hud .ammo', '.hud .mats', '.hud .compass', '.hud .minimap', '.hud .mstatus', '.hud .scorebar', '.hud .feed .k', '.hud .toasts .toast', '.hud .toasts .tipbar', '.hud .coach', '.hud .tut', '.hud .prompt', '.hud .droptip', '.hud .spawnshield'];
     const boxes = [];
     for (const sel of groups) for (const e of document.querySelectorAll(sel)) {
       if (!e.checkVisibility() || !(e.textContent.trim() || e.querySelector('canvas,svg') || e.matches('.tstick,.tbtn'))) continue;
@@ -117,12 +117,20 @@ export default async function (page, h) {
   await touch('touchEnd', []);
   await h.eval(() => window.__bf.simulate(0.05));
   console.log('look yaw delta', (await h.eval(() => window.__bf.match.player.yaw)) - yaw0);
-  // hotbar tap: hammer -> build mode, build bar replaces the hotbar
-  await tap('.hud .slots .ham');
+  // build button -> build mode: the build panel replaces the hotbar, the coach card explains it once
+  await tap('.touch-ui .tbtn.t-build');
   await h.eval(() => window.__bf.simulate(0.1));
-  console.log('build mode', await h.eval(() => window.__bf.pc.buildMode));
+  console.log('build mode', await h.eval(() => window.__bf.pc.buildMode), 'coach', await h.eval(() => document.querySelector('.hud .coach').checkVisibility()));
   await h.shot(`mob_${tag}_build`);
   console.log(await overlaps('build'));
+  await tap('.hud .buildbar [data-mat="stone"]');
+  await tap('.hud .buildbar [data-act="slot3"]');
+  await h.eval(() => window.__bf.simulate(0.1));
+  console.log('picked', await h.eval(() => [window.__bf.pc.buildMat, window.__bf.pc.buildPiece].join(' ')));
+  await tap('.hud .coach .btn');
+  console.log('coach after Got it', await h.eval(() => document.querySelector('.hud .coach').checkVisibility()));
+  await h.shot(`mob_${tag}_build2`);
+  console.log(await overlaps('build2'));
   await tap('.hud .buildbar [data-act="build"]');
   await h.eval(() => window.__bf.simulate(0.1));
   console.log('build mode after weapons tap', await h.eval(() => window.__bf.pc.buildMode));
