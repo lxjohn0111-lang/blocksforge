@@ -46,13 +46,13 @@ export interface ResultSummary {
 }
 
 export const DAILY_TRACK: { label: string; reward: string }[] = [
-  { label: '150 Coins', reward: 'coins:150' },
-  { label: '500 XP', reward: 'xp:500' },
-  { label: '200 Coins', reward: 'coins:200' },
+  { label: '250 Coins', reward: 'coins:250' },
+  { label: 'Neon Raider', reward: 'outfit:neon_raider' },
+  { label: 'Inferno Camo', reward: 'camo:inferno' },
   { label: 'Dusk Banner', reward: 'banner:dusk' },
-  { label: '300 Coins', reward: 'coins:300' },
-  { label: '1,000 XP', reward: 'xp:1000' },
-  { label: 'Veteran Outfit', reward: 'outfit:daily_veteran' },
+  { label: '500 Coins', reward: 'coins:500' },
+  { label: '1,500 XP', reward: 'xp:1500' },
+  { label: 'Inferno Knight', reward: 'outfit:inferno_knight' },
 ];
 
 export class Meta {

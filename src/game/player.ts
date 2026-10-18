@@ -10,7 +10,7 @@ import { GhostBlocks } from '../render/effects';
 import { PIECES, PIECE_COST, type Piece } from './building';
 import type { BuildMat } from '../world/blocks';
 import { HEALS, THROWABLES, WEAPONS, itemName } from './weapons';
-import { clamp, damp, DEG } from '../core/mathx';
+import { clamp, damp, DEG, easeInOutCubic } from '../core/mathx';
 import { audio } from '../audio/audio';
 import { FX_LAYER } from '../render/chunkRenderer';
 import { CAMOS } from '../render/camos';
@@ -35,6 +35,11 @@ export class PlayerController {
   private camBob = 0;
   private lastHolding = '';
   inShip = false;
+  /** match time the player left the airship */
+  jumpedAt = -1e9;
+  /** 0 = first person, 1 = filming from outside (airship ride, freefall and glide) */
+  private dropCam = 0;
+  private thirdPersonModel = false;
   spectate: number | null = null;
   private deathCamT = 0;
   private placeCooldown = 0;
@@ -189,7 +194,9 @@ export class PlayerController {
       it.strafe = blocked ? 0 : (inp.isDown('right') ? 1 : 0) - (inp.isDown('left') ? 1 : 0);
     }
     it.yaw = p.yaw;
-    it.jump = !blocked && inp.isDown('jump');
+    // skydiving: opening the glider early takes a fresh tap a moment after leaving the airship,
+    // so the press that jumped out (often held) doesn't cut the freefall short
+    it.jump = !blocked && (p.dropping ? inp.wasPressed('jump') && m.time - this.jumpedAt > 0.7 : inp.isDown('jump'));
     if (s.crouchToggle) {
       if (!blocked && inp.wasPressed('crouch')) it.crouch = !p.crouching;
     } else it.crouch = !blocked && (inp.isDown('crouch') || inp.isDown('crouch'));
@@ -371,7 +378,7 @@ export class PlayerController {
       lookDY: this.lookDY,
       healProgress: p.useTimer >= 0 ? p.useTimer / p.useDur : -1,
       throwCharge: p.throwHold,
-      hideForScope: !!(g?.def.scope && p.ads > 0.92),
+      hideForScope: !!(g?.def.scope && p.ads > 0.92) || this.dropCam > 0.2,
       landed: this.consumeLanded(),
     };
   }
@@ -436,11 +443,57 @@ export class PlayerController {
       fovScale = 1 + (z - 1) * p.ads;
     }
     if (p.sprinting) fovScale *= 1.06;
-    if (p.gliding || p.dropping) fovScale *= 1.1;
+    if (p.gliding) fovScale *= 1.08;
+    if (p.dropping) fovScale *= 1.12 + clamp(-p.body.vel.y / 40, 0, 1) * 0.12;
     m.engine.fovScale += (fovScale - m.engine.fovScale) * damp(18, dt);
+    this.dropCamera(cam, eye, dt);
     void DEG;
     void HEALS;
     void THROWABLES;
+  }
+
+  /**
+   * BR drop: the airship ride is filmed from outside, the freefall and glide from just behind the
+   * player (you see your character dive and the glider open), easing back to first person on landing.
+   */
+  private dropCamera(cam: THREE.Camera, eye: THREE.Vector3, dt: number) {
+    const m = this.match;
+    const p = m.player;
+    const shipPos = (m as unknown as { shipPos?: () => THREE.Vector3 }).shipPos;
+    const airborne = p.dropping || p.gliding;
+    if (this.inShip && shipPos) this.dropCam = 1;
+    else this.dropCam = airborne ? Math.min(1, this.dropCam + dt * 3) : Math.max(0, this.dropCam - dt * 2.2);
+    const tp = this.dropCam > 0.3 && !this.inShip && p.alive;
+    if (tp !== this.thirdPersonModel && p.model) {
+      this.thirdPersonModel = tp;
+      p.model.setLayers(!tp);
+    }
+    if (this.dropCam <= 0) return;
+    const pitch = clamp(p.pitch, -1.15, 0.35);
+    const fwd = new THREE.Vector3(-Math.sin(p.yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(p.yaw) * Math.cos(pitch));
+    let focus: THREE.Vector3;
+    let back: number;
+    if (this.inShip && shipPos) {
+      focus = shipPos.call(m).add(new THREE.Vector3(0, 4, 0));
+      back = 30;
+    } else {
+      focus = p.body.pos.clone().add(new THREE.Vector3(0, 1.3, 0));
+      back = p.gliding ? 6.5 : 5;
+    }
+    const want = focus.clone().addScaledVector(fwd, -back).add(new THREE.Vector3(0, this.inShip ? 7 : 1.2, 0));
+    if (!this.inShip) {
+      // keep the follow camera out of hills and buildings
+      const dir = want.clone().sub(focus);
+      const len = dir.length();
+      dir.normalize();
+      const hit = m.world.raycast(focus.x, focus.y, focus.z, dir.x, dir.y, dir.z, len);
+      if (hit) want.copy(focus).addScaledVector(dir, Math.max(0.6, hit.dist - 0.4));
+    }
+    const k = easeInOutCubic(this.dropCam);
+    const fpQuat = cam.quaternion.clone();
+    cam.position.lerpVectors(eye, want, k);
+    const look = new THREE.Matrix4().lookAt(cam.position, focus.clone().addScaledVector(fwd, this.inShip ? 2 : 8), new THREE.Vector3(0, 1, 0));
+    cam.quaternion.copy(fpQuat).slerp(new THREE.Quaternion().setFromRotationMatrix(look), k);
   }
 
   /** helper for HUD: scope overlay strength */

@@ -47,6 +47,14 @@ export default async function (page, h) {
   await h.waitFor(() => window.__bf && window.__bf.state === 'menu');
   console.log('touch mode', await h.eval(() => ({ touch: document.body.classList.contains('touch'), coarse: matchMedia('(pointer: coarse)').matches, q: window.__bf.settings.quality, rs: window.__bf.settings.renderScale })));
   await h.run(1200);
+  // first visit: the quick tutorial cards come up over the menu
+  console.log('intro shown', await h.eval(() => !!document.querySelector('.intro')));
+  await h.shot(`mob_${tag}_intro`);
+  console.log(await pageOverflow('intro'));
+  for (let i = 0; i < 4; i++) await tap('.intro-nav .btn.primary');
+  await h.shot(`mob_${tag}_intro_last`);
+  await tap('.intro-skip');
+  await h.eval(() => document.querySelector('.intro')?.remove());
   await h.shot(`mob_${tag}_menu`);
   console.log(await pageOverflow('menu'));
   const clickText = (re) => h.eval((src) => { const r = new RegExp(src, 'i'); const b = [...document.querySelectorAll('#ui button, #ui .tab, #ui .btn')].find((e) => r.test(e.textContent.trim())); if (b) { b.click(); return true; } return false; }, re.source);

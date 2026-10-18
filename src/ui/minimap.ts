@@ -166,29 +166,47 @@ export function drawMap(ctx: CanvasRenderingContext2D, w: VoxelWorld, map: MapDa
     ctx.strokeStyle = `rgba(255,80,60,${a})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(tx(p.x), tz(p.z), 4 + p.age * 3, 0, Math.PI * 2);
+    ctx.arc(tx(p.x), tz(p.z), (4 + p.age * 3) * (viewRadius ? size / 196 : 1), 0, Math.PI * 2);
     ctx.stroke();
   }
+  // markers scale with the canvas so they stay readable however small the minimap is shown
+  const u = viewRadius ? size / 196 : size / 450;
   for (const f of o.friends) {
     ctx.fillStyle = '#4aa8ff';
+    ctx.strokeStyle = '#06121f';
+    ctx.lineWidth = 1.5 * u;
     ctx.beginPath();
-    ctx.arc(tx(f.x), tz(f.z), 3.5, 0, Math.PI * 2);
+    ctx.arc(tx(f.x), tz(f.z), 4.5 * u, 0, Math.PI * 2);
     ctx.fill();
+    ctx.stroke();
   }
-  // player arrow
+  // player: view cone + bold outlined arrow
   ctx.save();
   ctx.translate(tx(o.px), tz(o.pz));
   ctx.rotate(-o.yaw);
-  ctx.fillStyle = '#f2a93b';
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1.5;
+  const cone = ctx.createRadialGradient(0, 0, 0, 0, 0, 46 * u);
+  cone.addColorStop(0, 'rgba(255,214,140,0.38)');
+  cone.addColorStop(1, 'rgba(255,214,140,0)');
+  ctx.fillStyle = cone;
   ctx.beginPath();
-  ctx.moveTo(0, -8);
-  ctx.lineTo(5.5, 6);
-  ctx.lineTo(0, 3);
-  ctx.lineTo(-5.5, 6);
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, 46 * u, -Math.PI / 2 - 0.62, -Math.PI / 2 + 0.62);
   ctx.closePath();
   ctx.fill();
+  ctx.fillStyle = '#ffb52e';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.2 * u;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -11 * u);
+  ctx.lineTo(8 * u, 8 * u);
+  ctx.lineTo(0, 4 * u);
+  ctx.lineTo(-8 * u, 8 * u);
+  ctx.closePath();
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 4 * u;
+  ctx.fill();
+  ctx.shadowBlur = 0;
   ctx.stroke();
   ctx.restore();
   ctx.restore();

@@ -400,7 +400,7 @@ export class Match {
     const it = c.intent;
     const ground = this.world.groundY(b.pos.x, b.pos.z, Math.floor(b.pos.y));
     const alt = b.pos.y - (ground + 1);
-    if (c.dropping && (alt < 26 || (it.jump && alt < 60))) {
+    if (c.dropping && (alt < 30 || (it.jump && alt < 90))) {
       c.dropping = false;
       c.gliding = true;
       if (c.isPlayer) audio.play('b_swing', { vol: 0.6, rate: 0.6 });
@@ -408,10 +408,11 @@ export class Match {
     const sy = Math.sin(it.yaw), cy = Math.cos(it.yaw);
     const hx = (-sy * it.forward + cy * it.strafe);
     const hz = (-cy * it.forward - sy * it.strafe);
-    const sp = c.gliding ? 12 : 9;
+    const sp = c.gliding ? 13 : 10;
     b.vel.x += (hx * sp - b.vel.x) * Math.min(1, dt * 2.2);
     b.vel.z += (hz * sp - b.vel.z) * Math.min(1, dt * 2.2);
-    if (c.dropping) b.vel.y = Math.max(-38, b.vel.y - GRAVITY * dt * (it.forward > 0.5 ? 1.2 : 1));
+    // pushing forward dives head-first and falls faster
+    if (c.dropping) b.vel.y = Math.max(it.forward > 0.5 ? -46 : -36, b.vel.y - GRAVITY * dt * (it.forward > 0.5 ? 1.25 : 1));
     else b.vel.y += (-5.2 - b.vel.y) * Math.min(1, dt * 3);
     const res = moveBody(this.world, b, dt, false, this.time);
     if (b.onGround || b.inWater || res.landed) {
@@ -442,6 +443,7 @@ export class Match {
     a.aiming = c.ads > 0.4;
     a.recoil = Math.max(0, a.recoil - dt * 6);
     a.gliding = c.gliding;
+    a.falling = c.dropping;
     a.swimming = c.body.inWater && !c.body.onGround;
     a.deathDir = c.deathDir;
     const g = c.gun;

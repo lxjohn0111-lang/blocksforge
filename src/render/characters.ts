@@ -34,6 +34,12 @@ export interface Look {
   beard: boolean;
   goggles: boolean;
   scarf: number | null;
+  /** premium outfit parts */
+  plates?: number | null; // armour: chest plate, shoulder pads, knee pads
+  trim?: number | null; // glowing seams
+  mask?: 'gas' | 'skull' | 'visor' | 'ninja' | null;
+  cape?: number | null;
+  helm?: 'knight' | 'horned' | null; // full helmet, replaces headgear and hair
 }
 
 const SKINS = [0xf1c8a4, 0xe0ac86, 0xc68a62, 0xa0663e, 0x7a4a2a, 0x5a3520, 0xf5d5b8, 0xd9a07a];
@@ -66,6 +72,9 @@ export function randomLook(seed: number): Look {
     beard: r.chance(0.18),
     goggles: r.chance(0.15),
     scarf: r.chance(0.18) ? r.pick(CLOTH) : null,
+    plates: r.chance(0.16) ? r.pick([0x3a3f46, 0x4a4030, 0x2a2f38, 0x5a5a5a]) : null,
+    trim: r.chance(0.08) ? r.pick(ACCENTS) : null,
+    mask: r.chance(0.1) ? r.pick(['gas', 'skull', 'visor'] as const) : null,
   };
 }
 
@@ -142,7 +151,8 @@ export function characterBoxes(L: Look, armorTier = 0): VBox[] {
   }
   // hair
   const hs = L.hairStyle;
-  if (hs !== 'bald' && L.headgear !== 'hood') {
+  const covered = !!L.helm || L.mask === 'ninja';
+  if (hs !== 'bald' && L.headgear !== 'hood' && !covered) {
     const hTop = hs === 'buzz' ? 32.3 : 32.6;
     o.push(bx([-4.2, 30.4, -4.2], [4.2, hTop, 4.2], L.hair, B_HEAD, 'cloth'));
     if (hs !== 'buzz') {
@@ -157,7 +167,7 @@ export function characterBoxes(L: Look, armorTier = 0): VBox[] {
   }
   // headgear
   const h = L.hat;
-  switch (L.headgear) {
+  switch (covered ? 'none' : L.headgear) {
     case 'cap':
       o.push(bx([-4.3, 30.2, -4.3], [4.3, 33, 4.3], h, B_HEAD, 'cloth'));
       o.push(bx([-4.0, 30.2, -7.2], [4.0, 30.8, -4.3], h, B_HEAD, 'cloth'));
@@ -199,13 +209,106 @@ export function characterBoxes(L: Look, armorTier = 0): VBox[] {
       o.push(bx([-4.0, 29.8, -7.0], [4.0, 30.3, -4.3], h, B_HEAD, 'cloth'));
       break;
   }
-  if (L.goggles) {
+  premiumParts(o, L);
+  if (L.goggles && !L.helm && L.mask !== 'visor' && L.mask !== 'skull') {
     o.push(bx([-4.4, 26.8, -4.5], [4.4, 28.8, -4.1], 0x1a1a1a, B_HEAD, 'rubber'));
     o.push(bx([-3.4, 27.1, -4.6], [-0.6, 28.5, -4.45], 0x5ab0e0, B_HEAD, 'glass'));
     o.push(bx([0.6, 27.1, -4.6], [3.4, 28.5, -4.45], 0x5ab0e0, B_HEAD, 'glass'));
     o.push(bx([-4.45, 27.2, -4.1], [4.45, 28.2, 4.45], 0x1a1a1a, B_HEAD, 'rubber'));
   }
   return o;
+}
+
+/** armour plates, glowing trims, masks, full helmets and capes (front is -Z) */
+function premiumParts(o: VBox[], L: Look) {
+  const P = L.plates;
+  const T = L.trim;
+  if (P != null) {
+    const edge = shade(P, 0.7);
+    // chest plate with a raised centre and a belt buckle
+    o.push(bx([-3.7, 15.2, -2.75], [3.7, 22.4, -2.2], P, B_BODY, 'metal'));
+    o.push(bx([-1.4, 16, -2.95], [1.4, 21.6, -2.7], shade(P, 1.15), B_BODY, 'metal'));
+    o.push(bx([-3.75, 15.2, -2.8], [3.75, 15.7, -2.2], edge, B_BODY, 'metal'));
+    o.push(bx([-3.4, 14.6, 2.15], [3.4, 22, 2.65], P, B_BODY, 'metal'));
+    // shoulder pads and gauntlets
+    for (const [bone, x0] of [[B_RARM, 4], [B_LARM, -8]] as const) {
+      o.push(bx([x0 - 0.5, 20.6, -2.55], [x0 + 4.5, 24.7, 2.55], P, bone, 'metal'));
+      o.push(bx([x0 - 0.55, 20.6, -2.6], [x0 + 4.55, 21.2, 2.6], edge, bone, 'metal'));
+      o.push(bx([x0 - 0.3, 13.6, -2.35], [x0 + 4.3, 15.4, 2.35], P, bone, 'metal'));
+    }
+    // knee pads
+    for (const [bone, x0] of [[B_RLEG, 0], [B_LLEG, -4]] as const) o.push(bx([x0 + 0.3, 5.2, -2.6], [x0 + 3.7, 8, -2.1], P, bone, 'metal'));
+  }
+  if (T != null) {
+    // seams that glow: chest lines, arm stripes, leg stripes
+    o.push(bx([-2.6, 13.2, -2.9], [-2.2, 22.2, -2.25], T, B_BODY, 'emissive'));
+    o.push(bx([2.2, 13.2, -2.9], [2.6, 22.2, -2.25], T, B_BODY, 'emissive'));
+    o.push(bx([-2.6, 18.6, -3.0], [2.6, 19.0, -2.3], T, B_BODY, 'emissive'));
+    for (const [bone, x0, side] of [[B_RARM, 4, 8.05], [B_LARM, -8, -8.05]] as const) {
+      const xa = side > 0 ? x0 + 4 : x0 - 0.06;
+      o.push(bx([xa, 15.5, -0.25], [xa + 0.06, 23.5, 0.25], T, bone, 'emissive'));
+    }
+    for (const [bone, x0] of [[B_RLEG, 0], [B_LLEG, -4]] as const) {
+      const xa = bone === B_RLEG ? x0 + 4 : x0 - 0.06;
+      o.push(bx([xa, 3.5, -0.25], [xa + 0.06, 11.5, 0.25], T, bone, 'emissive'));
+      o.push(bx([x0 - 0.12, 0.8, -2.45], [x0 + 4.12, 1.2, 2.25], T, bone, 'emissive'));
+    }
+  }
+  const glow = T ?? L.accent;
+  switch (L.mask) {
+    case 'gas':
+      o.push(bx([-2.8, 24.4, -4.9], [2.8, 27.2, -4.0], 0x1e2124, B_HEAD, 'rubber'));
+      o.push(bx([-1.2, 24.0, -5.6], [1.2, 26.2, -4.9], 0x2c3136, B_HEAD, 'metal'));
+      o.push(bx([-4.3, 24.6, -4.4], [-2.6, 26.4, -2.6], 0x2c3136, B_HEAD, 'metal'));
+      o.push(bx([2.6, 24.6, -4.4], [4.3, 26.4, -2.6], 0x2c3136, B_HEAD, 'metal'));
+      o.push(bx([-3.2, 27.0, -4.45], [-0.6, 28.8, -4.05], glow, B_HEAD, 'emissive'));
+      o.push(bx([0.6, 27.0, -4.45], [3.2, 28.8, -4.05], glow, B_HEAD, 'emissive'));
+      break;
+    case 'skull':
+      o.push(bx([-4.15, 24, -4.35], [4.15, 30.4, -4.05], 0xe8e4d8, B_HEAD, 'polymer'));
+      o.push(bx([-3.1, 26.8, -4.45], [-0.8, 28.8, -4.3], 0x0c0c0e, B_HEAD, 'matte'));
+      o.push(bx([0.8, 26.8, -4.45], [3.1, 28.8, -4.3], 0x0c0c0e, B_HEAD, 'matte'));
+      o.push(bx([-2.4, 27.4, -4.5], [-1.4, 28.2, -4.4], glow, B_HEAD, 'emissive'));
+      o.push(bx([1.4, 27.4, -4.5], [2.4, 28.2, -4.4], glow, B_HEAD, 'emissive'));
+      o.push(bx([-0.5, 25.8, -4.45], [0.5, 26.6, -4.3], 0x0c0c0e, B_HEAD, 'matte'));
+      for (const x of [-2.2, -1.1, 0, 1.1]) o.push(bx([x, 24.4, -4.45], [x + 0.6, 25.4, -4.3], 0x0c0c0e, B_HEAD, 'matte'));
+      break;
+    case 'visor':
+      o.push(bx([-4.3, 24.8, -4.4], [4.3, 26.6, -4.0], shade(L.hat, 0.8), B_HEAD, 'polymer'));
+      o.push(bx([-4.35, 26.6, -4.6], [4.35, 29.0, -4.0], 0x0b0d12, B_HEAD, 'glass'));
+      o.push(bx([-3.8, 27.5, -4.66], [3.8, 28.0, -4.55], glow, B_HEAD, 'emissive'));
+      break;
+    case 'ninja':
+      o.push(bx([-4.3, 24, -4.3], [4.3, 32.4, 4.3], L.hat, B_HEAD, 'cloth'));
+      o.push(bx([-3.2, 26.9, -4.35], [3.2, 28.5, -4.25], L.skin, B_HEAD, 'skin'));
+      o.push(bx([-2.2, 27.2, -4.4], [-1.2, 28.2, -4.36], L.eyes, B_HEAD, 'skin'));
+      o.push(bx([1.2, 27.2, -4.4], [2.2, 28.2, -4.36], L.eyes, B_HEAD, 'skin'));
+      o.push(bx([-1, 28.4, 4.2], [1, 30, 7.5], L.accent, B_HEAD, 'cloth'));
+      break;
+  }
+  if (L.helm) {
+    const c = P ?? L.hat;
+    o.push(bx([-4.7, 24.2, -4.7], [4.7, 33.4, 4.7], c, B_HEAD, 'metal'));
+    o.push(bx([-4.75, 26.9, -4.8], [4.75, 28.1, -4.6], 0x08090b, B_HEAD, 'matte'));
+    o.push(bx([-0.4, 24.2, -4.85], [0.4, 26.9, -4.65], shade(c, 1.2), B_HEAD, 'metal'));
+    o.push(bx([-4.8, 33.0, -4.8], [4.8, 33.6, 4.8], shade(c, 0.75), B_HEAD, 'metal'));
+    if (T != null) o.push(bx([-4.0, 27.2, -4.86], [4.0, 27.8, -4.8], T, B_HEAD, 'emissive'));
+    if (L.helm === 'knight') {
+      o.push(bx([-0.6, 33.4, -3.6], [0.6, 36.6, 3.2], L.accent, B_HEAD, 'cloth'));
+      o.push(bx([-0.5, 33.4, 3.2], [0.5, 35.4, 5.6], L.accent, B_HEAD, 'cloth'));
+    } else {
+      for (const s of [-1, 1]) {
+        o.push(bx([s > 0 ? 4.6 : -6.4, 30.4, -1], [s > 0 ? 6.4 : -4.6, 32, 1], 0xe8dcc0, B_HEAD, 'polymer'));
+        o.push(bx([s > 0 ? 5.6 : -6.6, 32, -0.8], [s > 0 ? 6.6 : -5.6, 35.2, 0.8], 0xe8dcc0, B_HEAD, 'polymer'));
+        o.push(bx([s > 0 ? 5.8 : -6.4, 35.2, -0.6], [s > 0 ? 6.4 : -5.8, 36.6, 0.6], 0xffffff, B_HEAD, 'polymer'));
+      }
+    }
+  }
+  if (L.cape != null) {
+    o.push(bx([-4.2, 22.6, 2.0], [4.2, 24.2, 3.2], shade(L.cape, 0.75), B_BODY, 'cloth'));
+    o.push(bx([-4.0, 6.0, 2.7], [4.0, 23.0, 3.3], L.cape, B_BODY, 'cloth'));
+    if (T != null) o.push(bx([-4.0, 6.0, 3.3], [4.0, 6.5, 3.4], T, B_BODY, 'emissive'));
+  }
 }
 
 function shade(c: number, f: number) {
@@ -244,6 +347,8 @@ export interface AnimState {
   dead: number; // 0 alive, >0 seconds since death
   deathDir: number;
   gliding: boolean;
+  /** skydiving before the glider opens */
+  falling?: boolean;
   swimming: boolean;
   throwing: number; // 0..1
   swing: number; // melee 0..1
@@ -380,7 +485,8 @@ export class CharacterModel {
     const moving = s.speed > 0.3 && s.onGround && s.dead === 0;
     this.phase += dt * s.speed * (s.sprint ? 1.55 : 1.9);
     const swing = moving ? Math.sin(this.phase) * Math.min(1, s.speed / 5) * (s.sprint ? 1.0 : 0.7) : 0;
-    const bodyLean = crouch * 0.42 + (s.sprint ? 0.12 : 0);
+    const diving = !!s.falling && !s.gliding && s.dead === 0;
+    const bodyLean = diving ? 1.2 : crouch * 0.42 + (s.sprint ? 0.12 : 0);
     const drop = -crouch * 0.24;
 
     // body
@@ -399,6 +505,12 @@ export class CharacterModel {
     if (s.gliding) {
       legR = Math.sin(this.phase * 0.2) * 0.2 + 0.1;
       legL = -legR;
+    }
+    if (diving) {
+      // belly-down skydive: legs trail behind the body, flutter a little in the wind
+      const flutter = Math.sin(performance.now() * 0.012) * 0.08;
+      legR = 1.05 + flutter;
+      legL = 1.05 - flutter;
     }
     if (s.swimming) {
       legR = Math.sin(performance.now() * 0.008) * 0.5;
@@ -420,6 +532,9 @@ export class CharacterModel {
     if (s.gliding) {
       rArm = [-Math.PI + 0.2, 0, 0.25];
       lArm = [-Math.PI + 0.2, 0, -0.25];
+    } else if (diving) {
+      rArm = [-0.5, 0, 1.25];
+      lArm = [-0.5, 0, -1.25];
     } else if (s.holding === 'gun') {
       if (s.sprint && !s.aiming) {
         rArm = [-0.9 + swing * 0.25, -0.4, 0.15];
@@ -470,7 +585,7 @@ export class CharacterModel {
         m.copy(armRot).multiply(tilt);
         m.setPosition(hand.x, hand.y, hand.z);
       }
-      this.weaponMesh.visible = !s.gliding && s.holding !== 'none' && s.holding !== 'heal';
+      this.weaponMesh.visible = !s.gliding && !s.falling && s.holding !== 'none' && s.holding !== 'heal';
       this.weaponMesh.matrixWorldNeedsUpdate = true;
     }
     this.glider.visible = s.gliding;

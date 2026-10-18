@@ -8,13 +8,17 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/700.css';
 import './ui/styles.css';
 import { App } from './app';
+import { platform } from './platform/crazygames';
 
 function fail(msg: string) {
   const el = document.getElementById('ui')!;
   el.innerHTML = `<div class="screen boot"><div class="logo">BLOCK<span class="forge">FORGE</span></div><div class="tip" style="color:#ffb3a8;margin-top:30px">${msg}</div></div>`;
 }
 
-function start() {
+async function start() {
+  // the platform SDK has to be ready before saved progress is read
+  await platform.init();
+  platform.loadingStart();
   const app = new App();
   app.boot().catch((e) => {
     console.error(e);

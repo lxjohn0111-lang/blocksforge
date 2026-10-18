@@ -80,11 +80,19 @@ export class AudioEngine {
     if (this.ctx && this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
   }
 
+  /** silenced by the host platform (its mute setting, or an ad playing) */
+  private hostMuted = { setting: false, ad: false };
+  setHostMute(kind: 'setting' | 'ad', muted: boolean) {
+    this.hostMuted[kind] = muted;
+    if (this.settings) this.applyVolumes(this.settings);
+  }
+
   applyVolumes(s: Settings) {
     this.settings = s;
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(s.masterVol, t, 0.05);
+    const silent = this.hostMuted.setting || this.hostMuted.ad;
+    this.master.gain.setTargetAtTime(silent ? 0 : s.masterVol, t, 0.05);
     this.buses.sfx.gain.setTargetAtTime(s.sfxVol, t, 0.05);
     this.buses.ui.gain.setTargetAtTime(s.sfxVol * 0.8, t, 0.05);
     this.buses.music.gain.setTargetAtTime(s.musicVol, t, 0.05);

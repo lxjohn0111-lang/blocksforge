@@ -26,6 +26,7 @@ export const CAMOS: Record<string, CamoDef> = {
   redwood: { id: 'redwood', name: 'Redwood', mode: 3, a: 0x5a2a1a, b: 0x8a4a2a, c: 0x2a160e, scale: 1.3, rarity: 'rare' },
   slate: { id: 'slate', name: 'Slate', mode: 2, a: 0x3a3f46, b: 0x55606a, c: 0x22262b, scale: 1, rarity: 'common' },
   sakura: { id: 'sakura', name: 'Blossom', mode: 1, a: 0xf2b8c8, b: 0xd87a9a, c: 0x6a3a4a, scale: 1, rarity: 'rare' },
+  inferno: { id: 'inferno', name: 'Inferno', mode: 3, a: 0x1a0806, b: 0xff3a0a, c: 0xffc23a, scale: 0.85, glow: true, rarity: 'legendary' },
   // event exclusives
   harvest: { id: 'harvest', name: 'Harvest Moon', mode: 1, a: 0x6a3a14, b: 0xc26a1a, c: 0x2a1a0a, scale: 1, rarity: 'epic' },
   glacier: { id: 'glacier', name: 'Glacier', mode: 2, a: 0xa8d8f0, b: 0x5aa0d0, c: 0xe8f6ff, scale: 1, glow: false, rarity: 'epic' },

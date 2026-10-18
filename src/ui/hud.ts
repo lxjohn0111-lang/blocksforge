@@ -125,6 +125,7 @@ export class HUD {
       this.root.appendChild(el);
       return el;
     };
+    mk('wind', h('div', { class: 'windfx' }));
     mk('cross', h('div', { class: 'cross' }, h('i', { class: 'dot' }), h('i', { class: 'l' }), h('i', { class: 'r' }), h('i', { class: 't' }), h('i', { class: 'b' })));
     mk('hit', h('div', { class: 'hitmark' }, h('i'), h('i'), h('i'), h('i')));
     const ring = h('canvas', { class: 'ring', width: 128, height: 128 });
@@ -414,7 +415,7 @@ export class HUD {
     // aiming hides the crosshair, except a centre dot for iron sights (the sights sit just below it)
     const aimed = !!g && p.ads > 0.6 && g.def.category !== 'shotgun';
     const adsDot = aimed && pc.vm.optic === 'iron';
-    const showCross = p.alive && !inShip && scopeA < 0.5 && (!aimed || adsDot);
+    const showCross = p.alive && !inShip && !p.dropping && !p.gliding && scopeA < 0.5 && (!aimed || adsDot);
     E.cross.style.display = showCross ? 'block' : 'none';
     if (showCross) {
       const spread = g ? m.spreadDeg(p, g) : 0.6;
@@ -675,7 +676,7 @@ export class HUD {
       px: center.x, pz: center.z, yaw: camYaw, zone, friends,
       pings: this.pings.map((q) => ({ x: q.x, z: q.z, age: now - q.t })),
       path: br && br.ship.t < 1 ? { x0: br.ship.from.x, z0: br.ship.from.z, x1: br.ship.to.x, z1: br.ship.to.z, t: br.ship.t } : null,
-    }, 392, br ? (inShip ? 170 : 70) : tdm ? 60 : 45, br ? inShip : false);
+    }, 392, br ? (inShip ? 120 : 38) : tdm ? 34 : 28, br ? inShip : false);
 
     // status rows
     const st: string[] = [];
@@ -712,6 +713,11 @@ export class HUD {
       E.drop.style.display = dt2 ? 'block' : 'none';
       this.setHTML('drop', E.drop, dt2);
     }
+    // rushing-air streaks while skydiving, a hint of them while gliding
+    const wind = p.dropping ? 0.25 + clamp(-p.body.vel.y / 38, 0, 1) * 0.55 : p.gliding ? 0.12 : 0;
+    E.wind.style.opacity = wind.toFixed(2);
+    E.wind.style.display = wind > 0 ? 'block' : 'none';
+
     // spawn shield
     E.shield.style.display = p.alive && p.spawnShield > 0 ? 'block' : 'none';
 

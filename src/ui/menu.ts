@@ -4,7 +4,7 @@ import type { Meta, Reward } from '../meta/meta';
 import { DAILY_TRACK } from '../meta/meta';
 import { rankOf, TIERS, DIV_NAMES } from '../meta/ranks';
 import { xpForLevel } from '../meta/profile';
-import { catalog, OUTFITS, BANNERS, TITLES, composeLook, cosmeticName, SKIN_TONES, HAIR_COLORS, HAIR_STYLES, type Cosmetic } from '../meta/cosmetics';
+import { catalog, OUTFITS, BANNERS, TITLES, composeLook, cosmeticName, cosmeticRarity, SKIN_TONES, HAIR_COLORS, HAIR_STYLES, type Cosmetic } from '../meta/cosmetics';
 import { CAMOS, camoCss } from '../render/camos';
 import { ACHIEVEMENTS } from '../meta/achievements';
 import { TDM_MAPS } from '../world/maps/tdmMaps';
@@ -32,6 +32,10 @@ export interface MenuApi {
   openSettings(): void;
   setMenuView(v: 'orbit' | 'showcase'): void;
   refreshShowcase(): void;
+  /** turn the locker character by a drag of dx pixels */
+  rotateShowcase(dx: number): void;
+  /** reopen the quick tutorial */
+  showHelp(): void;
 }
 
 type Tab = 'play' | 'career' | 'locker' | 'armory' | 'ladder';
@@ -189,6 +193,7 @@ export class Menu {
         h('div', { class: 'coin', title: 'Forge Coins — earned by playing. Spend them in the Armory.' }, h('span', { html: ICON.coin(18) }), fmt(p.coins)),
         h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
         h('div', { class: 'row who', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
+        h('div', { class: 'iconbtn', onclick: () => this.api.showHelp(), title: 'How to play', html: ICON.info(18) }),
         h('div', { class: 'iconbtn', onclick: () => this.api.openSettings(), title: 'Settings', html: ICON.gear(18) }),
       ),
     );
@@ -289,7 +294,9 @@ export class Menu {
     DAILY_TRACK.forEach((d, i) => {
       const got = i < st.day || (st.claimedToday && i === (st.day + 6) % 7);
       const today = i === st.day && st.claimable;
-      grid.appendChild(h('div', { class: 'd' + (got && !today ? ' got' : '') + (today ? ' today' : '') }, h('b', null, String(i + 1)), d.label));
+      const cos = !d.reward.startsWith('coins') && !d.reward.startsWith('xp');
+      const rar = cos ? cosmeticRarity(d.reward) : '';
+      grid.appendChild(h('div', { class: 'd' + (got && !today ? ' got' : '') + (today ? ' today' : '') + (cos ? ` prize r-${rar}` : '') }, h('b', null, String(i + 1)), d.label));
     });
     const cd = h('span', { class: 'mono dim', style: { fontSize: '11px' } });
     const upd = () => (cd.textContent = st.claimable ? 'Ready to claim' : `Next in ${fmtDuration(st.nextReset - Date.now())}`);
@@ -424,7 +431,7 @@ export class Menu {
     for (const [c, l] of cats) left.appendChild(h('button', { class: 'btn' + (this.lockerCat === c ? ' primary' : ''), style: { justifyContent: 'flex-start', marginBottom: '6px' }, onclick: () => { this.lockerCat = c; this.render(); } }, l));
     left.appendChild(h('div', { style: { marginTop: 'auto' } }, playerCard({ id: 'player', name: p.name, look: composeLook(p.base, p.equipped.outfit), isBot: false, level: p.level, rp: p.rank.rp, title: p.equipped.title, banner: p.equipped.banner, camo: p.equipped.camo, skill: 0 })));
     page.appendChild(left);
-    page.appendChild(h('div', { class: 'preview3d' }));
+    page.appendChild(this.previewBox());
     const right = h('div', { class: 'panel scroll' });
     const cat = this.lockerCat;
     if (cat === 'look') {
@@ -465,6 +472,36 @@ export class Menu {
     }
     page.appendChild(right);
     this.body.appendChild(page);
+  }
+
+  /** the see-through box the 3D character is framed in; drag it to turn the character */
+  private previewBox() {
+    const box = h('div', { class: 'preview3d' }, h('div', { class: 'rothint', html: ICON.refresh(16) }));
+    let lastX: number | null = null;
+    box.addEventListener('pointerdown', (e) => {
+      lastX = e.clientX;
+      box.setPointerCapture(e.pointerId);
+      box.classList.add('dragging');
+    });
+    box.addEventListener('pointermove', (e) => {
+      if (lastX === null) return;
+      this.api.rotateShowcase(e.clientX - lastX);
+      lastX = e.clientX;
+    });
+    const end = () => {
+      lastX = null;
+      box.classList.remove('dragging');
+    };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('pointercancel', end);
+    return box;
+  }
+
+  /** where the locker's character should appear on screen (null outside the locker) */
+  previewRect(): DOMRect | null {
+    if (this.tab !== 'locker') return null;
+    const el = this.root.querySelector('.preview3d');
+    return el ? el.getBoundingClientRect() : null;
   }
 
   private itemTile(c: Cosmetic, own: boolean, on: boolean, onclick: () => void, price?: HTMLElement) {

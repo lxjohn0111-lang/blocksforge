@@ -68,8 +68,9 @@ export class Input {
     document.addEventListener('pointerlockerror', () => {
       if (this.requestedWithGesture && performance.now() - this.lastUnlock > 2500) this.enterFallback();
     });
+    // no browser context menu anywhere in the game (text fields keep theirs)
     window.addEventListener('contextmenu', (e) => {
-      if (this.locked) e.preventDefault();
+      if (!(e.target as HTMLElement | null)?.closest?.('input, textarea')) e.preventDefault();
     });
   }
 

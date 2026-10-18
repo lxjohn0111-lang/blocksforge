@@ -1,6 +1,5 @@
-// Post-match results: headline, stats, scoreboard, animated XP / level ups,
-// coins, ranked RP with promotion & demotion screens, quests, achievements,
-// event progress and next-day event teasers.
+// Post-match results: one headline, three numbers, a progress strip (XP, coins, rank) and the
+// buttons. The scoreboard is one tap away; level-ups and promotions get their own reveal.
 
 import { h, fmt } from './dom';
 import { ICON, rankEmblem, avatarCanvas } from './icons';
@@ -15,9 +14,9 @@ import { fmtDuration } from '../core/mathx';
 export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummary, cb: { again(): void; menu(): void }) {
   const root = h('div', { class: 'screen results' });
   parent.appendChild(root);
-  const wrap = h('div', { class: 'res-wrap' });
+  const wrap = h('div', { class: 'res2' });
   root.appendChild(wrap);
-  // headline
+  // ---------------------------------------------------------------- headline
   let title = '';
   let cls = '';
   if (r.mode === 'tutorial') {
@@ -31,110 +30,110 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
     cls = r.won ? 'win' : r.draw ? '' : 'lose';
   }
   audio.ui(r.won ? 'victory' : 'defeat', 0.8);
-  const sub = r.mode === 'br' ? `Battle Royale · ${r.mapName} · ${r.won ? 'Last block standing' : `of ${r.participants}`}` : r.mode === 'tdm' ? `Team Deathmatch · ${r.mapName} · ${r.teamScores![0]} – ${r.teamScores![1]}` : 'Training Grounds';
-  wrap.appendChild(
-    h('div', { class: 'res-head' },
-      h('div', null, h('div', { class: 'label' }, r.ranked ? 'Ranked match' : r.mode === 'tutorial' ? 'Tutorial' : 'Casual match'), h('div', { class: 'res-title ' + cls }, title), h('div', { class: 'dim', style: { marginTop: '8px', letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: '13px' } }, sub)),
-      h('div', { class: 'row' },
-        r.mode !== 'tutorial' ? h('button', { class: 'btn big primary', onclick: () => { clearReveals(); root.remove(); cb.again(); } }, h('span', { html: ICON.play(16) }), 'Play again') : null,
-        h('button', { class: 'btn big', onclick: () => { clearReveals(); root.remove(); cb.menu(); } }, 'Main menu'))),
-  );
-  const grid = h('div', { class: 'res-grid' });
-  wrap.appendChild(grid);
-  // left: stats + roster
-  const left = h('div', { class: 'col', style: { gap: '16px' } });
+  const kicker = r.mode === 'br' ? `${r.ranked ? 'Ranked · ' : ''}${r.mapName}` : r.mode === 'tdm' ? `${r.ranked ? 'Ranked · ' : ''}${r.mapName}` : 'Training Grounds';
+  const head = h('div', { class: 'res2-head ' + cls }, h('div', { class: 'kick' }, kicker), h('div', { class: 'res-title ' + cls }, title));
+  if (r.mode === 'br' && !r.won) head.appendChild(h('div', { class: 'of' }, `of ${r.participants}`));
+  if (r.mode === 'tdm' && r.teamScores) head.appendChild(h('div', { class: 'score' }, h('span', { class: 'a' }, String(r.teamScores[0])), h('i'), h('span', { class: 'b' }, String(r.teamScores[1]))));
+  wrap.appendChild(head);
+
+  // ---------------------------------------------------------------- the numbers that matter
   const st = r.stats;
   const acc = st.shots ? `${Math.round((st.hits / st.shots) * 100)}%` : '—';
-  const cells: [string, string][] = [
-    ['Eliminations', String(st.kills)], ['Assists', String(st.assists)], ['Damage', fmt(st.damage)], ['Accuracy', acc],
-    ['Headshots', String(st.headshots)], r.mode === 'br' ? ['Survived', fmtDuration(r.survived * 1000)] : ['Deaths', String(st.deaths)],
-    r.mode === 'br' ? ['Built', String(st.built)] : ['Longest', `${Math.round(st.longestKill)}m`], r.mode === 'br' ? ['Chests', String(st.chests)] : ['Team rank', `#${r.placement}`],
-  ];
-  left.appendChild(h('div', { class: 'panel', style: { padding: '18px' } }, h('div', { class: 'statgrid' }, ...cells.map(([l, v], i) => h('div', { class: 'stat', style: { animation: `lineIn .3s ${i * 0.04}s both` } }, h('div', { class: 'v' }, v), h('div', { class: 'l' }, l))))));
+  const tiles: [string, string, string][] = r.mode === 'tutorial'
+    ? [[ICON.skull(18), String(st.kills), 'Elims'], [ICON.crosshair(18), acc, 'Accuracy'], [ICON.wall(18), String(st.built), 'Built']]
+    : r.mode === 'br'
+      ? [[ICON.skull(18), String(st.kills), 'Elims'], [ICON.bolt(18), fmt(st.damage), 'Damage'], [ICON.clock(18), fmtDuration(r.survived * 1000), 'Survived']]
+      : [[ICON.skull(18), String(st.kills), 'Elims'], [ICON.bolt(18), fmt(st.damage), 'Damage'], [ICON.crosshair(18), acc, 'Accuracy']];
+  wrap.appendChild(h('div', { class: 'res2-tiles' }, ...tiles.map(([ic, v, l], i) =>
+    h('div', { class: 'tile', style: { animationDelay: `${0.1 + i * 0.07}s` } }, h('span', { class: 'ic', html: ic }), h('b', null, v), h('small', null, l)))));
+
+  // ---------------------------------------------------------------- progression strip: XP, coins, rank
+  const strip = h('div', { class: 'res2-strip' });
+  const lvlBadge = h('div', { class: 'badge' }, String(s.levelBefore));
+  const xpFill = h('i', { style: { width: `${(s.xpBefore / xpForLevel(s.levelBefore)) * 100}%` } });
+  strip.appendChild(h('div', { class: 'prog xp' }, h('div', { class: 'lvl' }, lvlBadge), h('div', { class: 'grow' }, h('div', { class: 'row-sb' }, h('span', null, 'Level'), h('b', { class: 'xpv' }, `+${fmt(s.xpTotal)} XP`)), h('div', { class: 'bar' }, xpFill))));
+  if (s.coins) strip.appendChild(h('div', { class: 'prog coins' }, h('span', { html: ICON.coin(20) }), h('b', null, `+${fmt(s.coins)}`)));
+  let rpBar: HTMLElement | null = null;
+  let rpName: HTMLElement | null = null;
+  let rpEmblem: HTMLElement | null = null;
+  if (s.rp) {
+    const rp = s.rp;
+    const before = rankOf(rp.before);
+    rpEmblem = h('div', { class: 'em', html: rankEmblem(before.tier, before.division, 40) });
+    rpName = h('span', { style: { color: before.tierDef.color } }, before.label);
+    rpBar = h('i', { style: { width: `${before.progress}%`, background: before.tierDef.color } });
+    strip.appendChild(h('div', { class: 'prog rank' }, rpEmblem, h('div', { class: 'grow' }, h('div', { class: 'row-sb' }, rpName, h('b', { class: rp.total >= 0 ? 'pos' : 'neg' }, `${rp.total >= 0 ? '+' : ''}${rp.total} RP`)), h('div', { class: 'bar' }, rpBar))));
+  }
+  wrap.appendChild(strip);
+
+  // finished quests / achievements: one chip each, nothing about unfinished ones
+  const done = [...s.quests.filter((q) => q.justDone).map((q) => q.text), ...s.eventLines.filter((e) => e.justDone).map((e) => e.text), ...s.achievements.map((a) => a.name)];
+  if (done.length && r.mode !== 'tutorial') {
+    audio.ui('quest', 0.7);
+    wrap.appendChild(h('div', { class: 'res2-chips' }, ...done.slice(0, 4).map((t) => h('span', { class: 'chip accent' }, h('span', { html: ICON.check(12) }), t))));
+  }
+
+  // ---------------------------------------------------------------- actions
+  const sbBox = h('div', { class: 'res2-sb', style: { display: 'none' } });
+  const actions = h('div', { class: 'res2-actions' },
+    r.mode !== 'tutorial' ? h('button', { class: 'btn big primary', onclick: () => { clearReveals(); root.remove(); cb.again(); } }, h('span', { html: ICON.play(16) }), 'Play again') : null,
+    h('button', { class: 'btn big', onclick: () => { clearReveals(); root.remove(); cb.menu(); } }, 'Menu'),
+    r.mode !== 'tutorial' ? h('button', { class: 'btn ghost sbtoggle', onclick: (e: Event) => { const open = sbBox.style.display === 'none'; sbBox.style.display = open ? 'block' : 'none'; (e.currentTarget as HTMLElement).classList.toggle('on', open); } }, h('span', { html: ICON.people(16) }), 'Scoreboard') : null);
+  wrap.appendChild(actions);
   if (r.mode !== 'tutorial') {
-    const sb = h('div', { class: 'panel', style: { padding: '18px' } });
-    sb.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '6px' } }, h('div', { class: 'h2' }, 'Scoreboard'), h('span', { class: 'dim', style: { fontSize: '12px' } }, `MVP · ${r.mvp}`)));
     const roster = [...r.roster];
     const row = (e: (typeof roster)[number]) =>
       h('tr', { class: e.isPlayer ? 'me' : '' },
-        h('td', null, r.mode === 'br' ? (e.placement ? `#${e.placement}` : '—') : ''),
-        h('td', null, h('span', { class: 'row', style: { gap: '6px' } }, e.name, e.isBot ? null : h('span', { class: 'chip accent' }, 'You'))),
-        h('td', { class: 'n' }, String(e.kills)), h('td', { class: 'n' }, String(e.deaths)), h('td', { class: 'n' }, String(e.assists)), h('td', { class: 'n' }, fmt(e.damage)));
-    const head = h('tr', null, h('th', null, r.mode === 'br' ? 'Place' : ''), h('th', null, 'Player'), h('th', { class: 'n' }, 'K'), h('th', { class: 'n' }, 'D'), h('th', { class: 'n' }, 'A'), h('th', { class: 'n' }, 'DMG'));
+        r.mode === 'br' ? h('td', { class: 'n' }, e.placement ? `#${e.placement}` : '—') : null,
+        h('td', null, e.name),
+        h('td', { class: 'n' }, String(e.kills)), h('td', { class: 'n' }, String(e.deaths)), h('td', { class: 'n' }, fmt(e.damage)));
+    const headRow = () => h('tr', null, r.mode === 'br' ? h('th', { class: 'n' }, '#') : null, h('th', null, ''), h('th', { class: 'n' }, 'K'), h('th', { class: 'n' }, 'D'), h('th', { class: 'n' }, 'DMG'));
     if (r.mode === 'br') {
       roster.sort((a, b) => (a.placement || 99) - (b.placement || 99) || b.kills - a.kills);
-      sb.appendChild(h('table', { class: 'sbt' }, head, ...roster.slice(0, 12).map(row)));
+      sbBox.appendChild(h('table', { class: 'sbt' }, headRow(), ...roster.slice(0, 10).map(row)));
     } else {
       const mine = roster.filter((e) => e.team === r.playerTeam).sort((a, b) => b.score - a.score);
       const other = roster.filter((e) => e.team !== r.playerTeam).sort((a, b) => b.score - a.score);
-      sb.appendChild(h('div', { class: 'teamhead a' }, h('span', null, 'Your team'), h('span', null, String(r.teamScores![0]))));
-      sb.appendChild(h('table', { class: 'sbt' }, head, ...mine.map(row)));
-      sb.appendChild(h('div', { class: 'teamhead b', style: { marginTop: '10px' } }, h('span', null, 'Enemy team'), h('span', null, String(r.teamScores![1]))));
-      sb.appendChild(h('table', { class: 'sbt' }, head.cloneNode(true), ...other.map(row)));
+      sbBox.appendChild(h('div', { class: 'sbcols' },
+        h('div', null, h('div', { class: 'teamhead a' }, 'Your team'), h('table', { class: 'sbt' }, headRow(), ...mine.map(row))),
+        h('div', null, h('div', { class: 'teamhead b' }, 'Enemies'), h('table', { class: 'sbt' }, headRow(), ...other.map(row)))));
     }
-    left.appendChild(sb);
+    wrap.appendChild(sbBox);
   }
-  grid.appendChild(left);
 
-  // right: progression
-  const right = h('div', { class: 'col', style: { gap: '16px' } });
-  // XP
-  const xpPanel = h('div', { class: 'panel', style: { padding: '18px' } });
-  const lvlBadge = h('div', { class: 'lvl' }, h('div', { class: 'badge' }, String(s.levelBefore)));
-  const xpBar = h('div', { class: 'bar', style: { height: '10px', flex: '1' } }, h('i', { style: { width: `${(s.xpBefore / xpForLevel(s.levelBefore)) * 100}%`, background: 'linear-gradient(90deg,#7fd0ff,#4aa8ff)' } }));
-  xpPanel.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('div', { class: 'h2' }, 'Experience'), h('div', { class: 'row', style: { color: '#7fd0ff', fontFamily: 'var(--display)', fontSize: '26px' } }, h('span', { html: ICON.xp(20) }), `+${fmt(s.xpTotal)}`)));
-  xpPanel.appendChild(h('div', { class: 'row', style: { gap: '12px', marginBottom: '10px' } }, lvlBadge, xpBar));
-  const lines = h('div', { class: 'lines' });
-  s.xpLines.forEach((l, i) => lines.appendChild(h('div', { class: 'ln', style: { animationDelay: `${0.2 + i * 0.06}s` } }, h('span', null, l.label), h('b', { class: 'pos' }, `+${fmt(l.value)}`))));
-  if (s.coins) lines.appendChild(h('div', { class: 'ln', style: { animationDelay: `${0.25 + s.xpLines.length * 0.06}s` } }, h('span', { class: 'row', style: { gap: '6px' } }, h('span', { html: ICON.coin(14) }), 'Coins'), h('b', { style: { color: 'var(--accent)' } }, `+${fmt(s.coins)}`)));
-  xpPanel.appendChild(lines);
-  right.appendChild(xpPanel);
-  // animate xp bar through level ups
+  // ---------------------------------------------------------------- animations: XP through level ups, then RP
   (async () => {
     let lvl = s.levelBefore;
     await sleep(500);
     while (lvl < s.levelAfter) {
-      (xpBar.firstChild as HTMLElement).style.width = '100%';
+      xpFill.style.width = '100%';
       await sleep(600);
       lvl++;
-      (lvlBadge.firstChild as HTMLElement).textContent = String(lvl);
-      (xpBar.firstChild as HTMLElement).style.transition = 'none';
-      (xpBar.firstChild as HTMLElement).style.width = '0%';
+      lvlBadge.textContent = String(lvl);
+      xpFill.style.transition = 'none';
+      xpFill.style.width = '0%';
       await sleep(30);
-      (xpBar.firstChild as HTMLElement).style.transition = '';
+      xpFill.style.transition = '';
       audio.ui('levelup', 0.7);
     }
-    (xpBar.firstChild as HTMLElement).style.width = `${(s.xpAfter / xpForLevel(s.levelAfter)) * 100}%`;
+    xpFill.style.width = `${(s.xpAfter / xpForLevel(s.levelAfter)) * 100}%`;
   })();
-
-  // ranked
-  if (s.rp) {
+  if (s.rp && rpBar && rpName && rpEmblem) {
     const rp = s.rp;
-    const before = rankOf(rp.before);
     const after = rankOf(rp.after);
-    const num = h('div', { class: 'num ' + (rp.total >= 0 ? 'pos' : 'neg') }, `${rp.total >= 0 ? '+' : ''}${rp.total} RP`);
-    const emblem = h('div', { html: rankEmblem(before.tier, before.division, 76) });
-    const name = h('div', { style: { fontFamily: 'var(--display)', fontSize: '24px', color: before.tierDef.color } }, before.label);
-    const bar = h('div', { class: 'bar', style: { height: '10px' } }, h('i', { style: { width: `${before.progress}%`, background: before.tierDef.color } }));
-    const rpText = h('div', { class: 'dim mono', style: { fontSize: '12px' } }, `${fmt(rp.before)} RP`);
-    const panel = h('div', { class: 'panel', style: { padding: '18px' } },
-      h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('div', { class: 'h2' }, 'Ranked'), num),
-      h('div', { class: 'rpbox' }, emblem, h('div', { class: 'col grow', style: { gap: '6px' } }, name, bar, rpText)),
-      h('div', { class: 'lines', style: { marginTop: '10px' } }, ...rp.lines.map((l, i) => h('div', { class: 'ln', style: { animationDelay: `${0.3 + i * 0.07}s` } }, h('span', null, l.label), h('b', { class: l.value >= 0 ? 'pos' : 'neg' }, l.label === 'Demotion shield' ? 'Protected' : `${l.value >= 0 ? '+' : ''}${l.value}`)))));
-    right.appendChild(panel);
+    const bar = rpBar, name = rpName, emblem = rpEmblem;
     (async () => {
       await sleep(900);
       const steps = 30;
       for (let i = 1; i <= steps; i++) {
         const v = Math.round(rp.before + ((rp.after - rp.before) * i) / steps);
         const rk = rankOf(v);
-        (bar.firstChild as HTMLElement).style.width = `${Math.min(100, rk.tier === TIERS.length - 1 ? 100 : rk.progress)}%`;
-        (bar.firstChild as HTMLElement).style.background = rk.tierDef.color;
-        rpText.textContent = `${fmt(v)} RP`;
+        bar.style.width = `${Math.min(100, rk.tier === TIERS.length - 1 ? 100 : rk.progress)}%`;
+        bar.style.background = rk.tierDef.color;
         if (rk.label !== name.textContent) {
           name.textContent = rk.label;
           name.style.color = rk.tierDef.color;
-          emblem.innerHTML = rankEmblem(rk.tier, rk.division, 76);
+          emblem.innerHTML = rankEmblem(rk.tier, rk.division, 40);
         }
         await sleep(28);
       }
@@ -143,7 +142,6 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
         const big = h('div', { class: 'emblem-big', style: { ['--glow' as any]: after.tierDef.color }, html: rankEmblem(after.tier, after.division, 220) });
         const box = showReveal(parent, rp.tierUp ? 'Promotion' : 'Division up', after.label, [], undefined, big);
         (box.querySelector('.big') as HTMLElement).style.color = after.tierDef.color;
-        if (rp.tierUp) box.insertBefore(h('div', { class: 'dim', style: { position: 'relative', marginBottom: '8px' } }, 'Demotion protection active for 3 matches. Tougher opponents await.'), box.querySelector('button'));
       } else if (rp.demoted) {
         audio.ui('rankdown', 0.8);
         const big = h('div', { class: 'emblem-big', style: { ['--glow' as any]: '#ff5a4a' }, html: rankEmblem(after.tier, after.division, 160) });
@@ -151,39 +149,6 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
       }
     })();
   }
-
-  // quests
-  if (s.quests.length && r.mode !== 'tutorial') {
-    const qp = h('div', { class: 'panel', style: { padding: '18px' } }, h('div', { class: 'h2', style: { marginBottom: '8px' } }, 'Daily quests'));
-    for (const q of s.quests) {
-      qp.appendChild(h('div', { class: 'quest' + (q.done ? ' done' : '') }, h('div', { class: 'q' }, q.text, q.justDone ? h('span', { class: 'chip accent', style: { marginLeft: '8px' } }, 'Complete') : null), h('div', { class: 'rw' }, `${fmt(q.progress)}/${fmt(q.target)}`), h('div', { class: 'bar' }, h('i', { style: { width: `${(q.progress / q.target) * 100}%` } }))));
-    }
-    if (s.quests.some((q) => q.justDone)) {
-      qp.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '6px' } }, 'Claim completed quests from the Play screen.'));
-      audio.ui('quest', 0.7);
-    }
-    right.appendChild(qp);
-  }
-  if (s.eventLines.length) {
-    const ep = h('div', { class: 'panel', style: { padding: '18px' } }, h('div', { class: 'h2', style: { marginBottom: '8px' } }, 'Event challenges'));
-    for (const e of s.eventLines) ep.appendChild(h('div', { class: 'quest' + (e.progress >= e.target ? ' done' : '') }, h('div', { class: 'q' }, e.text, e.justDone ? h('span', { class: 'chip accent', style: { marginLeft: '8px' } }, 'Complete') : null), h('div', { class: 'rw' }, `${fmt(e.progress)}/${fmt(e.target)}`), h('div', { class: 'bar' }, h('i', { style: { width: `${(e.progress / e.target) * 100}%` } }))));
-    right.appendChild(ep);
-  }
-  if (s.achievements.length) {
-    const ap = h('div', { class: 'panel', style: { padding: '18px' } }, h('div', { class: 'h2', style: { marginBottom: '8px' } }, 'Achievements unlocked'));
-    for (const a of s.achievements) ap.appendChild(h('div', { class: 'row', style: { gap: '10px', padding: '6px 0' } }, h('span', { html: ICON.trophy(20), style: { color: 'var(--accent)' } }), h('div', { class: 'col', style: { gap: '2px' } }, h('b', null, a.name), h('span', { class: 'dim', style: { fontSize: '12px' } }, a.desc))));
-    right.appendChild(ap);
-  }
-  if (s.teaser) {
-    const t = s.teaser;
-    right.appendChild(h('div', { class: 'event-card panel' }, h('div', { class: 'eb', style: { background: t.def.gradient } }),
-      h('span', { class: 'chip' }, 'Starts tomorrow'),
-      h('div', { class: 'ename', style: { color: t.def.accent, marginTop: '6px' } }, t.def.name),
-      h('div', { style: { fontSize: '13px' } }, t.def.tagline),
-      h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, `Begins ${new Date(t.start).toLocaleDateString(undefined, { weekday: 'long' })} 00:00 · ${t.def.challenges.length} challenges with exclusive cosmetics`)));
-  }
-  grid.appendChild(right);
-
   // level-up reveal after the bar finishes
   if (s.levelUps.length) {
     setTimeout(() => {

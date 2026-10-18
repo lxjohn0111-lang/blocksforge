@@ -67,6 +67,9 @@ export class BotBrain {
   private lastNade = -100;
   private wantJump = false;
   private crouchHold = 0;
+  private crouchDecideAt = 0;
+  /** eased world-space move direction: no instant left-right flips */
+  private moveSmooth = new THREE.Vector3();
   private distractedUntil = 0;
   private peekT = 0;
   dropTarget: THREE.Vector2 | null = null;
@@ -86,6 +89,11 @@ export class BotBrain {
 
   private get now() {
     return this.match.time;
+  }
+
+  /** 1.7 at the bottom of Flint, 1 from about Iron up */
+  private get playerStealth() {
+    return 1 + Math.max(0, 0.35 - (this.match.cfg.difficulty ?? 0.5)) * 2;
   }
 
   onDamaged(e: DamageEvent) {
@@ -150,11 +158,13 @@ export class BotBrain {
       if (o.crouching) eff *= 1.35;
       if (Math.hypot(o.body.vel.x, o.body.vel.z) < 0.5) eff *= 1.15;
       if (o.lastShotTime > this.now - 1.5) eff *= 0.6;
+      // at the bottom of the ladder the player is harder to notice, giving new players room to learn
+      if (o.isPlayer) eff *= this.playerStealth;
       if (eff > range) continue;
       const head = o.eye();
       const chest = o.body.pos.clone().add(new THREE.Vector3(0, 1.0, 0));
       if (!m.canSee(eye, head) && !m.canSee(eye, chest)) continue;
-      let score = d;
+      let score = d * (o.isPlayer ? this.playerStealth : 1);
       if (o === this.target) score *= 0.6;
       if (recentlyHit) score *= 0.5;
       if (o.hp < 40) score *= 0.85;
@@ -373,15 +383,20 @@ export class BotBrain {
     if (tv > 3 && Math.random() < 0.3 * (1 - this.skill)) {
       this.aimErr.x += (Math.random() - 0.5) * 2.5 * DEG * (1 - this.skill);
     }
-    // strafe pattern
+    // strafe pattern: drift one way for a while, or plant and take aimed shots at range
     this.strafeT -= 0.3;
     if (this.strafeT <= 0) {
-      this.strafeDir = Math.random() < 0.5 ? -1 : 1;
-      this.strafeT = 0.6 + Math.random() * 1.8 * (1 - this.sk.strafe * 0.5);
+      const steady = d > 25 && !!g && (g.def.category === 'ar' || g.def.category === 'dmr' || g.def.category === 'sniper');
+      const r = Math.random();
+      this.strafeDir = r < (steady ? 0.45 : 0.15) ? 0 : r < (steady ? 0.72 : 0.57) ? -1 : 1;
+      this.strafeT = 0.9 + Math.random() * 1.7;
     }
-    // crouch at range for accuracy
-    this.crouchHold = d > 25 && (this.p.archetype === 'sniper' || this.p.archetype === 'tactician') && Math.random() < 0.6 ? 1 : 0;
-    this.wantJump = d < 12 && this.p.aggression > 0.6 && Math.random() < 0.08;
+    // crouch at range for accuracy, held for a few seconds rather than bobbing
+    if (this.now >= this.crouchDecideAt) {
+      this.crouchHold = d > 25 && (this.p.archetype === 'sniper' || this.p.archetype === 'tactician' || this.strafeDir === 0) && Math.random() < 0.6 ? 1 : 0;
+      this.crouchDecideAt = this.now + 1.6 + Math.random() * 2.2;
+    }
+    this.wantJump = d < 12 && this.p.aggression > 0.6 && this.skill > 0.45 && Math.random() < 0.025;
     // positioning
     const ideal = g ? g.def.idealRange : [5, 40];
     if (this.cover) this.setGoal(this.cover);
@@ -788,6 +803,12 @@ export class BotBrain {
         if (dd < 0.7 && Math.abs(wp.y - c.body.pos.y) < 1.6) this.pathI++;
         else {
           moveDir = new THREE.Vector3(dx, 0, dz).normalize();
+          // round the corner: near a waypoint, start leaning toward the one after it
+          const nx = this.path[this.pathI + 1];
+          if (nx && dd < 1.8 && Math.abs(nx.y - wp.y) < 0.6) {
+            const toNext = new THREE.Vector3(nx.x - c.body.pos.x, 0, nx.z - c.body.pos.z).normalize();
+            moveDir.lerp(toNext, 0.5 * (1 - dd / 1.8)).normalize();
+          }
           if (wp.y > c.body.pos.y + 1.1) this.wantJump = true;
         }
       } else if (!this.pathPending) {
@@ -817,16 +838,22 @@ export class BotBrain {
       // peeking from cover: step out to shoot, step back while reloading
       if (this.cover && c.gun && c.gun.reloading <= 0 && c.gun.mag > 0) {
         this.peekT += dt;
-        if (Math.sin(this.peekT * 2.2) > 0.2) moveDir = side.clone().multiplyScalar(0.8);
+        const peekSide = new THREE.Vector3(-toT.z, 0, toT.x).multiplyScalar(this.strafeDir === 0 ? 1 : this.strafeDir);
+        if (Math.sin(this.peekT * 1.4) > 0.25) moveDir = peekSide.multiplyScalar(0.8);
       }
     }
     if (this.now < this.distractedUntil) moveDir = null;
+    // ease the direction like a person shifting weight: no frame-to-frame reversals
+    const want = moveDir && moveDir.lengthSq() > 0.01 ? moveDir : new THREE.Vector3();
+    this.moveSmooth.lerp(want, 1 - Math.exp(-dt * (want.lengthSq() > 0 ? 6.5 : 9)));
+    if (moveDir && moveDir.lengthSq() > 0.01 && this.moveSmooth.lengthSq() < 0.04 && this.moveSmooth.dot(moveDir) <= 0) this.moveSmooth.copy(moveDir).multiplyScalar(0.2);
+    const md = this.moveSmooth;
     // translate world move direction into intent relative to look yaw
-    if (moveDir && moveDir.lengthSq() > 0.01) {
+    if (md.lengthSq() > 0.006) {
       const fwd = new THREE.Vector3(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
       const right = new THREE.Vector3(Math.cos(c.yaw), 0, -Math.sin(c.yaw));
-      it.forward = clamp(moveDir.dot(fwd) * 1.4, -1, 1);
-      it.strafe = clamp(moveDir.dot(right) * 1.4, -1, 1);
+      it.forward = clamp(md.dot(fwd) * 1.4, -1, 1);
+      it.strafe = clamp(md.dot(right) * 1.4, -1, 1);
       const far = this.goal ? this.goal.distanceTo(c.body.pos) > 8 : false;
       it.sprint = (this.state !== 'fight' || (!this.targetVisible && far)) && far && c.useTimer < 0;
     } else {
@@ -927,8 +954,8 @@ export class BotBrain {
       if (this.pathI < this.path.length) lookDir = this.path[this.pathI].clone().sub(c.body.pos).setY(0);
       else if (this.goal) lookDir = this.goal.clone().sub(c.body.pos).setY(0);
       if (lookDir && lookDir.lengthSq() > 0.1) {
-        const yaw = Math.atan2(-lookDir.x, -lookDir.z) + Math.sin(this.now * 0.7 + this.c.id) * 0.25;
-        c.yaw += wrapAngle(yaw - c.yaw) * Math.min(1, dt * 4);
+        const yaw = Math.atan2(-lookDir.x, -lookDir.z) + Math.sin(this.now * 0.45 + this.c.id) * 0.18;
+        c.yaw += wrapAngle(yaw - c.yaw) * Math.min(1, dt * 3);
       } else c.yaw += Math.sin(this.now * 0.4 + this.c.id) * dt * 0.6;
       c.pitch += (Math.sin(this.now * 0.5 + this.c.id * 3) * 0.12 - c.pitch) * Math.min(1, dt * 2);
       return;
@@ -958,10 +985,12 @@ export class BotBrain {
     pitch -= c.recoilPitch * (0.25 + this.skill * 0.55);
     yaw -= c.recoilYaw * (0.2 + this.skill * 0.5);
     if (this.now < this.distractedUntil) yaw += 0.4;
+    // flick toward the target, then settle: fast while far off, easing in as the error closes
     const maxTurn = this.sk.turnSpeed * dt;
+    const ease = 1 - Math.exp(-dt * (6 + this.skill * 10));
     const dyaw = wrapAngle(yaw - c.yaw);
-    c.yaw += clamp(dyaw, -maxTurn, maxTurn);
-    c.pitch += clamp(pitch - c.pitch, -maxTurn * 0.7, maxTurn * 0.7);
+    c.yaw += clamp(dyaw * Math.max(ease, Math.min(1, Math.abs(dyaw) > 0.6 ? 0.35 : 0)), -maxTurn, maxTurn);
+    c.pitch += clamp((pitch - c.pitch) * ease, -maxTurn * 0.7, maxTurn * 0.7);
     c.pitch = clamp(c.pitch, -1.4, 1.4);
     this.lookYaw = yaw;
     this.lookPitch = pitch;

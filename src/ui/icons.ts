@@ -137,9 +137,9 @@ export function avatarCanvas(L: Look, size = 48): HTMLCanvasElement {
     for (let x = 0; x < 8; x++) put(x, 3, '#1a1a1a');
     put(1, 3, '#5ab0e0'); put(2, 3, '#7ac8f0'); put(5, 3, '#5ab0e0'); put(6, 3, '#7ac8f0');
   }
-  // headgear
+  // headgear (a full helmet or balaclava replaces it)
   const H = hex(L.hat);
-  switch (L.headgear) {
+  switch (L.helm || L.mask === 'ninja' ? 'none' : L.headgear) {
     case 'cap':
       for (let x = 0; x < 8; x++) { put(x, 0, H); put(x, 1, H); }
       for (let x = 0; x < 8; x++) put(x, 2, shade(L.hat, 0.7));
@@ -171,6 +171,32 @@ export function avatarCanvas(L: Look, size = 48): HTMLCanvasElement {
     case 'visor':
       for (let x = 0; x < 8; x++) put(x, 1, H);
       break;
+  }
+  const glow = hex(L.trim ?? L.accent);
+  if (L.mask === 'gas') {
+    for (let y = 5; y < 8; y++) for (let x = 1; x < 7; x++) put(x, y, '#1e2124');
+    put(3, 6, '#3a4046'); put(4, 6, '#3a4046');
+    for (let x = 1; x < 7; x++) put(x, 3, '#1e2124');
+    put(2, 3, glow); put(5, 3, glow);
+  } else if (L.mask === 'skull') {
+    for (let y = 2; y < 8; y++) for (let x = 0; x < 8; x++) put(x, y, '#e8e4d8');
+    put(1, 3, '#0c0c0e'); put(2, 3, glow); put(5, 3, glow); put(6, 3, '#0c0c0e');
+    put(1, 4, '#0c0c0e'); put(2, 4, '#0c0c0e'); put(5, 4, '#0c0c0e'); put(6, 4, '#0c0c0e');
+    put(3, 5, '#0c0c0e'); put(4, 5, '#0c0c0e');
+    for (let x = 2; x < 6; x += 1) put(x, 7, x % 2 ? '#0c0c0e' : '#e8e4d8');
+  } else if (L.mask === 'visor') {
+    for (let x = 0; x < 8; x++) { put(x, 3, '#0b0d12'); put(x, 4, '#0b0d12'); }
+    for (let x = 1; x < 7; x++) put(x, 3, glow);
+  } else if (L.mask === 'ninja') {
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (y !== 3) put(x, y, shade(L.hat, y < 2 ? 1 : 0.9));
+    put(2, 3, hex(L.eyes)); put(5, 3, hex(L.eyes));
+  }
+  if (L.helm) {
+    const c = L.plates ?? L.hat;
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) put(x, y, shade(c, y < 2 ? 1.1 : 0.95 - y * 0.02));
+    for (let x = 0; x < 8; x++) put(x, 3, '#08090b');
+    if (L.trim != null) for (let x = 1; x < 7; x++) put(x, 3, glow);
+    put(3, 5, shade(c, 1.25)); put(4, 5, shade(c, 1.25)); put(3, 6, shade(c, 1.25)); put(4, 6, shade(c, 1.25));
   }
   // soft vignette for depth
   const grd = g.createLinearGradient(0, 0, 0, size);

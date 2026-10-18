@@ -33,23 +33,33 @@ export interface OutfitDef {
   camo: string | null;
   goggles?: boolean;
   scarf?: number | null;
+  plates?: number | null;
+  trim?: number | null;
+  mask?: Look['mask'];
+  cape?: number | null;
+  helm?: Look['helm'];
 }
 
 export const OUTFITS: Record<string, OutfitDef> = {
   recruit: { id: 'recruit', name: 'Recruit', rarity: 'common', shirt: 0x4a5a3a, jacket: null, pants: 0x3a3f46, boots: 0x2a2018, gloves: 0x1c1c1c, vest: null, headgear: 'cap', hat: 0x3a4a2a, backpack: null, accent: 0xf2a93b, camo: null },
   ranger: { id: 'ranger', name: 'Ranger', rarity: 'rare', shirt: 0x5a4a3a, jacket: 0x3d4a2a, pants: 0x4a3f30, boots: 0x3a2a1a, gloves: 0x4a3a2a, vest: null, headgear: 'beanie', hat: 0x6a3a1a, backpack: 0x4a5a3a, accent: 0xffe14a, camo: 'woodland' },
   scout: { id: 'scout', name: 'Scout', rarity: 'common', shirt: 0x9a8a6a, jacket: null, pants: 0x6a5a40, boots: 0x4a3a2a, gloves: 0x5a4a3a, vest: 0x6a5a40, headgear: 'bandana', hat: 0x8a2a1a, backpack: 0x6a5a40, accent: 0xff7a2a, camo: null },
-  arctic_ops: { id: 'arctic_ops', name: 'Arctic Ops', rarity: 'epic', shirt: 0xdfe4e8, jacket: 0xc8d0d8, pants: 0xb8c0c8, boots: 0x5a6670, gloves: 0x9aa6b0, vest: 0x8a96a0, headgear: 'helmet', hat: 0xdfe4e8, backpack: 0xc8d0d8, accent: 0x4ab0ff, camo: 'arctic', goggles: true },
+  arctic_ops: { id: 'arctic_ops', name: 'Arctic Ops', rarity: 'epic', shirt: 0xdfe4e8, jacket: 0xc8d0d8, pants: 0xb8c0c8, boots: 0x5a6670, gloves: 0x9aa6b0, vest: null, headgear: 'helmet', hat: 0xdfe4e8, backpack: 0xc8d0d8, accent: 0x4ab0ff, camo: 'arctic', goggles: true, plates: 0xeef2f5, mask: 'gas' },
   desert_fox: { id: 'desert_fox', name: 'Desert Fox', rarity: 'rare', shirt: 0xc2a878, jacket: 0x9a7a52, pants: 0xb09468, boots: 0x6a5238, gloves: 0x8a7050, vest: 0x8a7050, headgear: 'visor', hat: 0xc2a878, backpack: null, accent: 0xff9a2a, camo: 'desert', scarf: 0xd8c8a0 },
-  night_owl: { id: 'night_owl', name: 'Night Owl', rarity: 'epic', shirt: 0x1a1c22, jacket: 0x23262e, pants: 0x1a1c22, boots: 0x0e0e10, gloves: 0x0e0e10, vest: 0x2a2f38, headgear: 'headset', hat: 0x1a1c22, backpack: 0x23262e, accent: 0x7d5aff, camo: null },
-  ember_guard: { id: 'ember_guard', name: 'Ember Guard', rarity: 'epic', shirt: 0x2a1410, jacket: 0x6a1a10, pants: 0x2a1410, boots: 0x1a0a08, gloves: 0x1a0a08, vest: 0x3a1a10, headgear: 'helmet', hat: 0x3a1a10, backpack: null, accent: 0xff5a1a, camo: 'ember' },
-  forgeknight: { id: 'forgeknight', name: 'Forgeknight', rarity: 'legendary', shirt: 0x3a3f46, jacket: 0x5a6068, pants: 0x3a3f46, boots: 0x2a2d31, gloves: 0x5a6068, vest: 0x6a7078, headgear: 'helmet', hat: 0x8a9098, backpack: 0x4a5058, accent: 0xff8a2a, camo: null, goggles: true },
+  night_owl: { id: 'night_owl', name: 'Night Owl', rarity: 'epic', shirt: 0x1a1c22, jacket: 0x23262e, pants: 0x1a1c22, boots: 0x0e0e10, gloves: 0x0e0e10, vest: 0x2a2f38, headgear: 'headset', hat: 0x1a1c22, backpack: 0x23262e, accent: 0x7d5aff, camo: null, trim: 0x7d5aff, goggles: true },
+  ember_guard: { id: 'ember_guard', name: 'Ember Guard', rarity: 'epic', shirt: 0x2a1410, jacket: 0x6a1a10, pants: 0x2a1410, boots: 0x1a0a08, gloves: 0x1a0a08, vest: null, headgear: 'helmet', hat: 0x3a1a10, backpack: null, accent: 0xff5a1a, camo: 'ember', plates: 0x3a2018, trim: 0xff5a1a, mask: 'gas' },
+  forgeknight: { id: 'forgeknight', name: 'Forgeknight', rarity: 'legendary', shirt: 0x3a3f46, jacket: 0x2a2d31, pants: 0x3a3f46, boots: 0x2a2d31, gloves: 0x5a6068, vest: null, headgear: 'helmet', hat: 0x8a9098, backpack: null, accent: 0xff8a2a, camo: null, plates: 0x8a9098, trim: 0xff8a2a, helm: 'knight', cape: 0x2a2d31 },
   daily_veteran: { id: 'daily_veteran', name: 'Veteran', rarity: 'rare', shirt: 0x3a4a5a, jacket: 0x2a3a4a, pants: 0x2a2f36, boots: 0x1a1a1a, gloves: 0x2a2a2a, vest: 0x3a3f2a, headgear: 'beret', hat: 0x7a1a1a, backpack: 0x3a3f2a, accent: 0xe8c040, camo: null },
+  neon_raider: { id: 'neon_raider', name: 'Neon Raider', rarity: 'epic', shirt: 0x14161c, jacket: 0x1c1f28, pants: 0x14161c, boots: 0x0c0d10, gloves: 0x0c0d10, vest: null, headgear: 'hood', hat: 0x1c1f28, backpack: null, accent: 0x3af0ff, camo: null, plates: 0x262a33, trim: 0x3af0ff, mask: 'visor' },
+  toxic_reaper: { id: 'toxic_reaper', name: 'Toxic Reaper', rarity: 'epic', shirt: 0x1a2416, jacket: 0x24301c, pants: 0x1a2416, boots: 0x101410, gloves: 0x101410, vest: 0x2e3a22, headgear: 'hood', hat: 0x24301c, backpack: 0x2e3a22, accent: 0x8aff3a, camo: null, trim: 0x8aff3a, mask: 'gas' },
+  shadow_ninja: { id: 'shadow_ninja', name: 'Shadow Ninja', rarity: 'epic', shirt: 0x15151a, jacket: 0x1e1e26, pants: 0x15151a, boots: 0x0c0c10, gloves: 0x0c0c10, vest: null, headgear: 'none', hat: 0x15151a, backpack: null, accent: 0xe8283a, camo: null, mask: 'ninja', scarf: 0xb01a2a, trim: 0xe8283a },
+  bone_trooper: { id: 'bone_trooper', name: 'Bone Trooper', rarity: 'rare', shirt: 0x2a2a2e, jacket: 0x34343a, pants: 0x2a2a2e, boots: 0x18181b, gloves: 0x18181b, vest: null, headgear: 'none', hat: 0x2a2a2e, backpack: 0x34343a, accent: 0xff3a3a, camo: null, mask: 'skull', plates: 0x46464e },
+  inferno_knight: { id: 'inferno_knight', name: 'Inferno Knight', rarity: 'legendary', shirt: 0x1a0d0a, jacket: 0x2a120c, pants: 0x1a0d0a, boots: 0x0e0605, gloves: 0x2a120c, vest: null, headgear: 'none', hat: 0x2a1410, backpack: null, accent: 0xff4a0a, camo: 'inferno', plates: 0x2c1a14, trim: 0xff4a0a, helm: 'horned', cape: 0x5a0a06 },
   harvest_hunter: { id: 'harvest_hunter', name: 'Harvest Hunter', rarity: 'epic', shirt: 0x6a3a14, jacket: 0x4a2a10, pants: 0x3a2a1a, boots: 0x2a1a0a, gloves: 0x4a2a10, vest: 0x8a4a14, headgear: 'hood', hat: 0x5a2a0a, backpack: 0x6a3a14, accent: 0xff8a1a, camo: 'harvest' },
   frost_warden: { id: 'frost_warden', name: 'Frost Warden', rarity: 'epic', shirt: 0xa8d8f0, jacket: 0x5aa0d0, pants: 0x3a6a8a, boots: 0x2a4a6a, gloves: 0x5aa0d0, vest: 0xe8f6ff, headgear: 'beanie', hat: 0xe8f6ff, backpack: 0x5aa0d0, accent: 0x9ae8ff, camo: 'glacier', scarf: 0xe8f6ff },
-  storm_runner: { id: 'storm_runner', name: 'Storm Runner', rarity: 'epic', shirt: 0x2a3440, jacket: 0x3a4a5a, pants: 0x2a3440, boots: 0x1a1f26, gloves: 0x1a1f26, vest: 0x4a6a8a, headgear: 'hood', hat: 0x2a3440, backpack: 0x3a4a5a, accent: 0xbfe0ff, camo: 'stormfront', goggles: true },
-  sun_warden: { id: 'sun_warden', name: 'Sun Warden', rarity: 'legendary', shirt: 0xffd25a, jacket: 0xff9a2a, pants: 0x8a3a10, boots: 0x4a1a08, gloves: 0x8a3a10, vest: 0xffb84a, headgear: 'visor', hat: 0xffd25a, backpack: null, accent: 0xffe0a0, camo: 'sunforged' },
-  vanguard: { id: 'vanguard', name: 'Season Vanguard', rarity: 'epic', shirt: 0x2a2f38, jacket: 0x3a2a4a, pants: 0x23262e, boots: 0x15161a, gloves: 0x23262e, vest: 0x4a3a6a, headgear: 'helmet', hat: 0x3a2a4a, backpack: null, accent: 0xb779ff, camo: null },
+  storm_runner: { id: 'storm_runner', name: 'Storm Runner', rarity: 'epic', shirt: 0x2a3440, jacket: 0x3a4a5a, pants: 0x2a3440, boots: 0x1a1f26, gloves: 0x1a1f26, vest: 0x4a6a8a, headgear: 'hood', hat: 0x2a3440, backpack: 0x3a4a5a, accent: 0xbfe0ff, camo: 'stormfront', goggles: true, trim: 0xbfe0ff },
+  sun_warden: { id: 'sun_warden', name: 'Sun Warden', rarity: 'legendary', shirt: 0xffd25a, jacket: 0xff9a2a, pants: 0x8a3a10, boots: 0x4a1a08, gloves: 0x8a3a10, vest: null, headgear: 'none', hat: 0xffd25a, backpack: null, accent: 0xffe0a0, camo: 'sunforged', plates: 0xe0b040, trim: 0xfff0b0, mask: 'visor', cape: 0xfff2d8 },
+  vanguard: { id: 'vanguard', name: 'Season Vanguard', rarity: 'epic', shirt: 0x2a2f38, jacket: 0x3a2a4a, pants: 0x23262e, boots: 0x15161a, gloves: 0x23262e, vest: null, headgear: 'helmet', hat: 0x3a2a4a, backpack: null, accent: 0xb779ff, camo: null, plates: 0x4a3a6a, trim: 0xb779ff },
 };
 
 export const BANNERS: Record<string, { name: string; css: string; rarity: Rarity }> = {
@@ -89,6 +99,9 @@ export const LEVEL_UNLOCKS: Record<number, string> = {
 
 const PRICE: Record<Rarity, number> = { common: 400, rare: 800, epic: 1500, legendary: 2400 };
 
+/** cosmetics handed out by the 7-day login track (day number) */
+export const DAILY_ITEMS: Record<string, number> = { 'outfit:neon_raider': 2, 'camo:inferno': 3, 'banner:dusk': 4, 'outfit:inferno_knight': 7 };
+
 export function catalog(): Cosmetic[] {
   const out: Cosmetic[] = [];
   const levelOf = (id: string) => Object.entries(LEVEL_UNLOCKS).find(([, v]) => v === id)?.[0];
@@ -102,6 +115,7 @@ export function catalog(): Cosmetic[] {
     else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
     else if (c.id.startsWith('rank_')) { source = 'Ranked season reward'; price = undefined; }
+    else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
     out.push({ id, kind: 'camo', name: c.name, rarity: c.rarity, source, price });
   }
   for (const o of Object.values(OUTFITS)) {
@@ -112,7 +126,7 @@ export function catalog(): Cosmetic[] {
     if (o.id === 'recruit') { source = 'Default'; price = undefined; }
     else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
-    else if (o.id === 'daily_veteran') { source = 'Daily reward · Day 7'; price = undefined; }
+    else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
     else if (o.id === 'vanguard') { source = 'Reach Gold in any season'; price = undefined; }
     out.push({ id, kind: 'outfit', name: o.name, rarity: o.rarity, source, price });
   }
@@ -124,7 +138,7 @@ export function catalog(): Cosmetic[] {
     if (k === 'stone') { source = 'Default'; price = undefined; }
     else if (lvl) { source = `Reach level ${lvl}`; price = undefined; }
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
-    else if (k === 'dusk') { source = 'Daily reward · Day 4'; price = undefined; }
+    else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
     else if (k === 'circuit') { source = 'Achievement: Architect'; price = undefined; }
     else if (k === 'void') { source = 'Reach Obsidian'; price = undefined; }
     out.push({ id, kind: 'banner', name: b.name, rarity: b.rarity, source, price });
@@ -177,6 +191,11 @@ export function composeLook(base: BaseLook, outfitId: string): Look {
     beard: false,
     goggles: !!o.goggles,
     scarf: o.scarf ?? null,
+    plates: o.plates ?? null,
+    trim: o.trim ?? null,
+    mask: o.mask ?? null,
+    cape: o.cape ?? null,
+    helm: o.helm ?? null,
   };
 }
 

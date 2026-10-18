@@ -10,7 +10,8 @@ import { clamp } from '../core/mathx';
 import type { Combatant } from './combatant';
 import { BLOCKS } from '../world/blocks';
 
-const SHIP_Y = 76;
+/** the airship flies well above the world (blocks end at y 80) so the drop has a real freefall */
+const SHIP_Y = 135;
 
 function airshipBoxes(): VBox[] {
   const o: VBox[] = [];

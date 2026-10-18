@@ -1,6 +1,7 @@
 // Application shell: boot, menu world, matchmaking, match lifecycle, results.
 
 import * as THREE from 'three';
+import { clamp } from './core/mathx';
 import { Engine } from './render/engine';
 import { ChunkRenderer } from './render/chunkRenderer';
 import { Weather } from './render/weather';
@@ -26,6 +27,8 @@ import { TutorialMatch } from './game/tutorial';
 import { PlayerController } from './game/player';
 import { HUD } from './ui/hud';
 import { TouchControls } from './ui/touch';
+import { showIntro, introSeen } from './ui/intro';
+import { platform } from './platform/crazygames';
 import { Menu, type PlaySelection } from './ui/menu';
 import { runLobby } from './ui/lobby';
 import { showResults } from './ui/results';
@@ -118,6 +121,7 @@ export class App {
     this.engine.atmosphere.onThunder = (delay, k) => setTimeout(() => audio.play('thunder', { vol: 0.5 + k * 0.5, bus: 'ambient' }), delay * 1000);
     await step(0.06, 'Synthesising audio');
     await audio.init(this.settings);
+    platform.onMute((m) => audio.setHostMute('setting', m));
     await step(0.2, 'Raising Ashcrown Isle');
     this.brMap = buildBRMap((f, t) => {
       bar.style.width = `${Math.round((0.2 + f * 0.35) * 100)}%`;
@@ -141,6 +145,7 @@ export class App {
     this.ui.appendChild(this.lockPrompt);
     this.installHandlers();
     this.showMenu();
+    platform.loadingStop();
     requestAnimationFrame((t) => this.loop(t));
     (window as any).__bf = this;
   }
@@ -245,7 +250,12 @@ export class App {
       this.lockPrompt.style.display = !this.touch && !this.input.locked && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
       this.touchUI?.update();
       this.dynamicResolution(raw);
+      // the platform counts play time only while the player is actually in control
+      const o = this.hud.overlay;
+      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death') platform.gameplayStart();
+      else platform.gameplayStop();
     } else {
+      platform.gameplayStop();
       this.input.consumeMouse();
       this.input.endFrame();
       this.updateMenuCamera(dt);
@@ -261,6 +271,8 @@ export class App {
     eng.post.uniforms.uUnderwater.value = inWater ? 1 : 0;
     (eng.chunks?.waterMat.uniforms.uUnderwater ?? { value: 0 }).value = inWater ? 1 : 0;
     if ((window as any).__noRender) return;
+    // capture tooling (trailer rendering) may take over the camera for the next render
+    (window as any).__camHook?.(eng.camera);
     const r0 = performance.now();
     eng.render(dt, this.time);
     this.perf.render = this.perf.render * 0.9 + (performance.now() - r0) * 0.1;
@@ -312,7 +324,10 @@ export class App {
     }
     const night = atm.sunDir.y < -0.05;
     const alt = Math.max(0, cam.y - w.seaLevel - 10) / 50;
-    audio.setLoop('wind', Math.min(0.75, 0.18 + alt * 0.4 + atm.rain * 0.3 + atm.overcast * 0.15));
+    const pl = this.match?.player;
+    const falling = !!pl && (pl.dropping || pl.gliding);
+    if (falling) audio.setLoop('wind', pl.dropping ? 0.95 : 0.7, pl.dropping ? 1.45 : 1.15);
+    else audio.setLoop('wind', Math.min(0.75, 0.18 + alt * 0.4 + atm.rain * 0.3 + atm.overcast * 0.15));
     audio.setLoop('rain', atm.rain * 0.55);
     audio.setLoop('water', Math.min(0.5, water / 10));
     audio.setLoop('birds', !night && atm.rain < 0.3 ? Math.min(0.35, 0.06 + leaves / 30) : 0);
@@ -349,12 +364,32 @@ export class App {
       openSettings: () => this.openSettingsUI(),
       setMenuView: (v) => this.setMenuView(v),
       refreshShowcase: () => this.refreshShowcase(),
+      rotateShowcase: (dx) => {
+        this.showcaseYaw += dx * 0.012;
+        this.showcaseDragAt = performance.now();
+      },
+      showHelp: () => this.openIntro(),
     });
     audio.stopLoops();
     if (audio.ctx?.state === 'running') audio.startMenuMusic();
+    if (!introSeen()) this.openIntro();
+  }
+
+  private introEl: HTMLElement | null = null;
+  /** the five-card quick tutorial: first visit, or the menu's help button */
+  private openIntro() {
+    if (this.introEl?.isConnected) return;
+    this.introEl = showIntro(this.ui, this.settings, this.touch, (choice) => {
+      this.introEl = null;
+      const loadout = this.meta.p.lastLoadout || 'assault';
+      if (choice === 'play') this.play({ mode: 'br', ranked: false, tdmMap: 'rotation', loadout });
+      else if (choice === 'training') this.play({ mode: 'tutorial', ranked: false, tdmMap: 'rotation', loadout });
+    });
   }
 
   private setMenuView(v: 'orbit' | 'showcase') {
+    // jump straight to the new framing instead of flying the camera across the map
+    if (v !== this.menuView) this.snapMenu = true;
     this.menuView = v;
     if (v === 'showcase') this.refreshShowcase();
     else if (this.showcase) this.showcase.root.visible = false;
@@ -371,11 +406,15 @@ export class App {
     this.showcase.setWeapon('ranger');
     this.showcase.setLight(1, 0.2);
     this.showcase.root.position.set(164.5, 30, 169.5);
+    this.showcase.root.rotation.y = this.showcaseYaw;
     this.engine.scene.add(this.showcase.root);
     this.showcase.root.visible = this.menuView === 'showcase';
   }
 
   private snapMenu = true;
+  /** locker character: facing the camera to start, turned by dragging, idles into a slow spin */
+  private showcaseYaw = Math.PI;
+  private showcaseDragAt = -1e9;
 
   private updateMenuCamera(dt: number) {
     const cam = this.engine.camera;
@@ -387,12 +426,23 @@ export class App {
     if (this.menuView === 'showcase' && this.showcase && this.state === 'menu') {
       const s = this.showcase;
       s.root.visible = true;
-      s.root.rotation.y += dt * 0.35;
+      if (performance.now() - this.showcaseDragAt > 3000) this.showcaseYaw += Math.min(dt, 0.1) * 0.35;
+      s.root.rotation.y = this.showcaseYaw;
       s.pose({ speed: 0, forward: 0, strafe: 0, onGround: true, crouch: 0, pitch: -0.08, sprint: false, aiming: false, recoil: 0, reload: -1, dead: 0, deathDir: 0, gliding: false, swimming: false, throwing: 0, swing: 0, holding: 'gun' }, dt);
-      const target = new THREE.Vector3(164.5, 31.0, 169.5);
-      cam.position.lerp(new THREE.Vector3(164.5 + 0.9, 31.45, 169.5 + 3.4), Math.min(1, dt * 3));
-      cam.lookAt(target.clone().add(new THREE.Vector3(0.9, 0, 0)));
+      // frame the character in the middle of the locker's preview box, at a size that fits it
       this.engine.fovScale = 0.6;
+      const W = window.innerWidth, H = window.innerHeight;
+      const tanHalf = Math.tan(((this.engine.baseFov * 0.6) * Math.PI) / 360);
+      const rect = this.menu?.previewRect() ?? null;
+      const boxH = rect && rect.height > 60 ? rect.height : H * 0.8;
+      const dist = clamp((2.25 / (0.82 * boxH)) * H / (2 * tanHalf), 2.2, 7);
+      const perPx = (2 * dist * tanHalf) / H;
+      const offX = rect && rect.width > 60 ? (rect.left + rect.width / 2 - W / 2) * perPx : 0;
+      const offY = rect && rect.height > 60 ? (rect.top + rect.height / 2 - H / 2) * perPx : 0;
+      const target = new THREE.Vector3(164.5, 31.05, 169.5);
+      const want = new THREE.Vector3(target.x - offX, target.y + offY + 0.12, target.z + dist);
+      cam.position.lerp(want, Math.min(1, dt * 4));
+      cam.lookAt(cam.position.x, cam.position.y - 0.12, target.z);
       return;
     }
     if (this.showcase) this.showcase.root.visible = false;
@@ -463,6 +513,8 @@ export class App {
   async play(sel: PlaySelection) {
     if (this.state === 'lobby' || this.state === 'match') return;
     this.lastSel = sel;
+    this.introEl?.remove();
+    this.introEl = null;
     const meta = this.meta;
     meta.refreshDaily();
     const mods = meta.eventMods();
@@ -550,7 +602,10 @@ export class App {
     this.pc = pc;
     if (match instanceof BRMatch) {
       pc.inShip = true;
-      match.onPlayerJump = () => (pc.inShip = false);
+      match.onPlayerJump = () => {
+        pc.inShip = false;
+        pc.jumpedAt = match.time;
+      };
       // look in the flight direction
       match.player.yaw = Math.atan2(-match.ship.dir.x, -match.ship.dir.z);
       match.player.pitch = -0.25;
@@ -633,15 +688,18 @@ export class App {
     this.state = 'results';
     this.engine.setChunks(this.brRenderer);
     this.resetAtmosphereForMenu();
+    if (result.won) platform.happytime();
+    // between matches is the one place a platform ad may run (muted, nothing else happening)
+    const afterAd = (go: () => void) =>
+      platform.midgameAd((paused) => audio.setHostMute('ad', paused), go);
     this.resultsEl = showResults(this.ui, result, summary, {
       again: () => {
         this.resultsEl = null;
-        if (this.lastSel) this.play(this.lastSel);
-        else this.showMenu();
+        afterAd(() => (this.lastSel ? this.play(this.lastSel) : this.showMenu()));
       },
       menu: () => {
         this.resultsEl = null;
-        this.showMenu();
+        afterAd(() => this.showMenu());
       },
     });
   }
