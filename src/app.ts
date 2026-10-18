@@ -7,7 +7,7 @@ import { Weather } from './render/weather';
 import { CharacterModel } from './render/characters';
 import { CAMOS } from './render/camos';
 import { Input } from './core/input';
-import { loadSettings, saveSettings, type Settings } from './core/settings';
+import { loadSettings, saveSettings, touchControlsActive, type Settings } from './core/settings';
 import { audio } from './audio/audio';
 import { buildBRMap } from './world/maps/brMap';
 import { TDM_MAPS } from './world/maps/tdmMaps';
@@ -25,6 +25,7 @@ import { TDMMatch } from './game/tdmMatch';
 import { TutorialMatch } from './game/tutorial';
 import { PlayerController } from './game/player';
 import { HUD } from './ui/hud';
+import { TouchControls } from './ui/touch';
 import { Menu, type PlaySelection } from './ui/menu';
 import { runLobby } from './ui/lobby';
 import { showResults } from './ui/results';
@@ -44,7 +45,7 @@ const TIPS = [
   'The storm erodes structures outside the circle. Keep moving.',
   'Grenades bounce. Hold G to see the arc, release to throw.',
   'Harvest trees, boulders and ore with the Forge Pick (F).',
-  'Every competitor is an AI player with their own style — learn their habits.',
+  'Every competitor has their own style. Learn their habits.',
   'Craft ammo, bandages and grenades instantly from the inventory (Tab).',
 ];
 
@@ -78,6 +79,9 @@ export class App {
   private resultsEl: HTMLElement | null = null;
   private settingsOpen = false;
   private ending = false;
+  /** on-screen controls instead of keyboard + mouse */
+  touch = false;
+  private touchUI: TouchControls | null = null;
   time = 0;
 
   constructor() {
@@ -85,6 +89,7 @@ export class App {
     this.ui = document.getElementById('ui')!;
     this.settings = loadSettings();
     this.input = new Input(this.canvas, this.settings);
+    this.setTouch(touchControlsActive(this.settings));
     this.lockPrompt = h('div', { class: 'overlay', style: { display: 'none', background: 'rgba(6,8,11,0.35)', zIndex: '5', cursor: 'pointer' } },
       h('div', { class: 'panel', style: { padding: '18px 28px', textAlign: 'center' } }, h('div', { class: 'h2' }, 'Click to play'), h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, 'Mouse is captured for aiming · Esc to pause')));
     this.lockPrompt.addEventListener('click', () => this.lockPointer());
@@ -163,6 +168,7 @@ export class App {
       if (this.state !== 'match' || !this.hud || !this.match || this.settingsOpen) return;
       const b = this.settings.bindings;
       if (this.hud.handleInventoryKey(e.code)) return;
+      if (e.code === 'KeyN' && !e.repeat && this.match instanceof TutorialMatch && this.hud.overlay === 'none') this.match.skipStep();
       if (this.hud.overlay === 'death' && this.match instanceof TDMMatch) {
         const m = /^Digit([1-6])$/.exec(e.code);
         if (m) {
@@ -236,7 +242,8 @@ export class App {
       this.hud.update(dt);
       this.perf.hud = this.perf.hud * 0.9 + (performance.now() - t2) * 0.1;
       this.updateAmbience(dt);
-      this.lockPrompt.style.display = !this.input.locked && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
+      this.lockPrompt.style.display = !this.touch && !this.input.locked && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
+      this.touchUI?.update();
       this.dynamicResolution(raw);
     } else {
       this.input.consumeMouse();
@@ -404,8 +411,17 @@ export class App {
     });
   }
 
+  /** switch between on-screen controls and keyboard + mouse */
+  private setTouch(on: boolean) {
+    this.touch = on;
+    this.input.touchMode = on;
+    document.body.classList.toggle('touch', on);
+  }
+
   applySettings(s: Settings) {
     saveSettings(s);
+    const touch = touchControlsActive(s);
+    if (touch !== this.touch && !this.match) this.setTouch(touch);
     this.engine.applySettings({ ...s });
     audio.applyVolumes(s);
     this.hud?.applyCrossColor();
@@ -519,10 +535,12 @@ export class App {
       atm.setWeather(map.preset.weather, true);
       atm.cloudBase = map.preset.weather === 'clear' ? 0.35 : 0.55;
     }
+    // a change to the touch-controls setting made during the last match applies from here
+    this.setTouch(touchControlsActive(this.settings));
     let match: Match;
     if (sel.mode === 'br') match = new BRMatch(eng, map, cfg);
     else if (sel.mode === 'tdm') match = new TDMMatch(eng, map, cfg, sel.loadout);
-    else match = new TutorialMatch(eng, map, cfg, this.settings);
+    else match = new TutorialMatch(eng, map, cfg, this.settings, this.touch);
     match.attach();
     this.match = match;
     this.weather.world = map.world;
@@ -544,6 +562,35 @@ export class App {
       lockPointer: () => this.lockPointer(),
       unlockPointer: () => this.input.exitLock(),
     });
+    if (this.touch) {
+      const hud = this.hud;
+      hud.enableTouch();
+      this.touchUI = new TouchControls(this.ui, this.input, this.settings, {
+        pause: () => hud.overlay === 'none' && hud.openPause(),
+        bag: () => {
+          if (match instanceof TDMMatch) hud.showScoreboard(hud.overlay !== 'scoreboard');
+          else if (match.craftingEnabled) hud.toggleInventory();
+        },
+        map: () => hud.toggleMap(),
+        state: () => {
+          const p = match.player;
+          return {
+            overlay: hud.overlay,
+            alive: p.alive,
+            inShip: pc.inShip,
+            falling: p.dropping || p.gliding,
+            prompt: pc.interactPrompt,
+            buildMode: pc.buildMode,
+            hasGun: !!p.gun,
+            hasMap: !(match instanceof TDMMatch),
+            bagLabel: match instanceof TDMMatch ? 'Scoreboard' : match.craftingEnabled ? 'Inventory' : '',
+            throws: p.throws.frag + p.throws.smoke,
+            heals: p.heals.bandage + p.heals.medkit + p.heals.plate,
+            ended: match.ended || this.ending,
+          };
+        },
+      });
+    }
     match.events.on('end', (r) => this.onMatchEnd(r));
     match.events.on('kill', (e) => {
       if (e.killer === match.player && match instanceof TDMMatch && match.player.streak >= 5) this.meta.markStreak5();
@@ -597,6 +644,8 @@ export class App {
   }
 
   private teardownMatch() {
+    this.touchUI?.dispose();
+    this.touchUI = null;
     this.input.exitLock();
     this.hud?.dispose();
     this.hud = null;

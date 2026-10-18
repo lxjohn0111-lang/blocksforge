@@ -179,14 +179,21 @@ export class PlayerController {
     // ---------------- movement intent
     const it = p.intent;
     const blocked = this.uiBlocked;
-    it.forward = blocked ? 0 : (inp.isDown('forward') ? 1 : 0) - (inp.isDown('back') ? 1 : 0);
-    it.strafe = blocked ? 0 : (inp.isDown('right') ? 1 : 0) - (inp.isDown('left') ? 1 : 0);
+    const ax = inp.moveAxis;
+    if (ax && !blocked) {
+      // on-screen stick: analog speed, full deflection forward sprints
+      it.forward = clamp(ax.y, -1, 1);
+      it.strafe = clamp(ax.x, -1, 1);
+    } else {
+      it.forward = blocked ? 0 : (inp.isDown('forward') ? 1 : 0) - (inp.isDown('back') ? 1 : 0);
+      it.strafe = blocked ? 0 : (inp.isDown('right') ? 1 : 0) - (inp.isDown('left') ? 1 : 0);
+    }
     it.yaw = p.yaw;
     it.jump = !blocked && inp.isDown('jump');
     if (s.crouchToggle) {
       if (!blocked && inp.wasPressed('crouch')) it.crouch = !p.crouching;
     } else it.crouch = !blocked && (inp.isDown('crouch') || inp.isDown('crouch'));
-    it.sprint = !blocked && inp.isDown('sprint');
+    it.sprint = !blocked && (inp.isDown('sprint') || (!!ax && ax.y > 0.82 && Math.hypot(ax.x, ax.y) > 0.92));
 
     if (blocked) {
       m.tryFire(p, false);

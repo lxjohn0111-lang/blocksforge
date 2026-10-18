@@ -517,6 +517,7 @@ export class Match {
       }
     }
     if (s === c.slot) return;
+    c.healReturn = false;
     this.cancelActions(c);
     c.slot = s;
     if (s <= 2) c.lastGunSlot = s as 0 | 1 | 2;
@@ -1065,6 +1066,7 @@ export class Match {
       this.cancelActions(c);
       c.slot = 3;
       c.healSel = k;
+      c.healReturn = c.isPlayer;
       this.events.emit('slot', { c });
     }
     c.healSel = k;
@@ -1091,9 +1093,9 @@ export class Match {
     c.useKind = null;
     this.events.emit('heal', { c, kind: k, done: true });
     if (c.isPlayer) audio.play(k === 'plate' ? 'b_plate' : 'ui_confirm', { vol: 0.5, bus: 'ui' });
-    // continue using if still useful and held
-    if (c.heals[k] <= 0 || !c.canUseHeal(k)) {
-      // return to last weapon
+    // a quick heal goes back to the gun; otherwise stay on the heal slot while it is still useful
+    if (c.healReturn || c.heals[k] <= 0 || !c.canUseHeal(k)) {
+      c.healReturn = false;
       if (c.hasAnyGun()) this.switchSlot(c, c.lastGunSlot);
     }
   }

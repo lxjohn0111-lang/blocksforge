@@ -161,6 +161,8 @@ export default async function (page, h) {
     __t.release('Mouse0'); __t.release('Mouse2'); __t.sim(1);
   });
   await log('after duel');
+  // the completion banner runs for a few seconds of game time: fast-forward it (software GL renders slowly)
+  await h.eval(() => window.__bf.simulate(4));
   await h.eval(() => { window.__noRender = false; window.__pause = false; });
   await h.waitFor(() => window.__bf.state === 'results', 60000).catch((e) => console.log('no results', e.message));
   await h.run(2000);

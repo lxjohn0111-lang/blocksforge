@@ -21,6 +21,10 @@ export class Input {
   private fallback = false;
   private lastUnlock = -1e9;
   private requestedWithGesture = false;
+  /** touch-screen controls drive input: no pointer lock, mouse events ignored */
+  touchMode = false;
+  /** analog movement from the on-screen stick: x = strafe right, y = forward (null when idle) */
+  moveAxis: { x: number; y: number } | null = null;
 
   constructor(private canvas: HTMLElement, public settings: Settings) {
     window.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -28,7 +32,7 @@ export class Input {
     window.addEventListener('mousedown', (e) => this.onMouse(e, true));
     window.addEventListener('mouseup', (e) => this.onMouse(e, false));
     window.addEventListener('mousemove', (e) => {
-      if (!this.locked) return;
+      if (!this.locked || this.touchMode) return;
       // ignore spikes some browsers emit right after locking
       if (Math.abs(e.movementX) > 400 || Math.abs(e.movementY) > 400) return;
       this.mouseDX += e.movementX;
@@ -71,6 +75,10 @@ export class Input {
 
   requestLock() {
     if (this.locked) return;
+    if (this.touchMode) {
+      this.setFallbackLocked(true);
+      return;
+    }
     const el = this.canvas as HTMLElement & { requestPointerLock?: unknown };
     if (this.fallback || typeof el.requestPointerLock !== 'function') {
       this.enterFallback();
@@ -91,11 +99,38 @@ export class Input {
   }
 
   exitLock() {
-    if (this.fallback) {
+    if (this.fallback || this.touchMode) {
       this.setFallbackLocked(false);
       return;
     }
     if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  // ---- on-screen (touch) controls feed the same action state as keys and mouse buttons
+  pressAction(a: Action) {
+    const code = this.code(a);
+    if (!this.down.has(code)) this.pressed.add(code);
+    this.down.add(code);
+  }
+
+  releaseAction(a: Action) {
+    const code = this.code(a);
+    if (!this.down.has(code)) return;
+    this.down.delete(code);
+    this.released.add(code);
+  }
+
+  /** a tap: pressed this frame, released right away */
+  tapAction(a: Action) {
+    this.pressAction(a);
+    this.releaseAction(a);
+  }
+
+  /** camera turn from a drag, in mouse-pixel units */
+  addLook(dx: number, dy: number) {
+    if (!this.locked) return;
+    this.mouseDX += dx;
+    this.mouseDY += dy;
   }
 
   /** true when the camera is steered by the visible cursor because pointer lock is unavailable */
@@ -121,6 +156,7 @@ export class Input {
   clearAll() {
     for (const k of this.down) this.released.add(k);
     this.down.clear();
+    this.moveAxis = null;
     this.mouseDX = 0;
     this.mouseDY = 0;
   }
@@ -153,6 +189,8 @@ export class Input {
   }
 
   private onMouse(e: MouseEvent, isDown: boolean) {
+    // on touch screens the browser synthesises mouse events from taps; the on-screen controls own input
+    if (this.touchMode) return;
     const code = 'Mouse' + e.button;
     if (isDown && this.captureNext) {
       e.preventDefault();

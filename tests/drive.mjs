@@ -5,7 +5,9 @@ import fs from 'fs';
 import path from 'path';
 const [,, scriptPath, W = '1280', H = '720'] = process.argv;
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
-const page = await browser.newPage({ viewport: { width: +W, height: +H } });
+// BF_MOBILE=1 emulates a phone: touch input, coarse pointer, mobile viewport
+const mobile = !!process.env.BF_MOBILE;
+const page = await browser.newPage({ viewport: { width: +W, height: +H }, ...(mobile ? { hasTouch: true, isMobile: true, deviceScaleFactor: 1 } : {}) });
 page.setDefaultTimeout(240000);
 const logs = [];
 page.on('console', (m) => { const t = m.type(); if (t === 'error' || t === 'warning') logs.push(`[${t}] ${m.text()}`); });

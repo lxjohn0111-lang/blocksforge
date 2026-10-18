@@ -1,5 +1,8 @@
 import { loadJSON, saveJSON } from './storage';
 import type { Quality } from '../render/engine';
+import { isTouchDevice, isSmallScreen } from './device';
+
+export type TouchMode = 'auto' | 'on' | 'off';
 
 export type Action =
   | 'forward' | 'back' | 'left' | 'right' | 'jump' | 'crouch' | 'sprint'
@@ -53,6 +56,10 @@ export interface Settings {
   showFps: boolean;
   damageNumbers: boolean;
   crosshairColor: string;
+  /** on-screen controls: auto = on for touch screens */
+  touchControls: TouchMode;
+  /** drag-to-look speed for on-screen controls */
+  touchLook: number;
   bindings: Record<Action, string>;
   version: number;
 }
@@ -81,16 +88,30 @@ export const DEFAULT_SETTINGS: Settings = {
   showFps: false,
   damageNumbers: true,
   crosshairColor: '#ffffff',
+  touchControls: 'auto',
+  touchLook: 1,
   bindings: { ...DEFAULT_BINDINGS },
   version: 1,
 };
 
 const KEY = 'blockforge.settings.v1';
 
+/** first-launch graphics for phones and tablets: mobile GPUs get the light pipeline */
+function deviceDefaults(): Partial<Settings> {
+  if (!isTouchDevice()) return {};
+  if (isSmallScreen()) return { quality: 'low', renderScale: 0.9, viewDistance: 140, shadows: false, bloom: false, godRays: false, ssr: false, fxaa: true, dynamicRes: true };
+  return { quality: 'medium', renderScale: 0.8, viewDistance: 190, shadows: true, bloom: true, godRays: false, ssr: false, fxaa: true, dynamicRes: true };
+}
+
 export function loadSettings(): Settings {
   const s = loadJSON<Partial<Settings>>(KEY);
-  const merged: Settings = { ...DEFAULT_SETTINGS, ...(s ?? {}), bindings: { ...DEFAULT_BINDINGS, ...(s?.bindings ?? {}) } };
+  const merged: Settings = { ...DEFAULT_SETTINGS, ...(s ? {} : deviceDefaults()), ...(s ?? {}), bindings: { ...DEFAULT_BINDINGS, ...(s?.bindings ?? {}) } };
   return merged;
+}
+
+/** whether on-screen controls should be used under these settings */
+export function touchControlsActive(s: Settings): boolean {
+  return s.touchControls === 'on' || (s.touchControls === 'auto' && isTouchDevice());
 }
 
 export function saveSettings(s: Settings) {

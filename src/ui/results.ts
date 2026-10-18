@@ -58,7 +58,7 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
     const row = (e: (typeof roster)[number]) =>
       h('tr', { class: e.isPlayer ? 'me' : '' },
         h('td', null, r.mode === 'br' ? (e.placement ? `#${e.placement}` : '—') : ''),
-        h('td', null, h('span', { class: 'row', style: { gap: '6px' } }, e.name, e.isBot ? h('span', { class: 'chip ai' }, 'AI') : h('span', { class: 'chip accent' }, 'You'))),
+        h('td', null, h('span', { class: 'row', style: { gap: '6px' } }, e.name, e.isBot ? null : h('span', { class: 'chip accent' }, 'You'))),
         h('td', { class: 'n' }, String(e.kills)), h('td', { class: 'n' }, String(e.deaths)), h('td', { class: 'n' }, String(e.assists)), h('td', { class: 'n' }, fmt(e.damage)));
     const head = h('tr', null, h('th', null, r.mode === 'br' ? 'Place' : ''), h('th', null, 'Player'), h('th', { class: 'n' }, 'K'), h('th', { class: 'n' }, 'D'), h('th', { class: 'n' }, 'A'), h('th', { class: 'n' }, 'DMG'));
     if (r.mode === 'br') {
@@ -143,7 +143,7 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
         const big = h('div', { class: 'emblem-big', style: { ['--glow' as any]: after.tierDef.color }, html: rankEmblem(after.tier, after.division, 220) });
         const box = showReveal(parent, rp.tierUp ? 'Promotion' : 'Division up', after.label, [], undefined, big);
         (box.querySelector('.big') as HTMLElement).style.color = after.tierDef.color;
-        if (rp.tierUp) box.insertBefore(h('div', { class: 'dim', style: { position: 'relative', marginBottom: '8px' } }, 'Demotion protection active for 3 matches. Tougher AI opponents await.'), box.querySelector('button'));
+        if (rp.tierUp) box.insertBefore(h('div', { class: 'dim', style: { position: 'relative', marginBottom: '8px' } }, 'Demotion protection active for 3 matches. Tougher opponents await.'), box.querySelector('button'));
       } else if (rp.demoted) {
         audio.ui('rankdown', 0.8);
         const big = h('div', { class: 'emblem-big', style: { ['--glow' as any]: '#ff5a4a' }, html: rankEmblem(after.tier, after.division, 160) });

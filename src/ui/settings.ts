@@ -1,5 +1,5 @@
 import { h, clear } from './dom';
-import { ACTION_LABELS, DEFAULT_BINDINGS, DEFAULT_SETTINGS, keyLabel, saveSettings, SHARED_OK, type Action, type Settings } from '../core/settings';
+import { ACTION_LABELS, DEFAULT_BINDINGS, DEFAULT_SETTINGS, keyLabel, saveSettings, SHARED_OK, type Action, type Settings, type TouchMode } from '../core/settings';
 import type { Input } from '../core/input';
 import { QUALITY_PRESETS, type Quality } from '../render/engine';
 import { audio } from '../audio/audio';
@@ -87,6 +87,12 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
       main.appendChild(slider('Music', 'Menu music.', 0, 1, 0.01, () => s.musicVol, (v) => (s.musicVol = v), (v) => `${Math.round(v * 100)}`));
       main.appendChild(slider('Ambience', 'Wind, water, rain and wildlife.', 0, 1, 0.01, () => s.ambientVol, (v) => (s.ambientVol = v), (v) => `${Math.round(v * 100)}`));
     } else if (tab === 'controls') {
+      const tseg = h('div', { class: 'seg' });
+      for (const [v, l] of [['auto', 'Auto'], ['on', 'On'], ['off', 'Off']] as [TouchMode, string][]) {
+        tseg.appendChild(h('button', { class: s.touchControls === v ? 'on' : '', onclick: () => { s.touchControls = v; commit(); render(); } }, l));
+      }
+      main.appendChild(h('div', { class: 'setrow' }, h('div', null, 'Touch controls', h('div', { class: 'd' }, 'On-screen stick and buttons. Auto turns them on for touch screens. Takes effect from the next match.')), tseg));
+      main.appendChild(slider('Touch look speed', 'How far the camera turns when you drag.', 0.3, 3, 0.05, () => s.touchLook, (v) => (s.touchLook = v)));
       main.appendChild(slider('Mouse sensitivity', '', 0.1, 4, 0.05, () => s.sensitivity, (v) => (s.sensitivity = v)));
       main.appendChild(slider('Aim-down-sights sensitivity', 'Multiplier while aiming with iron sights / red dots.', 0.2, 1.5, 0.05, () => s.adsSens, (v) => (s.adsSens = v)));
       main.appendChild(slider('Scoped sensitivity', 'Multiplier while looking through magnified scopes (scales with zoom).', 0.2, 2, 0.05, () => s.scopeSens, (v) => (s.scopeSens = v)));
@@ -126,8 +132,8 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
     } else {
       main.appendChild(h('div', { class: 'h2', style: { marginBottom: '10px' } }, 'About BlockForge'));
       const p = (t: string) => h('p', { class: 'dim', style: { fontSize: '13.5px', lineHeight: '1.6', margin: '0 0 10px' } }, t);
-      main.appendChild(p('BlockForge is a single-player voxel shooter. Every other participant — teammates, opponents and everyone on the ladder — is an AI player with a persistent identity, rank and play style. There are no real players, servers, accounts or chat.'));
-      main.appendChild(p('Ranked points, seasons, daily quests and events run locally on your device clock. The ladder compares you with the AI competitor profiles only; it is not a global ranking.'));
+      main.appendChild(p('BlockForge is a single-player voxel shooter. It needs no account or connection.'));
+      main.appendChild(p('Ranked points, seasons, daily quests and events run locally on your device clock.'));
       main.appendChild(p('All art, textures, models, sounds and music are generated procedurally by the game. Cosmetics are earned through play and never affect gameplay. There are no purchases.'));
       // two-step confirm in the page itself (browser confirm dialogs are blocked in embedded frames)
       let armed = false;

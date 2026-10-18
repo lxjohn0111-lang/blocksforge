@@ -46,7 +46,7 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
         const count = h('div', { class: 'h1', style: { fontSize: '36px' } });
         head.appendChild(h('div', { class: 'label' }, `${o.mode === 'br' ? 'Battle Royale' : 'Team Deathmatch'} · ${o.ranked ? 'Ranked' : 'Casual'}`));
         head.appendChild(count);
-        head.appendChild(h('div', { class: 'row', style: { justifyContent: 'center', marginTop: '8px', gap: '6px' } }, h('span', { class: 'chip ai' }, h('span', { html: ICON.people(12) }), 'AI competitors'), h('span', { class: 'dim', style: { fontSize: '12px' } }, 'Persistent AI profiles matched to your rank')));
+        head.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, o.ranked ? 'Matched to your rank' : 'Casual playlist'));
         root.appendChild(head);
         const grid = h('div', { class: 'grid' });
         root.appendChild(grid);
@@ -54,7 +54,7 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
         const per = Math.max(28, 1100 / total);
         for (let i = 0; i < all.length; i++) {
           count.textContent = `Assembling lobby  ${i + 1}/${total}`;
-          const card = playerCard(all[i], { ai: all[i].isBot });
+          const card = playerCard(all[i]);
           if (!all[i].isBot) card.style.boxShadow = 'inset 0 0 0 1px var(--accent)';
           grid.appendChild(card);
           if (i % 3 === 0) audio.ui('hover', 0.25);
@@ -70,7 +70,7 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
         root.appendChild(h('div', { class: 'intro-map' }, o.mapName));
         root.appendChild(h('div', { class: 'dim', style: { textAlign: 'center', letterSpacing: '0.2em', textTransform: 'uppercase', fontSize: '13px', marginBottom: '22px' } }, o.mapSub));
         if (o.teams) {
-          const team = (list: Identity[], cls: string, label: string) => h('div', { class: 'team ' + cls }, h('div', { class: 'label' }, label), ...list.map((id) => playerCard(id, { ai: id.isBot })));
+          const team = (list: Identity[], cls: string, label: string) => h('div', { class: 'team ' + cls }, h('div', { class: 'label' }, label), ...list.map((id) => playerCard(id)));
           root.appendChild(h('div', { class: 'vs' }, team(o.teams[0], 'team-blue', 'Your team'), h('div', { class: 'vsmark' }, 'VS'), team(o.teams[1], 'team-red', 'Enemy team')));
         }
       } else {

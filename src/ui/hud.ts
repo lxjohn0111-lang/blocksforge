@@ -13,7 +13,7 @@ import { blockIconCanvas } from '../render/textures';
 import { B } from '../world/blocks';
 import { RECIPES, canAfford } from '../game/crafting';
 import { PIECES, PIECE_LABEL, PIECE_COST } from '../game/building';
-import { keyLabel, type Settings } from '../core/settings';
+import { keyLabel, type Settings, type Action } from '../core/settings';
 import { audio } from '../audio/audio';
 import { clamp, fmtTime } from '../core/mathx';
 
@@ -93,9 +93,11 @@ export class HUD {
   private deathShown = false;
   private respawnEl: HTMLElement | null = null;
   private crossSpread = 0;
+  /** touch-screen controls are active (changes hint text and tappable controls) */
+  touch = false;
 
   constructor(parent: HTMLElement, public match: Match, public pc: PlayerController, public settings: Settings, private hooks: Hooks) {
-    this.root = h('div', { class: 'hud' });
+    this.root = h('div', { class: 'hud mode-' + match.cfg.mode });
     parent.appendChild(this.root);
     const E = this.els;
     const mk = (k: string, el: HTMLElement) => {
@@ -169,6 +171,23 @@ export class HUD {
     m.events.on('fire', ({ c }) => {
       if (c !== p && m.isEnemy(p, c)) this.pings.push({ x: c.body.pos.x, z: c.body.pos.z, t: m.time });
     });
+  }
+
+  /** switch the HUD into touch-screen mode: tappable hotbar and build bar, touch hints */
+  enableTouch() {
+    this.touch = true;
+    this.root.classList.add('touch');
+    for (const el of [this.els.slots, this.els.buildbar]) {
+      el.classList.add('clickable');
+      el.addEventListener('pointerdown', (e) => {
+        const t = (e.target as HTMLElement).closest('[data-act]') as HTMLElement | null;
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this.pc.input.tapAction(t.dataset.act as Action);
+      });
+    }
+    this.last.tut = '';
   }
 
   applyCrossColor() {
@@ -362,19 +381,19 @@ export class HUD {
       const keyOf = (a: any) => keyLabel(this.settings.bindings[a as keyof Settings['bindings']]);
       for (let i = 0; i < 3; i++) {
         const w = p.weapons[i];
-        const el = h('div', { class: 'slot' + (p.slot === i ? ' on' : '') + (w ? ` r-${w.def.tier}` : '') }, h('span', { class: 'k' }, keyOf('slot' + (i + 1))));
+        const el = h('div', { class: 'slot' + (p.slot === i ? ' on' : '') + (w ? ` r-${w.def.tier}` : ''), 'data-act': 'slot' + (i + 1) }, h('span', { class: 'k' }, keyOf('slot' + (i + 1))));
         if (w) el.appendChild(weaponCanvas(w.def.id, 156, 60));
         S.appendChild(el);
       }
       if (!tdm) {
         const healCount = p.heals[p.healSel];
-        const hs = h('div', { class: 'slot small' + (p.slot === 3 ? ' on' : '') + (healCount ? '' : ' empty') }, h('span', { class: 'k' }, keyOf('slot4')), itemCanvas(p.healSel), h('span', { class: 'n' }, String(healCount)));
+        const hs = h('div', { class: 'slot small' + (p.slot === 3 ? ' on' : '') + (healCount ? '' : ' empty'), 'data-act': 'slot4' }, h('span', { class: 'k' }, keyOf('slot4')), itemCanvas(p.healSel), h('span', { class: 'n' }, String(healCount)));
         S.appendChild(hs);
       }
-      const ts = h('div', { class: 'slot small' + (p.slot === 4 ? ' on' : '') + (p.throws[p.throwSel] ? '' : ' empty') }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
+      const ts = h('div', { class: 'slot small' + (p.slot === 4 ? ' on' : '') + (p.throws[p.throwSel] ? '' : ' empty'), 'data-act': 'slot5' }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
       S.appendChild(ts);
-      if (m.harvestEnabled) S.appendChild(h('div', { class: 'slot small' + (p.slot === 5 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('tool')), itemCanvas('pickaxe')));
-      if (m.buildingEnabled) S.appendChild(h('div', { class: 'slot small' + (p.slot === 6 ? ' on' : '') }, h('span', { class: 'k' }, keyOf('build')), itemCanvas('hammer')));
+      if (m.harvestEnabled) S.appendChild(h('div', { class: 'slot small tool' + (p.slot === 5 ? ' on' : ''), 'data-act': 'tool' }, h('span', { class: 'k' }, keyOf('tool')), itemCanvas('pickaxe')));
+      if (m.buildingEnabled) S.appendChild(h('div', { class: 'slot small ham' + (p.slot === 6 ? ' on' : ''), 'data-act': 'build' }, h('span', { class: 'k' }, keyOf('build')), itemCanvas('hammer')));
     }
     // ammo
     const A = E.ammo;
@@ -426,7 +445,8 @@ export class HUD {
       E.mats.style.display = p.alive && !inShip ? 'flex' : 'none';
     } else E.mats.style.display = 'none';
 
-    // build bar
+    // build bar (on touch screens it takes the hotbar's place)
+    this.root.classList.toggle('building', p.slot === 6 && p.alive);
     if (p.slot === 6 && p.alive) {
       E.buildbar.style.display = 'flex';
       const bk = `${pc.buildPiece}|${pc.buildMat}|${pc.buildRot}`;
@@ -435,11 +455,11 @@ export class HUD {
         clear(E.buildbar);
         const keys = ['slot1', 'slot2', 'slot3', 'slot4'];
         PIECES.forEach((pp, i) => {
-          E.buildbar.appendChild(h('div', { class: 'p' + (pc.buildPiece === pp ? ' on' : '') }, h('span', { html: (ICON as any)[pp](20) }), h('span', null, `${keyLabel(this.settings.bindings[keys[i] as 'slot1'])} ${PIECE_LABEL[pp]}`)));
+          E.buildbar.appendChild(h('div', { class: 'p' + (pc.buildPiece === pp ? ' on' : ''), 'data-act': keys[i] }, h('span', { html: (ICON as any)[pp](20) }), h('span', null, h('span', { class: 'kk' }, keyLabel(this.settings.bindings[keys[i] as 'slot1']) + ' '), PIECE_LABEL[pp])));
         });
-        E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.material)), h('span', null, pc.buildMat)));
-        E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.rotate)), h('span', null, 'Rotate')));
-        E.buildbar.appendChild(h('div', { class: 'p' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.build)), h('span', null, 'Weapons')));
+        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'material' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.material)), h('span', null, pc.buildMat)));
+        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'rotate' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.rotate)), h('span', null, 'Rotate')));
+        E.buildbar.appendChild(h('div', { class: 'p', 'data-act': 'build' }, h('span', { class: 'kbd' }, keyLabel(this.settings.bindings.build)), h('span', null, 'Weapons')));
       }
     } else E.buildbar.style.display = 'none';
 
@@ -450,11 +470,11 @@ export class HUD {
       if (p.slot === 6 && pc.buildReason) {
         prompt = pc.buildReason;
         warn = true;
-      } else if (pc.interactPrompt) prompt = `<span class="kbd">${keyLabel(this.settings.bindings.interact)}</span> ${pc.interactPrompt}`;
+      } else if (pc.interactPrompt) prompt = this.touch ? '' : `<span class="kbd">${keyLabel(this.settings.bindings.interact)}</span> ${pc.interactPrompt}`;
       else if (g && g.mag === 0 && p.ammo[g.def.ammo] === 0 && p.slot <= 2) {
         prompt = 'Out of ammo';
         warn = true;
-      } else if (g && g.mag === 0 && p.slot <= 2 && g.reloading <= 0) prompt = `<span class="kbd">${keyLabel(this.settings.bindings.reload)}</span> Reload`;
+      } else if (g && g.mag === 0 && p.slot <= 2 && g.reloading <= 0) prompt = this.touch ? 'Tap reload' : `<span class="kbd">${keyLabel(this.settings.bindings.reload)}</span> Reload`;
     }
     E.prompt.style.display = prompt ? 'flex' : 'none';
     E.prompt.classList.toggle('warn', warn);
@@ -559,9 +579,9 @@ export class HUD {
       st.push(`<div class="r storm"><span>${ICON.storm(14)} ${br.zone.phase >= 6 ? 'FINAL' : br.zone.shrinking ? 'CLOSING' : 'STORM'}</span><b>${fmtTime(br.zone.countdown)}</b></div>`);
       if (outside && p.alive) st.push(`<div class="r" style="color:#ffb3a8"><span>IN STORM</span><b>-${br.zone.dps}/s</b></div>`);
     } else if (tut) {
-      st.push(`<div class="r"><span>TRAINING</span><b>${Math.min(tut.index + 1, tut.steps.length - 1)}/${tut.steps.length - 1}</b></div>`);
+      st.push(`<div class="r"><span>TRAINING</span><b>${tut.doneCount}/${tut.done.length}</b></div>`);
     } else if (tdm) {
-      st.push(`<div class="r"><span>${ICON.skull(13)} K / D / A</span><b>${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}</b></div>`);
+      st.push(`<div class="r"><span>${ICON.skull(13)} K/D/A</span><b>${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}</b></div>`);
     }
     this.setHTML('status', E.status, st.join(''));
     // TDM scorebar
@@ -584,8 +604,8 @@ export class HUD {
       let dt2 = '';
       if (inShip) {
         const over = br.ship.t > 0.1;
-        dt2 = `<div class="big">${over ? `Press <span class="kbd" style="font-size:20px;height:30px">${keyLabel(this.settings.bindings.jump)}</span> to jump` : 'Approaching Ashcrown Isle'}</div><div class="dim">${br.inShip.size} players aboard · auto-drop at the end of the flight</div>`;
-      } else if (p.dropping) dt2 = `<div class="big">Freefall</div><div class="dim">Glider deploys automatically · ${keyLabel(this.settings.bindings.jump)} to deploy early</div>`;
+        dt2 = `<div class="big">${over ? (this.touch ? 'Tap jump to drop' : `Press <span class="kbd" style="font-size:20px;height:30px">${keyLabel(this.settings.bindings.jump)}</span> to jump`) : 'Approaching Ashcrown Isle'}</div><div class="dim">${br.inShip.size} players aboard · auto-drop at the end of the flight</div>`;
+      } else if (p.dropping) dt2 = `<div class="big">Freefall</div><div class="dim">Glider deploys automatically · ${this.touch ? 'tap jump' : keyLabel(this.settings.bindings.jump)} to deploy early</div>`;
       else if (p.gliding) dt2 = `<div class="big" style="font-size:22px">Gliding</div>`;
       E.drop.style.display = dt2 ? 'block' : 'none';
       this.setHTML('drop', E.drop, dt2);
@@ -597,15 +617,21 @@ export class HUD {
     if (tut) {
       E.tut.style.display = 'block';
       const s = tut.step;
-      const key = `${tut.index}|${s.progress?.() ?? ''}`;
+      const key = `${tut.index}|${tut.doneCount}|${s.progress?.() ?? ''}`;
       if (this.last.tut !== key) {
         this.last.tut = key;
         clear(E.tut);
-        E.tut.appendChild(h('div', { class: 'step' }, s.id === 'done' ? 'Complete' : `Step ${tut.index + 1} of ${tut.steps.length - 1}`));
+        const total = tut.done.length;
+        E.tut.appendChild(h('div', { class: 'step' }, s.id === 'done' ? 'Complete' : `${tut.doneCount} of ${total} done · any order`));
         E.tut.appendChild(h('div', { class: 'tt' }, s.title));
         E.tut.appendChild(h('div', { class: 'hint' }, s.hint));
         if (s.progress) E.tut.appendChild(h('div', { class: 'prog' }, s.progress()));
-        E.tut.appendChild(h('div', { class: 'dots' }, ...tut.steps.slice(0, -1).map((_, i) => h('i', { class: i < tut.index ? 'd' : '' }))));
+        E.tut.appendChild(h('div', { class: 'dots' }, ...tut.done.map((d, i) => h('i', { class: d ? 'd' : i === tut.index ? 'c' : '' }))));
+        if (s.id !== 'done')
+          E.tut.appendChild(
+            h('button', { class: 'skip clickable', onclick: (e: Event) => { e.stopPropagation(); tut.skipStep(); } },
+              this.touch ? 'Skip step' : h('span', null, h('span', { class: 'kbd' }, 'N'), ' Skip step')),
+          );
       }
     }
 
@@ -697,6 +723,15 @@ export class HUD {
     this.overlayEl = el;
     this.root.appendChild(el);
     el.classList.add('clickable');
+    // touch screens have no Tab / M / Esc: give panels a close button and close on a tap outside
+    if (this.touch && (kind === 'inventory' || kind === 'map' || kind === 'scoreboard')) {
+      el.appendChild(h('button', { class: 'ovclose', 'aria-label': 'Close', html: ICON.close(18), onclick: () => this.closeOverlay() }));
+      // the tap that opened the panel is followed by a click on it: ignore that one
+      const opened = performance.now();
+      el.addEventListener('click', (e) => {
+        if (e.target === el && performance.now() - opened > 400) this.closeOverlay();
+      });
+    }
     this.pc.uiBlocked = blocks;
     if (blocks) this.hooks.unlockPointer();
   }
@@ -713,7 +748,7 @@ export class HUD {
         h('button', { class: 'btn primary', onclick: () => this.hooks.resume() }, ICON.play(14) && h('span', { html: ICON.play(14) }), 'Resume'),
         h('button', { class: 'btn', onclick: () => this.hooks.settings() }, h('span', { html: ICON.gear(14) }), 'Settings'),
         h('button', { class: 'btn danger', onclick: () => this.hooks.leave() }, h('span', { html: ICON.close(14) }), this.match.cfg.mode === 'tutorial' ? 'Exit training' : this.match.cfg.ranked ? 'Leave (counts as a loss)' : 'Leave match'),
-        h('div', { class: 'honesty', style: { marginTop: '10px' } }, h('span', { html: ICON.info(14) }), 'The match keeps running while paused — every other competitor here is an AI player.'),
+        h('div', { class: 'dim', style: { marginTop: '10px', fontSize: '12px' } }, 'The match keeps running while paused.'),
       ),
     );
     this.openOverlay('pause', el);
@@ -751,7 +786,7 @@ export class HUD {
     left.appendChild(mg);
     const right = h('div', { class: 'col' });
     right.appendChild(h('h3', null, 'Crafting'));
-    right.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '-6px', marginBottom: '6px' } }, 'Instant. Click a recipe or press its number. Harvest with the Forge Pick to gather wood, stone and ore.'));
+    right.appendChild(h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '-6px', marginBottom: '6px' } }, this.touch ? 'Instant. Tap a recipe to craft it. Harvest with the Forge Pick to gather wood, stone and ore.' : 'Instant. Click a recipe or press its number. Harvest with the Forge Pick to gather wood, stone and ore.'));
     const rg = h('div', { class: 'recipes' });
     this.recipeEls = [];
     RECIPES.forEach((r, i) => {
@@ -846,7 +881,7 @@ export class HUD {
             h(
               'tr',
               { class: (c === p ? 'me ' : '') + (!c.alive ? 'dead' : '') },
-              h('td', null, h('span', { class: 'row', style: { gap: '8px' } }, avatarCanvas(c.ident.look, 20), c.name, c.ident.isBot ? h('span', { class: 'chip ai' }, 'AI') : null)),
+              h('td', null, h('span', { class: 'row', style: { gap: '8px' } }, avatarCanvas(c.ident.look, 20), c.name)),
               h('td', { class: 'n' }, String(c.stats.kills)),
               h('td', { class: 'n' }, String(c.stats.deaths)),
               h('td', { class: 'n' }, String(c.stats.assists)),
@@ -887,7 +922,7 @@ export class HUD {
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
         h('div', { class: 'row' },
           h('button', { class: 'btn primary', onclick: () => this.hooks.continueAfterDeath() }, 'Continue'),
-          by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name} · Esc for menu`, 'info'); } }, 'Spectate') : null),
+          by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name} · ${this.touch ? 'pause button' : 'Esc'} for menu`, 'info'); } }, 'Spectate') : null),
       );
       this.openOverlay('death', el);
     } else if (tdm) {
@@ -908,7 +943,7 @@ export class HUD {
         this.respawnEl,
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
         h('div', { class: 'label', style: { marginBottom: '8px' } }, 'Loadout for next spawn'),
-        h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, 'Press 1–6 to pick'),
+        h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '8px' } }, this.touch ? 'Tap a loadout to pick it' : 'Press 1–6 to pick'),
         lo);
       // keep the pointer locked so the player is ready the moment they respawn
       this.openOverlay('death', el, false);

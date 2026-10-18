@@ -36,7 +36,7 @@ export interface MenuApi {
 
 type Tab = 'play' | 'career' | 'locker' | 'armory' | 'ladder';
 
-export function playerCard(ident: Identity, opts: { emblem?: boolean; ai?: boolean; extra?: string } = {}): HTMLElement {
+export function playerCard(ident: Identity, opts: { emblem?: boolean; extra?: string } = {}): HTMLElement {
   const banner = BANNERS[ident.banner] ?? BANNERS.stone;
   const r = rankOf(ident.rp);
   return h(
@@ -49,7 +49,6 @@ export function playerCard(ident: Identity, opts: { emblem?: boolean; ai?: boole
       h('div', { class: 'tl' }, `${ident.title} · LV ${ident.level}`),
       opts.extra ? h('div', { class: 'tl', style: { color: '#ffffff80' } }, opts.extra) : null),
     h('div', { class: 'em row', style: { gap: '6px' } },
-      opts.ai ? h('span', { class: 'chip ai' }, 'AI') : null,
       opts.emblem !== false ? h('span', { html: rankEmblem(r.tier, r.division, 30), title: r.label }) : null),
   );
 }
@@ -145,7 +144,7 @@ export class Menu {
     clear(this.root);
     this.timers = [];
     this.root.appendChild(this.topbar());
-    this.body = h('div', { style: { flex: '1', display: 'flex', minHeight: '0' } });
+    this.body = h('div', { class: 'mbody', style: { flex: '1', display: 'flex', minHeight: '0' } });
     this.root.appendChild(this.body);
     switch (this.tab) {
       case 'play':
@@ -178,8 +177,8 @@ export class Menu {
       h('div', { class: 'tabs' }, ...tabs.map(([t, l]) => h('button', { class: 'tab' + (this.tab === t ? ' on' : ''), onclick: () => { audio.ui('click', 0.5); this.tab = t; this.render(); }, onmouseenter: () => audio.ui('hover', 0.3) }, l))),
       h('div', { class: 'wallet' },
         h('div', { class: 'coin', title: 'Forge Coins — earned by playing. Spend them in the Armory.' }, h('span', { html: ICON.coin(18) }), fmt(p.coins)),
-        h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'label', style: { fontSize: '9.5px' } }, `${fmt(p.xp)} / ${fmt(need)} XP`), h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
-        h('div', { class: 'row', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name), h('span', { class: 'dim', style: { fontSize: '10.5px', letterSpacing: '0.08em', textTransform: 'uppercase' } }, p.equipped.title))),
+        h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'label xpl', style: { fontSize: '9.5px' } }, `${fmt(p.xp)} / ${fmt(need)} XP`), h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
+        h('div', { class: 'row who', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name), h('span', { class: 'dim', style: { fontSize: '10.5px', letterSpacing: '0.08em', textTransform: 'uppercase' } }, p.equipped.title))),
         h('div', { class: 'iconbtn', onclick: () => this.api.openSettings(), title: 'Settings', html: ICON.gear(18) }),
       ),
     );
@@ -214,7 +213,7 @@ export class Menu {
           h('button', { class: !this.sel.ranked ? 'on' : '', onclick: () => { this.sel.ranked = false; this.render(); } }, 'Casual'),
           h('button', { class: this.sel.ranked ? 'on rk' : '', onclick: () => { this.sel.ranked = true; this.render(); } }, `Ranked · ${rk.label}`)),
       );
-      left.appendChild(h('div', { class: 'honesty' }, h('span', { html: ICON.info(14) }), this.sel.ranked ? 'Ranked: ladder points (RP) change after every match. Opponents are matched to your rank — higher divisions bring smarter, more coordinated AI.' : 'Casual: relaxed AI competitors, full XP and quest progress, no RP at stake.'));
+      left.appendChild(h('div', { class: 'honesty' }, h('span', { html: ICON.info(14) }), this.sel.ranked ? 'Ranked: ladder points (RP) change after every match. Higher divisions bring tougher, better coordinated opponents.' : 'Casual: relaxed opponents, full XP and quest progress, no RP at stake.'));
     }
     if (this.sel.mode === 'tdm') {
       const st = eventStatus();
@@ -228,14 +227,14 @@ export class Menu {
       left.appendChild(h('div', { class: 'label' }, 'Loadout'));
       const lo = h('div', { class: 'loadouts', style: { justifyContent: 'flex-start' } });
       for (const l of LOADOUTS) {
-        lo.appendChild(h('div', { class: 'loadout' + (this.sel.loadout === l.id ? ' on' : ''), style: { width: '30%' }, title: l.blurb, onclick: () => { this.sel.loadout = l.id; meta.p.lastLoadout = l.id; meta.save(); this.render(); } },
+        lo.appendChild(h('div', { class: 'loadout lo3' + (this.sel.loadout === l.id ? ' on' : ''), title: l.blurb, onclick: () => { this.sel.loadout = l.id; meta.p.lastLoadout = l.id; meta.save(); this.render(); } },
           h('div', { class: 'ln' }, l.name), weaponCanvas(l.primary, 120, 36), h('div', { class: 'lw' }, `${WEAPONS[l.primary].short} · ${WEAPONS[l.secondary].short}`)));
       }
       left.appendChild(lo);
     }
     const play = h('div', { class: 'playbar' },
       h('button', { class: 'btn primary big', onclick: () => { audio.ui('confirm'); this.api.play({ ...this.sel }); }, onmouseenter: () => audio.ui('hover', 0.3) }, h('span', { html: ICON.play(18) }), this.sel.mode === 'tutorial' ? 'Start training' : 'Find match'),
-      h('div', { class: 'honesty' }, h('span', { html: ICON.people(14) }), 'Every other player in BlockForge is an AI competitor with a persistent profile, rank and play style. No account or connection needed.'),
+      h('div', { class: 'fineprint' }, 'All other players in BlockForge are computer-controlled.'),
       !persistent() ? h('div', { class: 'honesty', style: { color: '#ffb3a8' } }, h('span', { html: ICON.info(14) }), 'Browser storage is blocked — progress will not be saved after this session.') : null,
     );
     left.appendChild(play);
@@ -487,7 +486,7 @@ export class Menu {
     upd();
     this.timers.push(upd);
     page.appendChild(h('div', { class: 'row panel', style: { justifyContent: 'space-between', padding: '16px 20px' } }, h('div', null, h('div', { class: 'h1' }, 'Armory'), h('div', { class: 'dim', style: { marginTop: '6px' } }, 'Daily rotating cosmetics, bought only with Forge Coins earned in play. No real-money purchases exist in BlockForge.')), cd));
-    const grid = h('div', { class: 'items', style: { gridTemplateColumns: 'repeat(3, 1fr)', alignContent: 'start' } });
+    const grid = h('div', { class: 'items shopgrid' });
     for (const c of meta.shopItems()) {
       const own = meta.owns(c.id);
       const price = h('div', { class: 'price' }, own ? h('span', { class: 'chip' }, 'Owned') : h('span', { class: 'coin', style: { fontSize: '13px' } }, h('span', { html: ICON.coin(14) }), fmt(c.price!)));
@@ -521,11 +520,10 @@ export class Menu {
     const p = meta.p;
     const rows = meta.ladder();
     const myIdx = rows.findIndex((r) => r.isPlayer);
-    const page = h('div', { class: 'page two', style: { flex: '1', gridTemplateColumns: '1.4fr 1fr' } });
+    const page = h('div', { class: 'page two ladderpage', style: { flex: '1' } });
     const left = h('div', { class: 'panel' });
     const s = meta.season();
-    left.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '6px' } }, h('div', { class: 'h2' }, `Season ${s.number} Ladder`), h('span', { class: 'chip ai' }, 'Simulated')));
-    left.appendChild(h('div', { class: 'honesty', style: { marginBottom: '10px' } }, h('span', { html: ICON.info(14) }), `This ladder ranks you against ${rows.length - 1} persistent AI competitor profiles. It is a simulated standing, not a global ranking of real players.`));
+    left.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('div', { class: 'h2' }, `Season ${s.number} Ladder`), h('span', { class: 'dim', style: { fontSize: '12px' } }, `${rows.length} players`)));
     left.appendChild(h('div', { class: 'ladder-row label', style: { borderTop: 'none' } }, h('span', null, 'Pos'), h('span', null, 'Player'), h('span', null, 'Rank'), h('span', null, 'RP'), h('span', null, 'Wins')));
     const list = h('div', { class: 'scroll', style: { flex: '1', minHeight: '0' } });
     const show = new Set<number>();
@@ -539,7 +537,7 @@ export class Menu {
       const rk = rankOf(r.rp);
       list.appendChild(h('div', { class: 'ladder-row' + (r.isPlayer ? ' me' : ''), style: { cursor: r.isPlayer ? 'default' : 'pointer' }, onclick: () => !r.isPlayer && this.showProfile(r.id) },
         h('span', { class: 'pos' }, `#${i + 1}`),
-        h('span', { class: 'row', style: { gap: '8px', minWidth: '0' } }, avatarCanvas(r.isPlayer ? composeLook(p.base, p.equipped.outfit) : r.ident.look, 22), h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, r.name), r.isPlayer ? h('span', { class: 'chip accent' }, 'You') : h('span', { class: 'chip ai' }, 'AI')),
+        h('span', { class: 'row', style: { gap: '8px', minWidth: '0' } }, avatarCanvas(r.isPlayer ? composeLook(p.base, p.equipped.outfit) : r.ident.look, 22), h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, r.name), r.isPlayer ? h('span', { class: 'chip accent' }, 'You') : null),
         h('span', { class: 'row', style: { gap: '6px' } }, h('span', { html: rankEmblem(rk.tier, rk.division, 18) }), h('span', { style: { color: rk.tierDef.color, fontSize: '12px' } }, rk.label)),
         h('span', { class: 'mono' }, fmt(r.rp)),
         h('span', { class: 'mono dim' }, fmt(r.wins))));
@@ -569,11 +567,10 @@ export class Menu {
     const kd = st.deaths ? (st.kills / st.deaths).toFixed(2) : st.kills.toFixed(2);
     const modal = h('div', { class: 'modal', onclick: (ev: MouseEvent) => { if (ev.target === modal) modal.remove(); } },
       h('div', { class: 'box panel' },
-        playerCard(e.ident, { ai: true }),
-        h('div', { class: 'statgrid', style: { gridTemplateColumns: 'repeat(3,1fr)' } },
+        playerCard(e.ident),
+        h('div', { class: 'statgrid three' },
           ...[['Matches', fmt(st.matches)], ['Wins', fmt(st.wins)], ['K/D', kd], ['RP', fmt(st.rp)], ['Level', String(st.level)], ['Style', ARCHETYPE_LABEL[e.ident.personality!.archetype]]].map(([l, v]) => h('div', { class: 'stat' }, h('div', { class: 'v', style: { fontSize: '20px' } }, v), h('div', { class: 'l' }, l)))),
         st.recent.length ? h('div', { class: 'col', style: { gap: '2px' } }, h('div', { class: 'label' }, 'Recent matches with you'), ...st.recent.map((r) => h('div', { class: 'row dim', style: { fontSize: '12px', justifyContent: 'space-between' } }, h('span', null, r.mode === 'br' ? `Battle Royale · #${r.place || '—'}` : 'Team Deathmatch'), h('span', null, `${r.kills} elims · ${timeAgo(r.t)}`)))) : null,
-        h('div', { class: 'honesty' }, h('span', { html: ICON.info(14) }), 'AI competitor. Career numbers are simulated and grow as they play matches with you.'),
         h('button', { class: 'btn', onclick: () => modal.remove() }, 'Close')));
     this.parent.appendChild(modal);
   }

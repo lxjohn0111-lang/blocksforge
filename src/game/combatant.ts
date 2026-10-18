@@ -73,6 +73,8 @@ export class Combatant {
   weapons: (WeaponInstance | null)[] = [null, null, null];
   slot: SlotIndex = 0;
   lastGunSlot: 0 | 1 | 2 = 0;
+  /** the player started a heal from another slot (quick heal): go back to the gun afterwards */
+  healReturn = false;
   ammo: Record<AmmoType, number> = { light: 0, medium: 0, shells: 0, heavy: 0, rockets: 0 };
   heals: Record<HealKind, number> = { bandage: 0, medkit: 0, plate: 0 };
   throws: Record<ThrowKind, number> = { frag: 0, smoke: 0 };

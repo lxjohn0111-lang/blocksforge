@@ -14,7 +14,7 @@ npm run preview    # serve dist/ on http://localhost:4173
 npm run test:e2e   # headless smoke test of boot, all modes and persistence
 ```
 
-You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with hardware acceleration turned on.
+You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with hardware acceleration turned on. It runs on phones and tablets too (see **Touch screens** below).
 
 ## Modes
 
@@ -22,7 +22,7 @@ You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with h
 
 **Team Deathmatch.** 6v6 on three purpose-built arenas: *Hamlet* (sunset village), *Quarry* (noon, a terraced pit with a crane) and *Frostbite* (a snowy night outpost). You choose a loadout and respawn after each death. Spawn protection and restricted enemy spawn zones stop spawn camping. The first team to 50 kills wins, or the team ahead when the 8-minute clock runs out. Building is disabled in this mode.
 
-**Training Grounds.** An interactive tutorial with 14 steps: movement, looting, shooting, reloading, aiming, chests, sniper scopes, harvesting, building, crafting, grenades and a final duel.
+**Training Grounds.** An interactive tutorial with 14 steps: movement, looting, shooting, reloading, aiming, chests, sniper scopes, harvesting, building, crafting, grenades and a final duel. The steps form a checklist: the panel suggests the next one, but any step you complete counts, in any order. Downing one target dummy completes the shooting step. Press **N** (or tap **Skip step**) to move past a step.
 
 Both competitive modes have **Casual** and **Ranked** playlists.
 
@@ -39,6 +39,10 @@ Both competitive modes have **Casual** and **Ranked** playlists.
 | Inventory and crafting / scoreboard | Tab | Map | M |
 | Scope zoom | Mouse wheel | Pause | Esc |
 
+### Touch screens
+
+On phones and tablets the game switches to on-screen controls (Settings → Controls → Touch controls: Auto, On or Off). Touch anywhere on the left side for a movement stick (push it to the edge to sprint) and drag on the right side to look. The fire button can also be dragged to aim while shooting. Aim and crouch are toggles. The hotbar is tappable, including the pick and the build hammer; in build mode the build bar takes the hotbar's place. Pause, map and inventory (scoreboard in Team Deathmatch) sit next to the minimap, and panels close with their × button or a tap outside. Phones play in landscape. On the first run, phones and tablets start on lighter graphics settings.
+
 ## Features
 
 - **Rendering:** a custom HDR pipeline built on three.js. It has greedy-meshed voxel chunks with per-vertex ambient occlusion and smooth sky and block light, two-cascade soft shadow maps, screen-space reflections on water (with depth tint, ripples and shoreline foam), volumetric god rays, bloom, ACES tonemapping with colour grading, and FXAA. The sky, clouds, stars and moon are procedural, and cloud shadows move across the ground. Day/night lighting changes with the sun's height. Weather includes rain, storms with lightning and snow. Foliage moves in the wind.
@@ -51,7 +55,7 @@ Both competitive modes have **Casual** and **Ranked** playlists.
 
 ## About the AI competitors
 
-BlockForge is designed to feel like an online shooter, but there are no real players, servers, accounts or chat. Everyone in your lobby, on your team, in the kill feed and on the ladder is an AI player. Each one has a persistent name, look, play style, rank and match history, and they keep that identity across matches. The game labels them as AI in the lobby, the pause menu, the results screen and the ladder. The ladder compares you only with these simulated profiles. It is not a global ranking.
+BlockForge is designed to feel like an online shooter, but there are no real players, servers, accounts or chat. Everyone in your lobby, on your team, in the kill feed and on the ladder is an AI player. Each one has a persistent name, look, play style, rank and match history, and they keep that identity across matches. A single line under the play button says that all other players are computer-controlled; players are not tagged individually. The ladder compares you only with these simulated profiles. It is not a global ranking.
 
 ## Saving
 
@@ -68,6 +72,7 @@ Your profile, settings and the AI competitors' records are saved in `localStorag
 - `tutorial`: plays all 14 training steps through the real input layer.
 - `ranked`: promotion, demotion, the ladder and a season rollover.
 - `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
+- `mobile`: run with `BF_MOBILE=1` and a phone or tablet size, e.g. `BF_MOBILE=1 node tests/drive.mjs tests/scenarios/mobile.mjs 844 390`. Screenshots every screen, drives the stick, look, hotbar, build bar and overlay buttons with real touch events, and reports any HUD or touch control that overlaps another or leaves the screen.
 - Diagnostics: `vm` (weapon viewmodels at the hip and aiming down sights), `build` (placement onto the training ledge), `brearly` (landing spread, bot accuracy and early eliminations), `perf` (simulation cost and a CPU profile) and `mem` (geometry and memory across modes).
 
 ## Project layout
