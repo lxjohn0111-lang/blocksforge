@@ -199,7 +199,7 @@ export class PlayerController {
     it.jump = !blocked && (p.dropping ? inp.wasPressed('jump') && m.time - this.jumpedAt > 0.7 : inp.isDown('jump'));
     if (s.crouchToggle) {
       if (!blocked && inp.wasPressed('crouch')) it.crouch = !p.crouching;
-    } else it.crouch = !blocked && (inp.isDown('crouch') || inp.isDown('crouch'));
+    } else it.crouch = !blocked && inp.isDown('crouch');
     it.sprint = !blocked && (inp.isDown('sprint') || (!!ax && ax.y > 0.82 && Math.hypot(ax.x, ax.y) > 0.92));
 
     if (blocked) {

@@ -1,5 +1,6 @@
-// CrazyGames HTML5 SDK v3 bridge. The SDK script (index.html) is optional: on any other host, or
-// when the script is blocked, every call here is a safe no-op and the game behaves as standalone.
+// CrazyGames HTML5 SDK v3 bridge. The SDK script is loaded on demand, only on CrazyGames hosts: on
+// any other host, or when the script is blocked, every call here is a safe no-op and the game
+// behaves as standalone.
 
 interface AdCallbacks {
   adStarted?: () => void;

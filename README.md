@@ -18,9 +18,11 @@ You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with h
 
 ## Modes
 
-**Battle Royale (Ashcrown Isle).** 24 competitors ride an airship over a large handcrafted island and drop in. The island has meadows, forest, a snow-capped mountain range, desert mesas, a river delta, villages, a castle, a mine with tunnels, a lighthouse, a dam and other landmarks. Players loot weapons, ammo, armor, heals, grenades and materials from the ground and from supply chests. They harvest wood, stone and metal and use them to build walls, floors, ramps and blocks, and they craft at any time. Everyone lands with 30 wood, enough for a few pieces. A storm closes in over six phases, and its waiting periods get shorter once only a few players remain. The last player alive wins.
+**Battle Royale (Ashcrown Isle).** 24 competitors ride an airship over a large handcrafted island and drop in. The island has meadows, forest, a snow-capped mountain range, desert mesas, a river delta, villages, a castle, a mine with tunnels, a lighthouse, a dam and other landmarks. Space jumps out of the airship. The camera pulls back to a third-person skydive view; hold W to dive faster. The glider opens on its own low over the ground, or earlier with a fresh tap of Space. Players loot weapons, ammo, armor, heals, grenades and materials from the ground and from supply chests. They harvest wood, stone and metal and use them to build walls, floors, ramps and blocks, and they craft at any time. Everyone lands with 30 wood, enough for a few pieces. A storm closes in over six phases, and its waiting periods get shorter once only a few players remain. The last player alive wins.
 
 **Team Deathmatch.** 6v6 on three purpose-built arenas: *Hamlet* (sunset village), *Quarry* (noon, a terraced pit with a crane) and *Frostbite* (a snowy night outpost). You choose a loadout and respawn after each death. Spawn protection and restricted enemy spawn zones stop spawn camping. The first team to 50 kills wins, or the team ahead when the 8-minute clock runs out. Building is disabled in this mode.
+
+**First run.** Five swipeable cards (move, shoot, loot, build, survive) show the essentials with one line each, then offer Training or a first match. The cards can be skipped and reopened from the "How to play" (i) button at the top of the menu.
 
 **Training Grounds.** An interactive tutorial with 14 steps: movement, looting, shooting, reloading, aiming, chests, sniper scopes, harvesting, building, crafting, grenades and a final duel. The steps form a checklist: the panel suggests the next one, but any step you complete counts, in any order. Downing one target dummy completes the shooting step. Press **N** (or tap **Skip step**) to move past a step.
 
@@ -31,7 +33,7 @@ Both competitive modes have **Casual** and **Ranked** playlists.
 | Action | Default | Action | Default |
 |---|---|---|---|
 | Move | W A S D | Fire / Aim | LMB / RMB |
-| Jump / Crouch / Sprint | Space / Ctrl / Shift | Reload / rotate piece | R |
+| Jump / Crouch / Sprint | Space / C / Shift | Reload / rotate piece | R |
 | Interact / loot / open chest | E | Weapon slots | 1 2 3 |
 | Heals / throwables | 4 / 5 | Quick heal | H |
 | Quick grenade (hold to aim) | G | Harvest tool | F |
@@ -49,13 +51,27 @@ On phones and tablets the game switches to on-screen controls (Settings → Cont
 - **Weapons:** 8 weapons built from voxels: pistol, SMG, two assault rifles, pump shotgun, DMR, bolt-action sniper and rocket launcher. Each has its own recoil pattern, spread, damage falloff and reload animation (empty and tactical reloads). Every gun has muzzle flash, ejected shells and impact effects. Bullets are hitscan, while sniper rounds and rockets are physical projectiles. Aiming zooms in on every gun: red-dot sights centre their dot behind see-through glass, iron sights sit just below a small centre dot, and scopes magnify 2.5× to 8× with their own sensitivity. Frag and smoke grenades follow an arc that you preview before throwing.
 - **AI competitors:** bots perceive, navigate (A* over the voxel grid), loot, rotate with the storm, take cover, heal, build, throw grenades and push or hold lanes. Each has an archetype, a skill level and a reaction time. Their aim errors are human-like rather than perfect.
 - **Building and crafting:** a build panel shows what each piece is for (wall: cover, floor: bridge, ramp: climb, block: fill), what it costs and how much of each material you have. The first time you open it, a short card explains why and how to build, and until you have built a few pieces the game suggests building when you land and when you come under fire. Pieces are grid-snapped in wood, stone or metal with placement previews and collision checks. Each block has HP, and structures can be damaged and collapse. The world cannot be dug or tunnelled, which stops players sealing themselves in. Recipes cover ammo, heals, armor plates, grenades and material conversion.
-- **Progression:** XP and levels with reward reveals, coins, daily login rewards, three daily quests, achievements, and earnable cosmetics (weapon camos, outfits, banners, titles). Cosmetics never affect gameplay, and nothing can be bought with real money.
+- **Progression:** XP and levels with reward reveals, coins, a 7-day daily reward track (an epic outfit on day 2, a legendary camo on day 3, a legendary outfit on day 7), three daily quests, achievements, and earnable cosmetics (weapon camos, outfits, banners, titles). Cosmetics never affect gameplay, and nothing can be bought with real money. In the locker you can drag the character to turn it; premium outfits add armor plates, trims, masks, helmets and capes.
 - **Ranked:** 8 tiers (Flint → Forgemaster). Every tier below Forgemaster has 4 divisions (IV → I). You gain and lose RP each match, get promoted or demoted with demotion protection after a promotion, and play 8-week seasons with soft resets and rewards. Opponents get tougher as you climb: at the bottom of Flint they react slowly, miss a lot and hit you for less, and by Forgemaster they are quick, accurate and use cover and grenades well. Casual matches follow your rank too, a notch easier. The ranked ladder is made of simulated AI profiles.
 - **Events:** limited-time weekend events run on the real calendar of your device. Countdowns show real time remaining and you can preview upcoming events.
 
 ## About the AI competitors
 
 BlockForge is designed to feel like an online shooter, but there are no real players, servers, accounts or chat. Everyone in your lobby, on your team, in the kill feed and on the ladder is an AI player. Each one has a persistent name, look, play style, rank and match history, and they keep that identity across matches. A single line under the play button says that all other players are computer-controlled; players are not tagged individually. The ladder compares you only with these simulated profiles. It is not a global ranking.
+
+## Publishing on CrazyGames
+
+The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is about 1.8 MB in about 60 files, with relative paths throughout.
+
+`src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`); everywhere else every call is a no-op. With the SDK it:
+
+- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played (not in menus, pause, settings or the death screen);
+- calls `happytime` on a win;
+- shows a midgame ad between matches (Play again / Menu on the results screen), at most every three minutes, with the game's audio muted while it plays;
+- follows the portal's mute setting;
+- saves progress through the SDK's data module, so it follows the player's CrazyGames account.
+
+The text for the submission form (category, tags, description and controls) is in `docs/crazygames-submission.md`.
 
 ## Saving
 

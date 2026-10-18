@@ -20,7 +20,7 @@ export const ACTION_LABELS: Record<Action, string> = {
 };
 
 export const DEFAULT_BINDINGS: Record<Action, string> = {
-  forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', crouch: 'ControlLeft', sprint: 'ShiftLeft',
+  forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', jump: 'Space', crouch: 'KeyC', sprint: 'ShiftLeft',
   reload: 'KeyR', interact: 'KeyE', build: 'KeyQ', tool: 'KeyF', grenade: 'KeyG', heal: 'KeyH',
   slot1: 'Digit1', slot2: 'Digit2', slot3: 'Digit3', slot4: 'Digit4', slot5: 'Digit5',
   inventory: 'Tab', map: 'KeyM', rotate: 'KeyR', material: 'KeyX', fire: 'Mouse0', aim: 'Mouse2', scoreboard: 'Tab',
@@ -106,6 +106,8 @@ function deviceDefaults(): Partial<Settings> {
 export function loadSettings(): Settings {
   const s = loadJSON<Partial<Settings>>(KEY);
   const merged: Settings = { ...DEFAULT_SETTINGS, ...(s ? {} : deviceDefaults()), ...(s ?? {}), bindings: { ...DEFAULT_BINDINGS, ...(s?.bindings ?? {}) } };
+  // crouch used to default to Ctrl, and Ctrl+W closes the browser tab mid-fight
+  if (merged.bindings.crouch === 'ControlLeft') merged.bindings.crouch = 'KeyC';
   return merged;
 }
 
