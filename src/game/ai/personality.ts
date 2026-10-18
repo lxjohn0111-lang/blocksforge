@@ -68,18 +68,24 @@ function clamp01(v: number) {
 
 /** Aim/reaction parameters derived from skill 0..1. Better bots think better, not just aim better. */
 export function skillParams(skill: number) {
+  // below the middle of the range bots get clumsier fast: this is where new players start
+  const low = Math.max(0, (0.5 - skill) / 0.5);
   return {
-    reaction: 0.62 - skill * 0.4, // seconds before engaging a newly seen enemy
-    aimError: 7.5 - skill * 5.5, // degrees initial error
-    errorDecay: 1.4 + skill * 3.2, // per second
-    turnSpeed: 4 + skill * 7, // rad/s
-    headshot: 0.06 + skill * 0.26,
+    reaction: 0.62 - skill * 0.4 + low * 0.6, // seconds before engaging a newly seen enemy
+    aimError: 7.5 - skill * 5.5 + low * 7, // degrees initial error
+    errorDecay: (1.4 + skill * 3.2) * (1 - low * 0.45), // per second
+    turnSpeed: (4 + skill * 7) * (1 - low * 0.4), // rad/s
+    headshot: Math.max(0.01, 0.06 + skill * 0.26 - low * 0.05),
+    /** extra rest between bursts / shots, seconds */
+    fireRest: low * 0.45,
+    /** how far away enemies get noticed, as a share of full range */
+    awareness: 0.6 + 0.4 * (1 - low),
     burstDiscipline: 0.3 + skill * 0.6,
     coverUse: 0.25 + skill * 0.7,
     grenadeIQ: 0.2 + skill * 0.7,
     strafe: 0.3 + skill * 0.6,
     rotateEarly: 0.2 + skill * 0.7,
-    mistake: 0.22 - skill * 0.17,
+    mistake: 0.22 - skill * 0.17 + low * 0.12,
     leadTarget: skill,
   };
 }

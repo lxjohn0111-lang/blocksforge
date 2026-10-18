@@ -129,7 +129,7 @@ export class BotBrain {
     const eye = c.eye();
     const fwd = new THREE.Vector3(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
     // heads-down looting narrows awareness (gunfire still gets noticed, see below)
-    const range = (m.cfg.mode === 'tdm' ? 95 : 130) * (this.state === 'loot' ? 0.5 : 1);
+    const range = (m.cfg.mode === 'tdm' ? 95 : 130) * (this.state === 'loot' ? 0.5 : 1) * this.sk.awareness;
     let best: Combatant | null = null;
     let bestScore = Infinity;
     const cands = m.combatants
@@ -989,11 +989,12 @@ export class BotBrain {
           if (this.burstPause > 0) this.burstPause -= dt;
           else {
             held = true;
-            if (d > 22 && this.burstLeft <= 0) this.burstLeft = 3 + Math.floor(Math.random() * 5 * (1 - this.sk.burstDiscipline * 0.5));
+            // clumsy bots fire in bursts even up close instead of holding the trigger down
+            if ((d > 22 || this.sk.fireRest > 0.1) && this.burstLeft <= 0) this.burstLeft = 3 + Math.floor(Math.random() * 5 * (1 - this.sk.burstDiscipline * 0.5));
           }
         } else if (this.now >= this.nextClick) {
           held = true;
-          const cadence = g.def.action === 'semi' ? 0.16 + (1 - this.skill) * 0.25 + (g.def.category === 'dmr' ? 0.25 : 0) : 0.1;
+          const cadence = (g.def.action === 'semi' ? 0.16 + (1 - this.skill) * 0.25 + (g.def.category === 'dmr' ? 0.25 : 0) : 0.1) + this.sk.fireRest * 0.6;
           this.nextClick = this.now + cadence + Math.random() * 0.12;
         }
       }
@@ -1004,7 +1005,7 @@ export class BotBrain {
     const fired = m.tryFire(c, held);
     if (fired && g?.def.action === 'auto' && this.burstLeft > 0) {
       this.burstLeft--;
-      if (this.burstLeft === 0) this.burstPause = 0.18 + Math.random() * 0.3 * (1.5 - this.sk.burstDiscipline);
+      if (this.burstLeft === 0) this.burstPause = 0.18 + Math.random() * 0.3 * (1.5 - this.sk.burstDiscipline) + this.sk.fireRest;
     }
     if (fired && this.skill < 0.5 && Math.random() < 0.05) {
       // flinch / overcorrect

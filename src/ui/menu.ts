@@ -123,6 +123,7 @@ export class Menu {
   private timers: (() => void)[] = [];
   private tick = 0;
   private lockerCat: 'outfit' | 'camo' | 'banner' | 'title' | 'look' = 'outfit';
+  private renderedTab: Tab | null = null;
 
   constructor(public parent: HTMLElement, public api: MenuApi) {
     const p = api.meta.p;
@@ -141,6 +142,10 @@ export class Menu {
   }
 
   render() {
+    // re-rendering after a click must not jump the scrolled columns back to the top
+    const keep = ['.menu-left', '.menu-right', '.menu-body', '.page', '.page > .panel', '.mbody'].map((sel) => [sel, this.root.querySelector(sel)?.scrollTop ?? 0] as const);
+    const sameTab = this.renderedTab === this.tab;
+    this.renderedTab = this.tab;
     clear(this.root);
     this.timers = [];
     this.root.appendChild(this.topbar());
@@ -164,6 +169,11 @@ export class Menu {
         break;
     }
     this.api.setMenuView(this.tab === 'locker' ? 'showcase' : 'orbit');
+    if (sameTab)
+      for (const [sel, top] of keep) {
+        const el = this.root.querySelector(sel);
+        if (el && top) el.scrollTop = top;
+      }
   }
 
   private topbar() {

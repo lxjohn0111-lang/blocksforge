@@ -34,6 +34,8 @@ export interface MatchConfig {
   seed: number;
   player: Identity;
   bots: { ident: Identity; skill: number }[];
+  /** 0 (new player, bottom of Flint) .. 1 (Forgemaster) */
+  difficulty?: number;
   /** player cosmetics */
   camo: string;
   eventTag?: string | null;
@@ -955,10 +957,17 @@ export class Match {
   }
 
   // =================================================================== damage
+  /** bot -> player damage multiplier: 0.6 at the bottom of Flint, full strength from Gold up */
+  get botDamageScale() {
+    return 0.6 + 0.4 * Math.min(1, (this.cfg.difficulty ?? 0.5) / 0.4);
+  }
+
   damage(target: Combatant, amount: number, info: { attacker: Combatant | null; kind: string; weapon: string; headshot?: boolean; from?: THREE.Vector3; point?: THREE.Vector3; dist?: number }) {
     if (!target.alive || amount <= 0) return;
     if (target.spawnShield > 0 && info.kind !== 'zone') return;
     if (this.ended) return;
+    // low ranks: computer players hit the player for less, so new players can win their fights
+    if (target.isPlayer && info.attacker && !info.attacker.isPlayer) amount *= this.botDamageScale;
     let rest = amount;
     let armorHit = false;
     let armorBroke = false;

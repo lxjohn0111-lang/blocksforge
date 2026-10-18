@@ -147,7 +147,7 @@ export class PlayerController {
         if (g.def.scope && p.ads > 0.9) {
           const zoom = g.def.scope.zooms[Math.min(this.scopeZoom, g.def.scope.zooms.length - 1)];
           sens *= (g.def.scope.sens * s.scopeSens * 4) / zoom;
-        } else sens *= s.adsSens;
+        } else sens *= s.adsSens * Math.min(1.1, g.def.adsZoom / 0.8); // stronger zoom, slower turn
       }
       p.yaw -= mx * sens;
       p.pitch -= my * sens * (s.invertY ? -1 : 1);

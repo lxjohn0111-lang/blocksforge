@@ -615,6 +615,8 @@ export function materialModel(color: number, accent: number): VBox[] {
 export interface BuiltWeaponMeshes {
   group: THREE.Group;
   body: THREE.Mesh;
+  /** sight and scope lenses, drawn see-through */
+  glass: THREE.Mesh | null;
   mag: THREE.Mesh | null;
   slide: THREE.Mesh | null;
   bolt: THREE.Mesh | null;
@@ -634,7 +636,27 @@ export function cachedGeometry(key: string, boxes: VBox[], scale = 1 / 32): THRE
   return g;
 }
 
-export function buildWeaponMeshes(id: WeaponId, material: THREE.Material, scale = 1 / 32): BuiltWeaponMeshes {
+/** what you look through when aiming */
+export type Optic = 'iron' | 'dot' | 'scope';
+export function weaponOptic(id: WeaponId): Optic {
+  const m = weaponModel(id);
+  if (m.scope) return 'scope';
+  return m.body.some((bx) => bx.mat === 'emissive' && bx.color === RED_DOT) ? 'dot' : 'iron';
+}
+
+/** the point that sits on the line of sight when aiming: a red dot sight centres its dot */
+export function weaponSightPoint(id: WeaponId): V3 {
+  const m = weaponModel(id);
+  const dot = m.body.find((bx) => bx.mat === 'emissive' && bx.color === RED_DOT);
+  if (!dot || m.scope) return m.sight;
+  return [(dot.min[0] + dot.max[0]) / 2, (dot.min[1] + dot.max[1]) / 2, dot.max[2]];
+}
+
+/**
+ * First-person meshes. Lenses go into their own mesh with `glassMaterial` so the viewmodel can draw
+ * them see-through (an opaque lens right in front of the eye hides everything while aiming).
+ */
+export function buildWeaponMeshes(id: WeaponId, material: THREE.Material, scale = 1 / 32, glassMaterial?: THREE.Material): BuiltWeaponMeshes {
   const model = weaponModel(id);
   const group = new THREE.Group();
   const mk = (part: keyof ModelParts) => {
@@ -644,8 +666,16 @@ export function buildWeaponMeshes(id: WeaponId, material: THREE.Material, scale 
     group.add(m);
     return m;
   };
-  const body = mk('body')!;
-  return { group, body, mag: mk('mag'), slide: mk('slide'), bolt: mk('bolt'), pump: mk('pump'), rocket: mk('rocket'), model };
+  let body: THREE.Mesh;
+  let glass: THREE.Mesh | null = null;
+  const lenses = glassMaterial ? model.body.filter((bx) => bx.mat === 'glass') : [];
+  if (lenses.length) {
+    body = new THREE.Mesh(cachedGeometry(`${id}:body:solid`, model.body.filter((bx) => bx.mat !== 'glass'), scale), material);
+    glass = new THREE.Mesh(cachedGeometry(`${id}:body:glass`, lenses, scale), glassMaterial);
+    glass.renderOrder = 1;
+    group.add(body, glass);
+  } else body = mk('body')!;
+  return { group, body, glass, mag: mk('mag'), slide: mk('slide'), bolt: mk('bolt'), pump: mk('pump'), rocket: mk('rocket'), model };
 }
 
 /** Merged single geometry (third-person / loot). */

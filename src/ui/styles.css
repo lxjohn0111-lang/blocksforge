@@ -115,11 +115,14 @@ input { font-family: var(--font); }
 
 .menu-body { flex: 1; display: grid; grid-template-columns: minmax(380px, 520px) 1fr minmax(320px, 400px); gap: 24px; padding: 24px; min-height: 0; }
 .menu-left, .menu-right { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+/* the play column scrolls when TDM adds its pickers; the play button stays pinned at the bottom */
+.menu-left { overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #ffffff30 transparent; }
+.menu-left > *, .menu-right > * { flex-shrink: 0; }
 
-.modecard { position: relative; padding: 18px 20px; cursor: pointer; transition: transform .15s, border-color .15s; overflow: hidden; }
-.modecard:hover { transform: translateX(4px); border-color: var(--line-2); }
+.modecard { position: relative; padding: 15px 20px; cursor: pointer; transition: border-color .15s, background .15s; overflow: hidden; }
+.modecard:hover { border-color: var(--line-2); background: rgba(22,27,34,0.9); }
 .modecard.on { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
-.modecard .title { font-family: var(--display); font-size: 28px; line-height: 1; }
+.modecard .title { font-family: var(--display); font-size: 26px; line-height: 1; }
 .modecard .sub { margin-top: 6px; font-size: 13px; color: var(--dim); max-width: 92%; }
 .modecard .meta { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .modecard .art { position: absolute; right: -8px; top: -8px; width: 120px; height: 120px; opacity: 0.18; }
@@ -128,7 +131,7 @@ input { font-family: var(--font); }
 .seg button.on { background: rgba(255,255,255,0.1); color: var(--text); }
 .seg button.on.rk { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #1b1306; }
 
-.playbar { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.playbar { position: sticky; bottom: 0; z-index: 1; margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 12px; background: linear-gradient(180deg, transparent, rgba(8,10,13,0.92) 28%); }
 .honesty { font-size: 11.5px; color: var(--faint); line-height: 1.45; display: flex; gap: 8px; align-items: flex-start; }
 
 .card { padding: 16px 18px; }
@@ -393,6 +396,8 @@ input { font-family: var(--font); }
 .loadout .ln { font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
 .loadout .lw { font-size: 11px; color: var(--dim); margin-top: 3px; }
 .loadout canvas { width: 100%; height: 40px; margin-top: 4px; }
+.loadout.lo3 { padding: 8px; }
+.loadout.lo3 canvas { height: 26px; margin-top: 2px; }
 
 /* ---------------------------------------------------------------- tutorial */
 .tut { position: absolute; left: 24px; top: 110px; width: 330px; padding: 14px 16px; }
@@ -686,8 +691,7 @@ body.touch .toggle.on i { left: 27px; }
 
   .mbody { overflow: hidden; }
   .menu-body { grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px calc(12px + env(safe-area-inset-right, 0px)) 10px calc(12px + env(safe-area-inset-left, 0px)); }
-  .menu-left, .menu-right { overflow-y: auto; gap: 10px; scrollbar-width: thin; }
-  .menu-left > *, .menu-right > * { flex-shrink: 0; }
+  .menu-left, .menu-right { overflow-y: auto; gap: 10px; }
   .hero { display: none; }
   .modecard { padding: 11px 14px; }
   .modecard .title { font-size: 21px; }
@@ -695,7 +699,6 @@ body.touch .toggle.on i { left: 27px; }
   .modecard .meta { margin-top: 6px; }
   .modecard .art { width: 80px; height: 80px; }
   .seg button { padding: 8px 6px; font-size: 11px; letter-spacing: 0.08em; }
-  .playbar { position: sticky; bottom: 0; z-index: 1; padding-top: 10px; background: linear-gradient(180deg, transparent, rgba(8,10,13,0.92) 26%); }
   .loadout.lo3 { width: calc(33.3% - 6px); }
   .card, .event-card { padding: 12px 14px; }
 

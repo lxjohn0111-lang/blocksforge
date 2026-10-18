@@ -4,6 +4,7 @@
 // Every one of these profiles is an AI player — never a real person.
 
 import { RNG, hashString } from '../core/rng';
+import { TIERS } from './ranks';
 import { randomLook } from '../render/characters';
 import { makePersonality, type Personality } from '../game/ai/personality';
 import type { Identity } from '../game/combatant';
@@ -138,11 +139,26 @@ export function pickBots(count: number, playerRp: number, ranked: boolean, seed:
   return top.slice(0, count);
 }
 
-/** Effective in-match skill: ranked matches scale with the player's ladder position. */
-export function effectiveSkill(e: PoolEntry, ranked: boolean, playerRp: number): number {
-  if (!ranked) return Math.min(0.62, e.baseSkill * 0.85);
-  const tierBoost = Math.min(0.25, playerRp / 12000);
-  return Math.max(0.1, Math.min(0.97, e.baseSkill * 0.85 + tierBoost));
+/**
+ * How tough opponents are, from 0 (bottom of Flint) to 1 (Forgemaster). It follows the player's
+ * rank, so climbing the ladder is what makes matches harder; casual stays a notch easier.
+ */
+const FORGEMASTER_RP = TIERS[TIERS.length - 1].min;
+
+export function difficultyFor(playerRp: number, ranked: boolean): number {
+  const d = Math.min(1, Math.max(0, playerRp / FORGEMASTER_RP));
+  return ranked ? d : Math.max(0, d * 0.85 - 0.04);
+}
+
+/**
+ * In-match skill for a lobby: centred on the difficulty, with each competitor's own talent
+ * (relative to the rest of the lobby) showing through more at higher ranks.
+ */
+export function lobbySkills(entries: PoolEntry[], difficulty: number): number[] {
+  const mean = entries.reduce((s, e) => s + e.baseSkill, 0) / Math.max(1, entries.length);
+  const center = 0.04 + difficulty * 0.82;
+  const spread = 0.35 + difficulty * 0.45;
+  return entries.map((e) => Math.max(0.02, Math.min(0.97, center + (e.baseSkill - mean) * spread)));
 }
 
 export function recordBotResult(id: string, mode: string, place: number, kills: number, won: boolean, rpDelta: number) {

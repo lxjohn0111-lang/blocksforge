@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { createEntityMaterial, buildVoxelGeometry, type VBox } from './voxelModel';
 import {
-  buildWeaponMeshes, type BuiltWeaponMeshes, cachedGeometry, pickaxeModel, hammerModel, fragModel, smokeModel,
+  buildWeaponMeshes, weaponOptic, weaponSightPoint, type BuiltWeaponMeshes, type Optic, cachedGeometry, pickaxeModel, hammerModel, fragModel, smokeModel,
   bandageModel, medkitModel, plateModel, type V3,
 } from './weaponModels';
 import { WEAPONS, type WeaponId, type HealKind, type ThrowKind } from '../game/weapons';
@@ -63,8 +63,13 @@ export class Viewmodel {
   pivot = new THREE.Group();
   material = createEntityMaterial({ fog: false });
   armMaterial = createEntityMaterial({ fog: false });
+  /** sight lenses: a faint tint you can see through */
+  glassMaterial = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 0.1, depthWrite: false });
   holding: VMHolding = { kind: 'none' };
   gun: BuiltWeaponMeshes | null = null;
+  /** what the current gun aims through */
+  optic: Optic = 'iron';
+  private sightPt: V3 = [0, 0, 0];
   item: THREE.Mesh | null = null;
   rightArm: THREE.Group;
   leftArm: THREE.Group;
@@ -177,7 +182,9 @@ export class Viewmodel {
     }
     if (this.flash.parent) this.flash.parent.remove(this.flash);
     if (h.kind === 'gun') {
-      this.gun = buildWeaponMeshes(h.weapon, this.material, S);
+      this.gun = buildWeaponMeshes(h.weapon, this.material, S, this.glassMaterial);
+      this.optic = weaponOptic(h.weapon);
+      this.sightPt = weaponSightPoint(h.weapon);
       this.pivot.add(this.gun.group);
       const m = this.gun.model.muzzle;
       this.flash.position.set(m[0] * S, m[1] * S, m[2] * S - 0.05);
@@ -323,11 +330,12 @@ export class Viewmodel {
       px += model.hipOffset[0];
       py += model.hipOffset[1];
       pz += model.hipOffset[2];
-      // aim down sights: sight point onto view axis
+      // aim down sights: sight point onto view axis. Iron sights sit a touch low so the
+      // front post never hides what you're aiming at (the HUD shows a centre dot instead)
       const adsDist = model.scope ? 0.16 : 0.2;
-      const ax = -model.sight[0] * S;
-      const ay = -model.sight[1] * S;
-      const az = -model.sight[2] * S - adsDist;
+      const ax = -this.sightPt[0] * S;
+      const ay = -this.sightPt[1] * S - (this.optic === 'iron' ? 0.009 : 0);
+      const az = -this.sightPt[2] * S - adsDist;
       const a = easeInOutCubic(u.ads);
       px = lerp(px, ax, a);
       py = lerp(py, ay, a);

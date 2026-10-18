@@ -18,7 +18,7 @@ import { CHUNK } from './world/world';
 import { Meta } from './meta/meta';
 import { playerIdentity } from './meta/profile';
 import { composeLook } from './meta/cosmetics';
-import { getPool, pickBots, effectiveSkill } from './meta/botPool';
+import { getPool, pickBots, difficultyFor, lobbySkills } from './meta/botPool';
 import { Match, type MatchConfig, type MatchResult } from './game/match';
 import { BRMatch } from './game/brMatch';
 import { TDMMatch } from './game/tdmMatch';
@@ -481,7 +481,9 @@ export class App {
     const rp = meta.p.rank.rp;
     const botCount = sel.mode === 'br' ? 23 : sel.mode === 'tdm' ? 11 : 0;
     const entries = botCount ? pickBots(botCount, rp, ranked, seed) : [];
-    const bots = entries.map((e) => ({ ident: e.ident, skill: effectiveSkill(e, ranked, rp) }));
+    const difficulty = difficultyFor(rp, ranked);
+    const skills = lobbySkills(entries, difficulty);
+    const bots = entries.map((e, i) => ({ ident: e.ident, skill: skills[i] }));
     let map: MapData | null = null;
     let mapName = '';
     let mapSub = '';
@@ -513,7 +515,7 @@ export class App {
       sel.mode === 'tdm' ? [[player, ...bots.slice(0, 5).map((b) => b.ident)], bots.slice(5).map((b) => b.ident)] : undefined;
     await runLobby(this.ui, { mode: sel.mode, ranked, mapName, mapSub, player, bots: bots.map((b) => b.ident), teams, ready });
     await ready;
-    this.startMatch(sel, map!, { mode: sel.mode, ranked, mapId: sel.mode === 'tdm' ? tdmInfo!.id : sel.mode, seed, player, bots, camo: meta.p.equipped.camo, eventTag: meta.events().current?.def.id ?? null }, mods);
+    this.startMatch(sel, map!, { mode: sel.mode, ranked, mapId: sel.mode === 'tdm' ? tdmInfo!.id : sel.mode, seed, player, bots, difficulty, camo: meta.p.equipped.camo, eventTag: meta.events().current?.def.id ?? null }, mods);
   }
 
   private startMatch(sel: PlaySelection, map: MapData, cfg: MatchConfig, mods: ReturnType<Meta['eventMods']>) {

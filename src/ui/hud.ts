@@ -411,7 +411,10 @@ export class HUD {
     const g = p.gun;
     const scopeA = pc.scopeAmount;
     // crosshair
-    const showCross = p.alive && !inShip && scopeA < 0.5 && !(g && p.ads > 0.6 && g.def.category !== 'shotgun');
+    // aiming hides the crosshair, except a centre dot for iron sights (the sights sit just below it)
+    const aimed = !!g && p.ads > 0.6 && g.def.category !== 'shotgun';
+    const adsDot = aimed && pc.vm.optic === 'iron';
+    const showCross = p.alive && !inShip && scopeA < 0.5 && (!aimed || adsDot);
     E.cross.style.display = showCross ? 'block' : 'none';
     if (showCross) {
       const spread = g ? m.spreadDeg(p, g) : 0.6;
@@ -429,7 +432,7 @@ export class HUD {
         kids[4].style.top = s + 'px';
       }
       const tool = p.slot > 2;
-      for (let i = 1; i < 5; i++) kids[i].style.display = tool ? 'none' : 'block';
+      for (let i = 1; i < 5; i++) kids[i].style.display = tool || adsDot ? 'none' : 'block';
     }
     // hitmarker
     this.hitT = Math.max(0, this.hitT - dt);
