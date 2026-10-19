@@ -296,7 +296,7 @@ export class HUD {
   }
 
   private scopeSvg() {
-    return `<svg width="760" height="760" viewBox="0 0 760 760" style="width:min(84vh,84vw);height:min(84vh,84vw)">
+    return `<svg class="scopesvg" width="760" height="760" viewBox="0 0 760 760">
       <g stroke="#0a0a0a" fill="none">
         <path d="M0 380H330M430 380H760M380 0V330M380 430V760" stroke-width="3"/>
         <path d="M330 380H370M390 380H430M380 330V370M380 390V430" stroke-width="1.2"/>
@@ -569,7 +569,7 @@ export class HUD {
       const reloading = g.reloading > 0;
       mag = `${g.mag}<small>/ ${p.ammo[g.def.ammo]}</small>`;
       low = g.mag <= Math.ceil(g.def.mag * 0.25);
-      extra = reloading ? '<span style="color:#ffcf7a">RELOADING</span>' : '';
+      extra = reloading ? '<span class="reloading">RELOADING</span>' : '';
     } else if (p.slot === 3) {
       wn = HEALS[p.healSel].name;
       mag = `${p.heals[p.healSel]}`;
@@ -730,7 +730,10 @@ export class HUD {
       if (rel > 180) rel -= 360;
       if (rel < -180) rel += 360;
       const outside = br.zone.distToNext(p.body.pos.x, p.body.pos.z) > 0;
-      this.setHTML('mk', E.markers, outside && Math.abs(rel) < 70 ? `<div class="mk" style="left:${260 + rel * 4}px;background:#c99bff;clip-path:polygon(50% 0,100% 100%,0 100%)"></div>` : '');
+      const show = outside && Math.abs(rel) < 70;
+      this.setHTML('mk', E.markers, show ? '<div class="mk zonemk"></div>' : '');
+      // position through the style object (an inline style attribute would trip a strict CSP)
+      if (show) (E.markers.firstElementChild as HTMLElement).style.left = `${260 + rel * 4}px`;
     }
 
     // minimap
@@ -776,7 +779,7 @@ export class HUD {
       let dt2 = '';
       if (inShip) {
         const over = br.ship.t > 0.1;
-        dt2 = over ? `<div class="big">${this.touch ? 'Tap jump to drop' : `<span class="kbd" style="font-size:20px;height:30px">${keyLabel(this.settings.bindings.jump)}</span> to drop`}</div>` : '';
+        dt2 = over ? `<div class="big">${this.touch ? 'Tap jump to drop' : `<span class="kbd kbd-lg">${keyLabel(this.settings.bindings.jump)}</span> to drop`}</div>` : '';
       } else if (p.dropping) dt2 = `<div class="dim">${this.touch ? 'Tap jump' : keyLabel(this.settings.bindings.jump)} to open the glider</div>`;
       E.drop.style.display = dt2 ? 'block' : 'none';
       this.setHTML('drop', E.drop, dt2);

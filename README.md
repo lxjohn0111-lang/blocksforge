@@ -61,9 +61,9 @@ BlockForge is designed to feel like an online shooter, but there are no real pla
 
 ## Publishing on CrazyGames
 
-The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is about 1.5 MB in under 20 files, with relative paths throughout.
+The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is about 1.5 MB in 20 files, with relative paths throughout.
 
-Portals may run a game in a sandboxed iframe (an opaque "null" origin) and serve it from a static host without CORS headers. There, module scripts, `crossorigin` stylesheets and web fonts are blocked and the page stays blank. So the build ships one classic, deferred script (styles injected by the script) with the Latin font subsets inlined, and no `crossorigin` attributes (`vite.config.ts`). If the script still cannot start, `index.html` shows a "could not start" message with the load errors after 20 seconds instead of a blank page.
+Portals may run a game in a sandboxed iframe (an opaque "null" origin), serve it from a static host without CORS headers and add a strict Content-Security-Policy. There, module scripts, `crossorigin` stylesheets, web fonts, inline scripts and inline styles can all be blocked and the page stays blank. So the build ships one classic, deferred script and one plain stylesheet file with the Latin font subsets inlined, no `crossorigin` attributes (`vite.config.ts`), and no inline scripts or `style="…"` attributes. `index.html` shows a BLOCKFORGE preloader until the game's own loading screen takes over, and `public/loader.js` watches the start: if the game has not reached its menu after 25 seconds it shows the current loading step and any load errors with a Reload button instead of a blank or frozen page.
 
 `src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`); everywhere else every call is a no-op. With the SDK it:
 

@@ -898,3 +898,23 @@ body.touch .toggle.on i { left: 27px; }
   .setrow { grid-template-columns: 1fr minmax(120px, 46%); }
   .daily .d { font-size: 8px; }
 }
+
+/* classes for markup built as HTML strings (no inline style attributes: they break under a strict CSP) */
+.scopesvg { width: min(84vh, 84vw); height: min(84vh, 84vw); }
+.reloading { color: #ffcf7a; }
+.mk.zonemk { background: #c99bff; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.kbd.kbd-lg { font-size: 20px; height: 30px; }
+.boot .tip.boot-err { color: #ffb3a8; margin-top: 30px; }
+
+/* shown by index.html before the game script runs */
+.preload { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: var(--bg); }
+.preload-logo { font-family: var(--display); font-size: 52px; letter-spacing: 0.02em; color: var(--text); }
+.preload-logo span { color: var(--accent); }
+.preload-bar { width: min(320px, 70vw); height: 6px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.preload-bar i { display: block; width: 30%; height: 100%; background: var(--accent); animation: preload 1.1s ease-in-out infinite; }
+@keyframes preload { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+/* public/loader.js: the game did not reach its menu */
+.bf-stuck { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 100; width: min(560px, 92vw); padding: 14px 16px; background: #11151b; border: 1px solid rgba(255,77,77,0.5); color: #e9edf2; font: 14px system-ui, sans-serif; text-align: center; }
+.bf-stuck-t { font-weight: 700; margin-bottom: 6px; }
+.bf-stuck-d { color: #98a3b1; font-size: 12px; word-break: break-word; margin-bottom: 10px; }
+.bf-stuck-b { font: inherit; font-weight: 700; padding: 6px 18px; background: #f2a93b; color: #1a1205; border: 0; cursor: pointer; }

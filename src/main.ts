@@ -21,13 +21,16 @@ import { platform } from './platform/crazygames';
 
 function fail(msg: string) {
   const el = document.getElementById('ui')!;
-  el.innerHTML = `<div class="screen boot"><div class="logo">BLOCK<span class="forge">FORGE</span></div><div class="tip" style="color:#ffb3a8;margin-top:30px">${msg}</div></div>`;
+  el.innerHTML = `<div class="screen boot"><div class="logo">BLOCK<span class="forge">FORGE</span></div><div class="tip boot-err">${msg}</div></div>`;
 }
 
 async function start() {
-  (window as unknown as { __bfStarted: boolean }).__bfStarted = true;
+  const w = window as unknown as { __bfStarted: boolean; __bfStep: string };
+  w.__bfStarted = true;
+  w.__bfStep = 'connecting to the platform SDK';
   // the platform SDK has to be ready before saved progress is read
   await platform.init();
+  w.__bfStep = 'starting';
   platform.loadingStart();
   const app = new App();
   app.boot().catch((e) => {

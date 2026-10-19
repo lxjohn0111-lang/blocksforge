@@ -28,9 +28,10 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
     };
     window.addEventListener('keydown', onKey);
     root.addEventListener('click', () => (skip = true));
+    // timers rather than animation frames: a page in a hidden or off-screen frame gets no frames
     const wait = (ms: number) => new Promise<void>((r) => {
       const t0 = performance.now();
-      const step = () => (skip || performance.now() - t0 >= ms ? r() : requestAnimationFrame(step));
+      const step = () => (skip || performance.now() - t0 >= ms ? r() : setTimeout(step, 30));
       step();
     });
     const done = () => {

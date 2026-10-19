@@ -82,7 +82,7 @@ export const platform = {
    * Initialise before the game reads saved progress (init also preloads the player's saved data, so it
    * gets a generous timeout); gives up quietly if the SDK never answers.
    */
-  async init(timeoutMs = 10000) {
+  async init(timeoutMs = 8000) {
     if (!sdk() && onCrazyGames()) await loadScript(SDK_URL, timeoutMs);
     const s = sdk();
     if (!s) return;

@@ -107,11 +107,13 @@ export class App {
       h('div', { class: 'tag' }, 'Voxel combat · Battle Royale · Team Deathmatch'),
       h('div', { class: 'progress' }, h('div', { class: 'bar', style: { height: '6px' } }, bar)),
       label, tip);
+    this.ui.querySelector('.preload')?.remove();
     this.ui.appendChild(boot);
     const tipTimer = setInterval(() => (tip.textContent = TIPS[Math.floor(Math.random() * TIPS.length)]), 3500);
     const step = async (f: number, t: string) => {
       bar.style.width = `${Math.round(f * 100)}%`;
       label.textContent = t;
+      (window as any).__bfStep = t;
       await new Promise((r) => setTimeout(r, 16));
     };
     await step(0.02, 'Preparing renderer');
@@ -149,6 +151,9 @@ export class App {
     platform.loadingStop();
     requestAnimationFrame((t) => this.loop(t));
     (window as any).__bf = this;
+    // public/loader.js stops watching (and drops its notice if a slow start already showed it)
+    (window as any).__bfReady = true;
+    document.getElementById('bf-stuck')?.remove();
   }
 
   private installHandlers() {
