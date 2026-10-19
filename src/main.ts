@@ -1,11 +1,20 @@
-import '@fontsource/chakra-petch/400.css';
-import '@fontsource/chakra-petch/500.css';
-import '@fontsource/chakra-petch/600.css';
-import '@fontsource/chakra-petch/700.css';
-import '@fontsource/pixelify-sans/400.css';
-import '@fontsource/pixelify-sans/600.css';
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/700.css';
+// Latin subsets only (with accented letters); the build inlines them into the stylesheet
+import '@fontsource/chakra-petch/latin-400.css';
+import '@fontsource/chakra-petch/latin-ext-400.css';
+import '@fontsource/chakra-petch/latin-500.css';
+import '@fontsource/chakra-petch/latin-ext-500.css';
+import '@fontsource/chakra-petch/latin-600.css';
+import '@fontsource/chakra-petch/latin-ext-600.css';
+import '@fontsource/chakra-petch/latin-700.css';
+import '@fontsource/chakra-petch/latin-ext-700.css';
+import '@fontsource/pixelify-sans/latin-400.css';
+import '@fontsource/pixelify-sans/latin-ext-400.css';
+import '@fontsource/pixelify-sans/latin-600.css';
+import '@fontsource/pixelify-sans/latin-ext-600.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-ext-400.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-ext-700.css';
 import './ui/styles.css';
 import { App } from './app';
 import { platform } from './platform/crazygames';
@@ -16,6 +25,7 @@ function fail(msg: string) {
 }
 
 async function start() {
+  (window as unknown as { __bfStarted: boolean }).__bfStarted = true;
   // the platform SDK has to be ready before saved progress is read
   await platform.init();
   platform.loadingStart();

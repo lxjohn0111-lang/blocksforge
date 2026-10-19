@@ -37,6 +37,8 @@ const h = {
   async run(ms) { await page.waitForTimeout(ms); },
   eval: (fn, arg) => page.evaluate(fn, arg),
 };
+// scenarios start from the menu; BF_FIRST_RUN=1 keeps the first-visit Basics tutorial
+if (!process.env.BF_FIRST_RUN) await page.addInitScript(() => { window.__bfSkipBasics = true; });
 const mod = await import(path.resolve(scriptPath));
 try {
   await page.goto(process.env.BF_URL || 'http://localhost:4173/');

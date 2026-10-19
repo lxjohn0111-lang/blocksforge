@@ -58,7 +58,10 @@ try {
   await page.goto(URL);
   await ev(() => localStorage.clear());
   await page.reload();
-  check(await waitFor(() => window.__bf && window.__bf.state === 'menu'), 'boots to main menu');
+  check(await waitFor(() => window.__bf && window.__bf.state === 'match' && window.__bf.match.quick === true), 'first visit starts the Basics tutorial');
+  await ev(() => window.__bf.leaveMatch());
+  check(await waitFor(() => window.__bf.state === 'menu', 30000), 'Basics: skip -> main menu');
+  check(await ev(() => window.__bf.meta.basicsDone), 'Basics: marked as done');
   const p0 = await ev(() => ({ ...window.__bf.meta.p.stats }));
 
   // ---- Battle Royale

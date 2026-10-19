@@ -115,6 +115,9 @@ export class HUD {
   private lastBuildTip = -1e9;
   private buildTime = 0;
   private wasAirborne = true;
+  /** Basics card: the step on screen, and how long a finished step keeps its tick before the next */
+  private qtStep = -1;
+  private qtHold = 0;
 
   constructor(parent: HTMLElement, public match: Match, public pc: PlayerController, public settings: Settings, private hooks: Hooks) {
     this.root = h('div', { class: 'hud mode-' + match.cfg.mode });
@@ -164,6 +167,8 @@ export class HUD {
     mk('shield', h('div', { class: 'spawnshield', style: { display: 'none' } }, 'Spawn protection'));
     mk('fps', h('div', { class: 'fps', style: { display: settings.showFps ? 'block' : 'none' } }));
     mk('tut', h('div', { class: 'tut panel', style: { display: 'none' } }));
+    mk('qt', h('div', { class: 'qt', style: { display: 'none' } }));
+    mk('qtmark', h('div', { class: 'qtmark', style: { display: 'none' } }, h('i'), h('b')));
     // tips sit at the top of the toast stack so the two never overlap
     E.tip = h('div', { class: 'tipbar', style: { display: 'none' } });
     E.toasts.appendChild(E.tip);
@@ -220,6 +225,69 @@ export class HUD {
       });
     }
     this.last.tut = '';
+  }
+
+  private updateBasics(tut: TutorialMatch, dt: number) {
+    const E = this.els;
+    const card = E.qt;
+    card.style.display = 'block';
+    // a finished step keeps its tick for a moment before the next one slides in
+    if (this.qtStep >= 0 && tut.index !== this.qtStep && this.qtHold <= 0 && !card.classList.contains('ok')) {
+      card.classList.add('ok');
+      this.qtHold = 0.75;
+      audio.ui('quest', 0.8);
+    }
+    if (this.qtHold > 0) {
+      this.qtHold -= dt;
+      if (this.qtHold > 0) {
+        E.qtmark.style.display = 'none';
+        return;
+      }
+    }
+    if (tut.index !== this.qtStep) {
+      this.qtStep = tut.index;
+      card.classList.remove('ok');
+      const s = tut.step;
+      const total = tut.steps.length - 1;
+      clear(card);
+      const last = s.id === 'done';
+      card.appendChild(
+        h('div', { class: 'qt-top' },
+          h('span', { class: 'qt-n' }, last ? 'Basics' : `${tut.index + 1} / ${total}`),
+          h('div', { class: 'qt-dots' }, ...tut.done.map((d, i) => h('i', { class: d ? 'd' : i === tut.index ? 'c' : '' }))),
+          last ? null : h('button', { class: 'qt-skip clickable', onclick: (e: Event) => { e.stopPropagation(); this.hooks.leave(); } }, 'Skip')),
+      );
+      card.appendChild(h('div', { class: 'qt-title' }, s.title));
+      const keys = s.keys ?? [];
+      if (keys.length || s.hint)
+        card.appendChild(
+          h('div', { class: 'qt-keys' },
+            s.hint ? h('span', { class: 'qt-hint' }, s.hint) : null,
+            ...keys.flatMap((k, i) => [i && s.id === 'build' ? h('span', { class: 'qt-then' }, 'then') : null, h('span', { class: 'kbd qt-key' }, k)])),
+        );
+      card.appendChild(h('div', { class: 'qt-tick', html: ICON.check(28) }));
+    }
+    // marker: where the step happens, pinned to the screen edge when it is off screen
+    const goal = tut.objective();
+    const mark = E.qtmark;
+    if (!goal || !tut.player.alive) {
+      mark.style.display = 'none';
+      return;
+    }
+    const cam = tut.engine.camera;
+    const W = this.root.clientWidth, H = this.root.clientHeight;
+    const v = goal.clone().project(cam);
+    const behind = v.z > 1;
+    let x = behind ? -v.x : v.x;
+    let y = behind ? -1 : v.y;
+    const off = behind || Math.abs(x) > 0.9 || Math.abs(y) > 0.82;
+    x = Math.max(-0.9, Math.min(0.9, x));
+    y = Math.max(-0.82, Math.min(0.82, y));
+    mark.style.display = 'block';
+    mark.classList.toggle('edge', off);
+    mark.style.transform = `translate(${((x + 1) / 2) * W}px, ${((1 - y) / 2) * H}px)`;
+    const d = goal.distanceTo(tut.player.body.pos);
+    this.set('qtm', mark.lastElementChild as HTMLElement, `${Math.round(d)} m`);
   }
 
   applyCrossColor() {
@@ -542,7 +610,7 @@ export class HUD {
         this.renderBuildPanel();
       }
       this.buildTime += dt;
-      if (!this.tips.build) {
+      if (!this.tips.build && !tut?.quick) {
         if (E.coach.style.display === 'none') {
           this.renderCoach();
           E.coach.style.display = 'block';
@@ -721,8 +789,13 @@ export class HUD {
     // spawn shield
     E.shield.style.display = p.alive && p.spawnShield > 0 ? 'block' : 'none';
 
+    // Basics: one step at a time, a big card and a marker on the goal
+    if (tut?.quick) {
+      this.root.classList.add('basics');
+      this.updateBasics(tut, dt);
+    }
     // tutorial panel
-    if (tut) {
+    else if (tut) {
       E.tut.style.display = 'block';
       const s = tut.step;
       const key = `${tut.index}|${tut.doneCount}|${s.progress?.() ?? ''}`;

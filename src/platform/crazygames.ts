@@ -78,8 +78,11 @@ export const platform = {
     return active;
   },
 
-  /** initialise before the game reads saved progress; gives up quietly after a few seconds */
-  async init(timeoutMs = 4000) {
+  /**
+   * Initialise before the game reads saved progress (init also preloads the player's saved data, so it
+   * gets a generous timeout); gives up quietly if the SDK never answers.
+   */
+  async init(timeoutMs = 10000) {
     if (!sdk() && onCrazyGames()) await loadScript(SDK_URL, timeoutMs);
     const s = sdk();
     if (!s) return;
@@ -166,15 +169,19 @@ export const platform = {
     }
   },
 
-  /** the SDK's data module (cloud saves for signed-in players); null outside CrazyGames */
-  storage(): { get(k: string): string | null; set(k: string, v: string): void; remove(k: string): void } | null {
+  /**
+   * The SDK's data module: the player's progress, synced to their CrazyGames account (kept locally
+   * for guests and moved to the account when they sign in). Null outside CrazyGames.
+   */
+  storage(): { get(k: string): string | null; set(k: string, v: string): boolean; remove(k: string): void } | null {
     const s = sdk();
-    if (!active || !s?.data || s.environment !== 'crazygames') return null;
+    if (!active || !s?.data) return null;
     const d = s.data;
     return {
       get: (k) => {
         try {
-          return d.getItem(k);
+          const v = d.getItem(k);
+          return typeof v === 'string' ? v : v == null ? null : JSON.stringify(v);
         } catch {
           return null;
         }
@@ -182,8 +189,10 @@ export const platform = {
       set: (k, v) => {
         try {
           d.setItem(k, v);
+          return true;
         } catch (e) {
           console.warn('[CrazyGames SDK] save failed', e);
+          return false;
         }
       },
       remove: (k) => {

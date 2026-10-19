@@ -27,14 +27,13 @@ import { TutorialMatch } from './game/tutorial';
 import { PlayerController } from './game/player';
 import { HUD } from './ui/hud';
 import { TouchControls } from './ui/touch';
-import { showIntro, introSeen } from './ui/intro';
 import { platform } from './platform/crazygames';
 import { Menu, type PlaySelection } from './ui/menu';
 import { runLobby } from './ui/lobby';
 import { showResults } from './ui/results';
 import { openSettings } from './ui/settings';
 import { h } from './ui/dom';
-import { logoMark } from './ui/icons';
+import { logoMark, ICON } from './ui/icons';
 import { invalidateTerrainImage } from './ui/minimap';
 import { RNG } from './core/rng';
 import { B } from './world/blocks';
@@ -145,6 +144,8 @@ export class App {
     this.ui.appendChild(this.lockPrompt);
     this.installHandlers();
     this.showMenu();
+    // first visit: straight into the five-step Basics tutorial (test drivers can opt out)
+    if (!this.meta.basicsDone && !(window as any).__bfSkipBasics) this.startBasics();
     platform.loadingStop();
     requestAnimationFrame((t) => this.loop(t));
     (window as any).__bf = this;
@@ -368,23 +369,36 @@ export class App {
         this.showcaseYaw += dx * 0.012;
         this.showcaseDragAt = performance.now();
       },
-      showHelp: () => this.openIntro(),
+      showHelp: () => this.startBasics(),
     });
     audio.stopLoops();
     if (audio.ctx?.state === 'running') audio.startMenuMusic();
-    if (!introSeen()) this.openIntro();
   }
 
-  private introEl: HTMLElement | null = null;
-  /** the five-card quick tutorial: first visit, or the menu's help button */
-  private openIntro() {
-    if (this.introEl?.isConnected) return;
-    this.introEl = showIntro(this.ui, this.settings, this.touch, (choice) => {
-      this.introEl = null;
-      const loadout = this.meta.p.lastLoadout || 'assault';
-      if (choice === 'play') this.play({ mode: 'br', ranked: false, tdmMap: 'rotation', loadout });
-      else if (choice === 'training') this.play({ mode: 'tutorial', ranked: false, tdmMap: 'rotation', loadout });
-    });
+  /** Basics: five quick hands-on steps (first visit, or the menu's "How to play") */
+  private startBasics() {
+    this.play({ mode: 'tutorial', quick: true, ranked: false, tdmMap: 'rotation', loadout: this.meta.p.lastLoadout || 'assault' });
+  }
+
+  /** after Basics: one card, one big button into the first match */
+  private showReady(coins: number) {
+    this.state = 'results';
+    audio.ui('victory', 0.7);
+    const loadout = this.meta.p.lastLoadout || 'assault';
+    const go = (fn: () => void) => () => {
+      root.remove();
+      this.resultsEl = null;
+      fn();
+    };
+    const root = h('div', { class: 'screen ready' },
+      h('div', { class: 'ready-card panel' },
+        h('div', { class: 'ready-mark', html: ICON.check(34) }),
+        h('div', { class: 'res-title win' }, 'You are ready'),
+        coins ? h('div', { class: 'ready-coins' }, `+${coins} coins`) : null,
+        h('button', { class: 'btn primary big', onclick: go(() => this.play({ mode: 'br', ranked: false, tdmMap: 'rotation', loadout })) }, h('span', { html: ICON.play(18) }), 'Play Battle Royale'),
+        h('button', { class: 'btn ghost', onclick: go(() => this.showMenu()) }, 'Menu')));
+    this.ui.appendChild(root);
+    this.resultsEl = root;
   }
 
   private setMenuView(v: 'orbit' | 'showcase') {
@@ -513,8 +527,6 @@ export class App {
   async play(sel: PlaySelection) {
     if (this.state === 'lobby' || this.state === 'match') return;
     this.lastSel = sel;
-    this.introEl?.remove();
-    this.introEl = null;
     const meta = this.meta;
     meta.refreshDaily();
     const mods = meta.eventMods();
@@ -547,6 +559,9 @@ export class App {
       tdmInfo = sel.tdmMap === 'rotation' ? (mods.featuredMap && rng.chance(0.5) ? TDM_MAPS.find((m) => m.id === mods.featuredMap)! : rng.pick(TDM_MAPS)) : TDM_MAPS.find((m) => m.id === sel.tdmMap) ?? TDM_MAPS[0];
       mapName = tdmInfo.name;
       mapSub = `Team Deathmatch · ${tdmInfo.time} · 6 v 6`;
+    } else if (sel.quick) {
+      mapName = 'Basics';
+      mapSub = 'Five quick steps';
     } else {
       mapName = 'Training Grounds';
       mapSub = 'Tutorial · Learn the essentials';
@@ -594,7 +609,7 @@ export class App {
     let match: Match;
     if (sel.mode === 'br') match = new BRMatch(eng, map, cfg);
     else if (sel.mode === 'tdm') match = new TDMMatch(eng, map, cfg, sel.loadout);
-    else match = new TutorialMatch(eng, map, cfg, this.settings, this.touch);
+    else match = new TutorialMatch(eng, map, cfg, this.settings, this.touch, !!sel.quick);
     match.attach();
     this.match = match;
     this.weather.world = map.world;
@@ -683,6 +698,17 @@ export class App {
   }
 
   private finishMatch(result: MatchResult) {
+    if (result.basics) {
+      this.teardownMatch();
+      this.lastSel = null;
+      const coins = this.meta.completeBasics(result.won);
+      if (result.won) {
+        this.engine.setChunks(this.brRenderer);
+        this.resetAtmosphereForMenu();
+        this.showReady(coins);
+      } else this.showMenu();
+      return;
+    }
     const summary = this.meta.applyResult(result);
     this.teardownMatch();
     this.state = 'results';

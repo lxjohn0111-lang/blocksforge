@@ -14,6 +14,8 @@ export interface TutorialStep {
   title: string;
   hint: string;
   progress?: () => string;
+  /** the controls to show on the quick tutorial's card */
+  keys?: string[];
 }
 
 function dummyIdent(name: string, seed: number): Identity {
@@ -46,9 +48,12 @@ export class TutorialMatch extends Match {
   private flags = new Set<string>();
   private stepTime = 0;
   completedAt = -1;
+  /** "Basics": the first-run tutorial, five steps one at a time; otherwise the full Training course */
+  readonly quick: boolean;
 
-  constructor(engine: Engine, map: MapData, cfg: MatchConfig, private settings: Settings, touch = false) {
+  constructor(engine: Engine, map: MapData, cfg: MatchConfig, private settings: Settings, touch = false, quick = false) {
     super(engine, map, cfg);
+    this.quick = quick;
     this.buildingEnabled = true;
     this.craftingEnabled = true;
     this.harvestEnabled = true;
@@ -88,7 +93,19 @@ export class TutorialMatch extends Match {
       { id: 'duel', title: 'Final test', hint: t(`Defeat the sparring bot in the arena. Use cover, heal with ${k('heal')}.`, 'Defeat the sparring bot in the arena. Use cover and heal between fights.') },
       { id: 'done', title: 'Training complete', hint: 'You are ready to drop in.' },
     ];
+    if (quick)
+      this.steps = [
+        { id: 'move', title: 'Move', hint: touch ? 'Left stick' : 'Walk to the marker', keys: touch ? [] : [k('forward'), k('left'), k('back'), k('right')] },
+        { id: 'jump', title: 'Jump the wall', hint: touch ? 'Jump button' : '', keys: touch ? [] : [k('jump')] },
+        { id: 'loot', title: 'Grab the rifle', hint: touch ? 'Walk up and tap the hand' : 'Look at it and press', keys: touch ? [] : [k('interact')] },
+        { id: 'shoot', title: 'Shoot the target', hint: touch ? 'Fire button' : '', keys: touch ? [] : [k('fire')] },
+        { id: 'build', title: 'Build a wall', hint: touch ? 'Build button, then fire' : 'Build mode, then place', keys: touch ? [] : [k('build'), k('fire')] },
+        { id: 'done', title: 'You are ready', hint: '' },
+      ];
     this.done = this.steps.slice(0, -1).map(() => false);
+    this.events.on('built', ({ c }) => {
+      if (c === this.player) this.flags.add('built');
+    });
     this.events.on('reloadStart', ({ c }) => {
       if (c === this.player) this.flags.add('reloaded');
     });
@@ -119,6 +136,28 @@ export class TutorialMatch extends Match {
 
   get step() {
     return this.steps[this.index];
+  }
+
+  /** where the current step happens, for the on-screen marker (quick tutorial) */
+  objective(): THREE.Vector3 | null {
+    const st = this.map.stations!;
+    const at = (q: { x: number; y: number; z: number }, up = 0.6) => new THREE.Vector3(q.x, q.y + up, q.z);
+    switch (this.step.id) {
+      case 'move':
+        return at(st.move, 0.2);
+      case 'jump':
+        return at(st.jump, 0.4);
+      case 'loot': {
+        const rifle = this.items.find((it) => !it.taken && it.spec.kind === 'weapon' && it.spec.weapon === 'ranger');
+        return rifle ? rifle.pos.clone().add(new THREE.Vector3(0, 0.5, 0)) : at(st.weapon);
+      }
+      case 'shoot': {
+        const d = this.dummies.find((x) => x.key === 'dummy1');
+        return d && d.c.alive ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : null;
+      }
+      default:
+        return null;
+    }
   }
 
   get doneCount() {
@@ -163,6 +202,11 @@ export class TutorialMatch extends Match {
     if (id === 'craft') this.giveCloth();
     if (id === 'grenade') this.giveFrags();
     if (id === 'build') this.giveWood();
+    if (id === 'done' && this.quick) {
+      this.completedAt = this.time;
+      this.after(1.6, () => this.finish(this.makeResult()));
+      return;
+    }
     if (id === 'duel') {
       p.addHeal('bandage', 3);
       p.addHeal('plate', 2);
@@ -205,7 +249,7 @@ export class TutorialMatch extends Match {
     if (this.flags.has('gave_wood')) return;
     this.flags.add('gave_wood');
     this.player.addMat('wood', 40);
-    this.events.emit('toast', { text: '+40 Wood for building', kind: 'loot' });
+    if (!this.quick) this.events.emit('toast', { text: '+40 Wood for building', kind: 'loot' });
   }
 
   private spawnDuelBot() {
@@ -275,6 +319,8 @@ export class TutorialMatch extends Match {
       grenade: () => this.flags.has('nade'),
       duel: () => this.flags.has('duel'),
     };
+    // the quick tutorial wants a wall placed anywhere rather than the climb to the ledge
+    if (this.quick) checks.build = () => this.flags.has('built');
     let completed = false;
     for (let i = 0; i < this.done.length; i++) {
       if (this.done[i]) continue;
@@ -289,7 +335,7 @@ export class TutorialMatch extends Match {
     }
     if (completed) audio.ui('quest', 0.8);
     this.refreshCurrent();
-    this.statusText = `Training ${this.doneCount}/${this.done.length}`;
+    this.statusText = `${this.quick ? 'Basics' : 'Training'} ${this.doneCount}/${this.done.length}`;
   }
 
   makeResult(): MatchResult {
@@ -298,6 +344,7 @@ export class TutorialMatch extends Match {
       mode: 'tutorial', ranked: false, mapName: this.map.name, won: this.done.every(Boolean), draw: false, placement: 1, participants: 1,
       teamScores: null, playerTeam: 0, stats: { ...p.stats }, duration: this.time, roster: this.buildRoster().filter((r) => r.isPlayer), mvp: p.name,
       survived: this.time,
+      basics: this.quick,
     };
   }
 

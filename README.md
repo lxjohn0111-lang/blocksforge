@@ -22,7 +22,7 @@ You need a browser with WebGL 2: current Chrome, Edge, Firefox or Safari, with h
 
 **Team Deathmatch.** 6v6 on three purpose-built arenas: *Hamlet* (sunset village), *Quarry* (noon, a terraced pit with a crane) and *Frostbite* (a snowy night outpost). You choose a loadout and respawn after each death. Spawn protection and restricted enemy spawn zones stop spawn camping. The first team to 50 kills wins, or the team ahead when the 8-minute clock runs out. Building is disabled in this mode.
 
-**First run.** Five swipeable cards (move, shoot, loot, build, survive) show the essentials with one line each, then offer Training or a first match. The cards can be skipped and reopened from the "How to play" (i) button at the top of the menu.
+**Basics (first run).** The first visit goes straight into a one-minute, hands-on tutorial on the Training Grounds: walk to the marker, jump the wall, grab the rifle, shoot a target, build a wall. One card at the top shows the current step and its keys (or touch buttons), and a marker on screen points at the goal. Each step ticks off as soon as it is done. At the end a single card offers the first Battle Royale. Basics can be skipped at any point and replayed from the "How to play" (i) button at the top of the menu.
 
 **Training Grounds.** An interactive tutorial with 14 steps: movement, looting, shooting, reloading, aiming, chests, sniper scopes, harvesting, building, crafting, grenades and a final duel. The steps form a checklist: the panel suggests the next one, but any step you complete counts, in any order. Downing one target dummy completes the shooting step. Press **N** (or tap **Skip step**) to move past a step.
 
@@ -61,7 +61,9 @@ BlockForge is designed to feel like an online shooter, but there are no real pla
 
 ## Publishing on CrazyGames
 
-The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is about 1.8 MB in about 60 files, with relative paths throughout.
+The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is about 1.5 MB in under 20 files, with relative paths throughout.
+
+Portals may run a game in a sandboxed iframe (an opaque "null" origin) and serve it from a static host without CORS headers. There, module scripts, `crossorigin` stylesheets and web fonts are blocked and the page stays blank. So the build ships one classic, deferred script (styles injected by the script) with the Latin font subsets inlined, and no `crossorigin` attributes (`vite.config.ts`). If the script still cannot start, `index.html` shows a "could not start" message with the load errors after 20 seconds instead of a blank page.
 
 `src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`); everywhere else every call is a no-op. With the SDK it:
 
@@ -69,13 +71,13 @@ The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the 
 - calls `happytime` on a win;
 - shows a midgame ad between matches (Play again / Menu on the results screen), at most every three minutes, with the game's audio muted while it plays;
 - follows the portal's mute setting;
-- saves progress through the SDK's data module, so it follows the player's CrazyGames account.
+- saves all progress through the SDK's data module (see **Saving**).
 
 The text for the submission form (category, tags, description and controls) is in `docs/crazygames-submission.md`.
 
 ## Saving
 
-Your profile, settings and the AI competitors' records are saved in `localStorage` on your device. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
+Your profile, settings and the AI competitors' records go through `src/core/storage.ts`. On CrazyGames every key is stored in the SDK's data module, which syncs it to the player's CrazyGames account (guests keep it locally until they sign in). Progress saved earlier by a build without the SDK is copied over on first load. Everywhere else it is saved in `localStorage` on your device, and if neither is available the game runs from memory and says so in the menu. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
 
 ## Testing
 
@@ -88,6 +90,7 @@ Your profile, settings and the AI competitors' records are saved in `localStorag
 - `tutorial`: plays all 14 training steps through the real input layer.
 - `ranked`: promotion, demotion, the ladder and a season rollover.
 - `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
+- `basics`: run with `BF_FIRST_RUN=1` (the driver otherwise skips the first-visit tutorial). Plays the Basics tutorial through the real input layer, screenshots every step and the closing card, and checks it does not come back after a reload.
 - `mobile`: run with `BF_MOBILE=1` and a phone or tablet size, e.g. `BF_MOBILE=1 node tests/drive.mjs tests/scenarios/mobile.mjs 844 390`. Screenshots every screen, drives the stick, look, hotbar, build bar and overlay buttons with real touch events, and reports any HUD or touch control that overlaps another or leaves the screen.
 - Diagnostics: `vm` (weapon viewmodels at the hip and aiming down sights), `build` (placement onto the training ledge), `brearly` (landing spread, bot accuracy and early eliminations), `perf` (simulation cost and a CPU profile) and `mem` (geometry and memory across modes).
 

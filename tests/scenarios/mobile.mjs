@@ -13,7 +13,7 @@ export default async function (page, h) {
     return true;
   };
   const overlaps = (label) => h.eval((label) => {
-    const groups = ['.touch-ui .tbtn', '.touch-ui .tstick', '.hud .vitals', '.hud .slots', '.hud .buildbar', '.hud .ammo', '.hud .mats', '.hud .compass', '.hud .minimap', '.hud .mstatus', '.hud .scorebar', '.hud .feed .k', '.hud .toasts .toast', '.hud .toasts .tipbar', '.hud .coach', '.hud .tut', '.hud .prompt', '.hud .droptip', '.hud .spawnshield'];
+    const groups = ['.touch-ui .tbtn', '.touch-ui .tstick', '.hud .vitals', '.hud .slots', '.hud .buildbar', '.hud .ammo', '.hud .mats', '.hud .compass', '.hud .minimap', '.hud .mstatus', '.hud .scorebar', '.hud .feed .k', '.hud .toasts .toast', '.hud .toasts .tipbar', '.hud .coach', '.hud .tut', '.hud .qt', '.hud .prompt', '.hud .droptip', '.hud .spawnshield'];
     const boxes = [];
     for (const sel of groups) for (const e of document.querySelectorAll(sel)) {
       if (!e.checkVisibility() || !(e.textContent.trim() || e.querySelector('canvas,svg') || e.matches('.tstick,.tbtn'))) continue;
@@ -47,14 +47,6 @@ export default async function (page, h) {
   await h.waitFor(() => window.__bf && window.__bf.state === 'menu');
   console.log('touch mode', await h.eval(() => ({ touch: document.body.classList.contains('touch'), coarse: matchMedia('(pointer: coarse)').matches, q: window.__bf.settings.quality, rs: window.__bf.settings.renderScale })));
   await h.run(1200);
-  // first visit: the quick tutorial cards come up over the menu
-  console.log('intro shown', await h.eval(() => !!document.querySelector('.intro')));
-  await h.shot(`mob_${tag}_intro`);
-  console.log(await pageOverflow('intro'));
-  for (let i = 0; i < 4; i++) await tap('.intro-nav .btn.primary');
-  await h.shot(`mob_${tag}_intro_last`);
-  await tap('.intro-skip');
-  await h.eval(() => document.querySelector('.intro')?.remove());
   await h.shot(`mob_${tag}_menu`);
   console.log(await pageOverflow('menu'));
   const clickText = (re) => h.eval((src) => { const r = new RegExp(src, 'i'); const b = [...document.querySelectorAll('#ui button, #ui .tab, #ui .btn')].find((e) => r.test(e.textContent.trim())); if (b) { b.click(); return true; } return false; }, re.source);
@@ -187,6 +179,16 @@ export default async function (page, h) {
   await h.eval(() => { const b = [...document.querySelectorAll('.reveal .btn')].pop(); b?.click(); });
   await clickText(/^(Back to menu|Menu|Continue)$/);
   await h.waitFor(() => window.__bf.state === 'menu', 30000).catch(() => {});
+
+  // ---- Basics (the first-visit tutorial, replayed from the menu's help button)
+  await h.eval(() => document.querySelector('[title="How to play"]').click());
+  await h.waitFor(() => window.__bf.state === 'match' && window.__bf.match.quick, 400000);
+  await h.eval(() => { window.__pause = true; const bf = window.__bf; for (let i = 0; i < 20; i++) { bf.simulate(1 / 30); bf.hud.update(1 / 30); } });
+  await h.shot(`mob_${tag}_basics`);
+  console.log(await overlaps('basics'));
+  await tap('.hud .qt .qt-skip');
+  await h.waitFor(() => window.__bf.state === 'menu', 30000).catch(() => {});
+  console.log('basics skip ->', await h.eval(() => window.__bf.state));
 
   // ---- Team Deathmatch
   await h.eval(() => window.__bf.play({ mode: 'tdm', ranked: false, tdmMap: 'hamlet', loadout: 'assault' }));

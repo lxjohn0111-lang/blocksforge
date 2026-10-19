@@ -95,6 +95,8 @@ export interface MatchResult {
   mvp: string;
   survived: number;
   eventTag?: string | null;
+  /** the first-run quick tutorial (no results screen, no Training rewards) */
+  basics?: boolean;
 }
 
 export interface MatchEvents {

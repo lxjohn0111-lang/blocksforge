@@ -481,31 +481,52 @@ input { font-family: var(--font); }
 .res2-sb .sbcols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .res2-sb .teamhead { font-size: 16px; margin: 0 0 4px; }
 
-/* first-run quick tutorial */
-.intro { position: absolute; inset: 0; z-index: 28; display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(ellipse at 50% 40%, rgba(20,16,10,0.82), rgba(4,5,7,0.94)); animation: fadeIn .25s; }
-.intro-box { width: min(440px, 100%); padding: 28px 26px 22px; display: flex; flex-direction: column; align-items: center; gap: 18px; touch-action: pan-y; }
-.intro-card { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; min-height: 196px; }
-.intro-card.in { animation: introIn .28s cubic-bezier(.2,.9,.2,1); }
-@keyframes introIn { from { opacity: 0; transform: translateX(18px); } }
-.intro-card .art { width: 104px; height: 104px; display: grid; place-items: center; color: var(--accent); border-radius: 50%; background: radial-gradient(circle, rgba(242,169,59,0.18), rgba(242,169,59,0.02) 70%); border: 1px solid rgba(242,169,59,0.35); }
-.intro-card .tt { font-family: var(--display); font-size: 34px; line-height: 1; margin-top: 4px; }
-.intro-card .ln { font-size: 15px; color: var(--dim); line-height: 1.45; max-width: 320px; }
-.intro-card .keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 2px; }
-.intro-card .keys .kbd { height: 26px; padding: 0 9px; font-size: 12px; }
-.intro-dots { display: flex; gap: 8px; }
-.intro-dots i { width: 8px; height: 8px; background: rgba(255,255,255,0.18); cursor: pointer; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.intro-dots i.on { background: var(--accent); }
-.intro-nav { display: flex; gap: 10px; width: 100%; justify-content: center; }
-.intro-nav .btn { flex: 1; max-width: 180px; }
-.intro-skip { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
+/* Basics: the first-run tutorial, one step at a time */
+.hud.basics .compass, .hud.basics .tut { display: none !important; }
+.hud.basics .toasts { top: calc(150px + env(safe-area-inset-top, 0px)); }
+.qt { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(380px, 70vw); padding: 12px 18px 14px; text-align: center; background: linear-gradient(180deg, rgba(17,21,27,0.92), rgba(11,13,16,0.88)); border: 1px solid rgba(242,169,59,0.35); clip-path: var(--chamfer); z-index: 6; animation: qtIn .3s cubic-bezier(.2,.9,.2,1); }
+@keyframes qtIn { from { opacity: 0; transform: translate(-50%, -10px); } }
+.qt-top { display: flex; align-items: center; justify-content: center; gap: 10px; position: relative; min-height: 18px; }
+.qt-n { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: var(--accent); }
+.qt-dots { display: flex; gap: 5px; }
+.qt-dots i { width: 7px; height: 7px; background: rgba(255,255,255,0.18); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.qt-dots i.d { background: var(--green); }
+.qt-dots i.c { background: var(--accent); }
+.qt-skip { position: absolute; right: -6px; top: -2px; font: inherit; font-size: 11px; letter-spacing: 0.08em; color: var(--dim); background: none; border: 0; padding: 4px 6px; cursor: pointer; }
+.qt-skip:hover { color: var(--text); }
+.qt-title { font-family: var(--display); font-size: 30px; line-height: 1.05; margin: 6px 0 8px; }
+.qt-keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.qt-key { height: 30px; min-width: 30px; padding: 0 10px; font-size: 13px; }
+.qt-hint { font-size: 13px; color: var(--dim); }
+.qt-then { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.1em; }
+.qt-tick { display: none; color: var(--green); }
+.qt.ok { border-color: rgba(91,227,125,0.6); }
+.qt.ok .qt-keys { display: none; }
+.qt.ok .qt-tick { display: flex; justify-content: center; animation: qtTick .35s cubic-bezier(.2,1.6,.4,1); }
+.qt.ok .qt-title { color: var(--green); }
+@keyframes qtTick { from { transform: scale(0.3); opacity: 0; } }
+.qtmark { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; }
+.qtmark i { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: 0 0 0 2px #000; animation: qtPulse 1.1s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(242,169,59,0.8)); }
+.qtmark b { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-2); text-shadow: 0 1px 3px #000; white-space: nowrap; }
+.qtmark.edge i { background: var(--accent-2); }
+@keyframes qtPulse { 50% { transform: translateY(-5px) scale(1.12); } }
 @media (max-height: 520px) {
-  .intro-box { padding: 16px 20px 14px; gap: 10px; }
-  .intro-card { min-height: 0; gap: 6px; }
-  .intro-card .art { width: 72px; height: 72px; }
-  .intro-card .art svg { width: 44px; height: 44px; }
-  .intro-card .tt { font-size: 26px; }
-  .intro-card .ln { font-size: 13.5px; }
+  .qt { top: calc(6px + env(safe-area-inset-top, 0px)); padding: 8px 14px 10px; width: min(330px, 56vw); }
+  .qt-title { font-size: 22px; margin: 3px 0 6px; }
+  .qt-key { height: 26px; min-width: 26px; font-size: 12px; }
+  .hud.basics .toasts { top: calc(102px + env(safe-area-inset-top, 0px)); }
 }
+/* touch: keep clear of the health bar (top left) and the corner buttons (top right) */
+.hud.touch .qt { width: min(330px, calc(100vw - 440px)); padding: 8px 12px 10px; }
+.hud.touch .qt-title { font-size: 21px; }
+.hud.touch .qt-hint { font-size: 12px; }
+.screen.ready { display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(ellipse at 50% 45%, rgba(20,16,10,0.55), rgba(4,5,7,0.85)); }
+.ready-card { width: min(380px, 100%); padding: 26px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; animation: qtIn .3s cubic-bezier(.2,.9,.2,1); }
+.ready-card .btn { width: 100%; justify-content: center; white-space: nowrap; }
+.ready-card .btn.big { padding: 15px 18px; font-size: 16px; letter-spacing: 0.12em; }
+.ready-mark { width: 64px; height: 64px; display: grid; place-items: center; color: var(--green); border-radius: 50%; border: 1px solid rgba(91,227,125,0.45); background: radial-gradient(circle, rgba(91,227,125,0.18), transparent 70%); }
+.ready-card .res-title { font-size: 40px; }
+.ready-coins { font-family: var(--mono); font-weight: 700; color: var(--gold); }
 
 /* promotion / reward reveal */
 .reveal { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 45%, rgba(40,28,10,0.9), rgba(4,5,7,0.96)); animation: fadeIn .3s; }

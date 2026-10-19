@@ -467,4 +467,23 @@ export class Meta {
   markStreak5() {
     if (!this.p.flags.includes('streak5')) this.p.flags.push('streak5');
   }
+
+  /** the first-run Basics tutorial was played or skipped (players who already have matches skip it) */
+  get basicsDone() {
+    const p = this.p;
+    return p.flags.includes('basics') || p.tutorialDone || p.stats.matches > 0;
+  }
+
+  /** Basics finished or skipped; returns the coins granted (first completion only) */
+  completeBasics(won: boolean): number {
+    const p = this.p;
+    const first = won && !p.flags.includes('basics_reward');
+    if (!p.flags.includes('basics')) p.flags.push('basics');
+    if (first) {
+      p.flags.push('basics_reward');
+      p.coins += 100;
+    }
+    this.save();
+    return first ? 100 : 0;
+  }
 }

@@ -1,6 +1,7 @@
-// Player profile persisted in localStorage with versioned migrations.
+// Player profile, saved through core/storage (CrazyGames data module or localStorage) with versioned
+// migrations.
 
-import { loadJSON, saveJSON, storageAvailable } from '../core/storage';
+import { loadJSON, saveJSON, persistentStorage } from '../core/storage';
 import type { BaseLook } from './cosmetics';
 import { DEFAULT_OWNED, composeLook } from './cosmetics';
 import { seasonAt } from './ranks';
@@ -178,7 +179,7 @@ export function resetProfile() {
 }
 
 export function persistent() {
-  return storageAvailable();
+  return persistentStorage();
 }
 
 export function playerIdentity(p: Profile): Identity {

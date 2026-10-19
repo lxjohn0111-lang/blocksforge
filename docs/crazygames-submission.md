@@ -29,7 +29,7 @@ Ranked: climb from Flint to Forgemaster. Opponents start easy and get tougher ev
 
 Progression: daily rewards, quests, achievements, levels and a locker full of outfits, camos and banners.
 
-New here? A quick intro shows the basics, and Training mode walks you through moving, shooting, looting and building.
+New here? A one-minute hands-on tutorial gets you moving, shooting, looting and building, and the Training Grounds teach the rest.
 
 All opponents are computer-controlled, so a match starts instantly at any time of day.
 

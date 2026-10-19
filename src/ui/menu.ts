@@ -24,6 +24,8 @@ export interface PlaySelection {
   ranked: boolean;
   tdmMap: string;
   loadout: string;
+  /** the short Basics tutorial instead of the full Training course */
+  quick?: boolean;
 }
 
 export interface MenuApi {
@@ -34,7 +36,7 @@ export interface MenuApi {
   refreshShowcase(): void;
   /** turn the locker character by a drag of dx pixels */
   rotateShowcase(dx: number): void;
-  /** reopen the quick tutorial */
+  /** replay the Basics tutorial */
   showHelp(): void;
 }
 
