@@ -48,7 +48,9 @@ async function startMode(sel) {
 }
 async function leaveToResults() {
   await ev(() => { window.__noRender = false; window.__pause = false; window.__bf.leaveMatch(); });
-  const ok = await waitFor(() => window.__bf.state === 'results', 30000);
+  // the results screen follows a short timer, which waits behind the frames being drawn: with software
+  // rendering the first Battle Royale frames after a long fast-forward take up to ~11 s each
+  const ok = await waitFor(() => window.__bf.state === 'results', 90000);
   await ev(() => [...document.querySelectorAll('#ui button')].find((b) => /menu/i.test(b.textContent))?.click());
   await waitFor(() => window.__bf.state === 'menu', 30000);
   return ok;
