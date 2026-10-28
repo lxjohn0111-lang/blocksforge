@@ -18,6 +18,11 @@ import type { Identity } from '../game/combatant';
 import { ARCHETYPE_LABEL } from '../game/ai/personality';
 import { getPool } from '../meta/botPool';
 import { eventStatus } from '../meta/events';
+import { VAULT } from '../meta/cosmetics';
+import { COINS_DROP, BOOST_MIN } from '../meta/meta';
+import { platform } from '../platform/crazygames';
+import { adButton, adToast } from './adui';
+import { openWheel } from './wheel';
 
 export interface PlaySelection {
   mode: 'br' | 'tdm' | 'tutorial';
@@ -133,17 +138,22 @@ export class Menu {
 
   constructor(public parent: HTMLElement, public api: MenuApi) {
     const p = api.meta.p;
-    this.sel = { mode: p.tutorialDone ? 'br' : 'tutorial', ranked: false, tdmMap: 'rotation', loadout: p.lastLoadout || 'assault' };
+    this.sel = { mode: 'br', ranked: false, tdmMap: 'rotation', loadout: p.lastLoadout || 'assault' };
     this.root = h('div', { class: 'screen menu' });
     parent.appendChild(this.root);
     this.render();
     this.tick = window.setInterval(() => this.timers.forEach((f) => f()), 1000);
+    // rewarded offers appear / disappear with ad availability, the name with the CrazyGames account
+    this.unsub.push(platform.onAdsChange(() => this.render()), platform.onUser(() => this.render()));
     // pending notices (season reset etc.)
     setTimeout(() => this.showNotices(), 300);
   }
 
+  private unsub: (() => void)[] = [];
+
   dispose() {
     clearInterval(this.tick);
+    for (const u of this.unsub) u();
     this.root.remove();
   }
 
@@ -194,11 +204,45 @@ export class Menu {
       h('div', { class: 'wallet' },
         h('div', { class: 'coin', title: 'Forge Coins — earned by playing. Spend them in the Armory.' }, h('span', { html: ICON.coin(18) }), fmt(p.coins)),
         h('div', { class: 'lvl', title: `${fmt(p.xp)} / ${fmt(need)} XP` }, h('div', { class: 'badge' }, String(p.level)), h('div', { class: 'col', style: { gap: '3px' } }, h('div', { class: 'bar xpbar' }, h('i', { style: { width: `${(p.xp / need) * 100}%` } })))),
-        h('div', { class: 'row who', style: { cursor: 'pointer' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
+        this.boostChip(),
+        h('div', { class: 'iconbtn wheelbtn' + (this.api.meta.wheelReadyIn() === 0 ? ' ready' : ''), onclick: () => this.openWheel(), title: 'Lucky Wheel' }, h('span', { class: 'miniwheel' })),
+        this.whoBox(),
         h('div', { class: 'iconbtn', onclick: () => this.api.showHelp(), title: 'How to play', html: ICON.info(18) }),
         h('div', { class: 'iconbtn', onclick: () => this.api.openSettings(), title: 'Settings', html: ICON.gear(18) }),
       ),
     );
+  }
+
+  /** player name and look; the CrazyGames account name and picture when signed in */
+  private whoBox() {
+    const p = this.api.meta.p;
+    const u = platform.user;
+    if (u)
+      return h('div', { class: 'row who', title: 'Signed in with your CrazyGames account' },
+        u.avatar ? h('img', { class: 'cgavatar', src: u.avatar, alt: '', referrerpolicy: 'no-referrer' }) : avatarCanvas(composeLook(p.base, p.equipped.outfit), 34),
+        h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, u.username)));
+    return h('div', { class: 'row who' },
+      h('div', { class: 'row', style: { cursor: 'pointer', gap: '8px' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
+      platform.userAvailable ? h('button', { class: 'btn ghost signin', title: 'Sign in with CrazyGames to keep your progress on every device', onclick: () => platform.signIn() }, 'Sign in') : null);
+  }
+
+  /** the running 2× XP boost, with its time left */
+  private boostChip() {
+    const meta = this.api.meta;
+    if (meta.xpBoostLeft() <= 0) return null;
+    const t = h('b', null, fmtDuration(meta.xpBoostLeft()));
+    const chip = h('div', { class: 'boostchip', title: 'Double XP from matches' }, h('span', { html: ICON.xp(14) }), '2× XP', t);
+    this.timers.push(() => {
+      const left = meta.xpBoostLeft();
+      if (left <= 0) chip.remove();
+      else t.textContent = fmtDuration(left);
+    });
+    return chip;
+  }
+
+  openWheel() {
+    audio.ui('click', 0.6);
+    openWheel(this.parent, this.api.meta, () => this.render());
   }
 
   // ------------------------------------------------------------ PLAY
@@ -231,6 +275,8 @@ export class Menu {
           h('button', { class: this.sel.ranked ? 'on rk' : '', onclick: () => { this.sel.ranked = true; this.render(); } }, `Ranked · ${rk.label}`)),
       );
     }
+    const perks = this.perkOffers();
+    if (perks) left.appendChild(perks);
     if (this.sel.mode === 'tdm') {
       const st = eventStatus();
       const featured = st.current?.def.mods.featuredMap;
@@ -263,11 +309,100 @@ export class Menu {
     wrap.appendChild(hero);
     // right: daily, quests, events, rank
     const right = h('div', { class: 'menu-right scroll', style: { overflowY: 'auto' } });
+    right.appendChild(this.wheelCard());
+    right.appendChild(this.boostCard());
     right.appendChild(this.rankCard());
     right.appendChild(this.dailyCard());
     right.appendChild(this.questCard());
     right.appendChild(this.eventCard());
     wrap.appendChild(right);
+  }
+
+  /** match perks for the selected mode: the BR starter kit, the ranked Rank Shield */
+  private perkOffers() {
+    const meta = this.api.meta;
+    const a = meta.p.ads;
+    const items: HTMLElement[] = [];
+    if (this.sel.mode === 'br') {
+      if (a.starterKit) items.push(h('div', { class: 'perk on' }, h('span', { html: ICON.check(14) }), h('b', null, 'Starter kit ready'), h('small', null, 'Ranger AR, plates, bandages and 150 wood for your next drop')));
+      else {
+        const b = adButton({ label: 'Drop in loaded', sub: 'Next BR: Ranger AR + 3 plates + 150 wood', onReward: () => { meta.setStarterKit(); adToast('Starter kit ready for your next drop', 'good'); this.render(); } });
+        if (b) items.push(b);
+      }
+    }
+    if (this.sel.ranked && this.sel.mode !== 'tutorial') {
+      if (a.rpGuard) items.push(h('div', { class: 'perk on' }, h('span', { html: ICON.shield(14) }), h('b', null, 'Rank Shield active'), h('small', null, 'Your next ranked match cannot cost RP')));
+      else {
+        const b = adButton({ label: 'Rank Shield', sub: 'Next ranked match: no RP loss', tone: 'violet', onReward: () => { meta.setRpGuard(); adToast('Rank Shield active for your next ranked match', 'good'); this.render(); } });
+        if (b) items.push(b);
+      }
+    }
+    return items.length ? h('div', { class: 'perks' }, ...items) : null;
+  }
+
+  private wheelCard() {
+    const meta = this.api.meta;
+    const st = h('span', { class: 'wc-state' });
+    const upd = () => {
+      const left = meta.wheelReadyIn();
+      st.textContent = left === 0 ? 'Free spin ready!' : `Free spin in ${fmtDuration(left)}`;
+      card.classList.toggle('ready', left === 0);
+    };
+    const card = h('div', { class: 'card panel wheelcard', onclick: () => this.openWheel(), onmouseenter: () => audio.ui('hover', 0.3) },
+      h('span', { class: 'miniwheel big' }),
+      h('div', { class: 'col grow', style: { gap: '3px' } }, h('div', { class: 'wc-title' }, 'Lucky Wheel'), h('div', { class: 'wc-sub' }, 'Coins, skins, XP boosts. Up to 1,000 coins!'), st),
+      h('button', { class: 'btn primary' }, 'Spin'));
+    upd();
+    this.timers.push(upd);
+    return card;
+  }
+
+  /** rewarded-ad boosts: free coins, double XP, the Ad Vault */
+  private boostCard() {
+    const meta = this.api.meta;
+    const box = h('div', { class: 'card panel boostcard' }, h('div', { class: 'head' }, h('span', { class: 'label' }, 'Boosts'), h('span', { class: 'chip accent' }, 'Free')));
+    const coinsLeft = meta.coinsReadyIn();
+    const row = (icon: string, title: string, sub: string, action: HTMLElement | null) =>
+      h('div', { class: 'boost' }, h('span', { class: 'bi', html: icon }), h('div', { class: 'col grow', style: { gap: '1px', minWidth: '0' } }, h('b', null, title), h('small', null, sub)), action);
+    const coinsBtn = coinsLeft === 0 ? adButton({ label: `+${COINS_DROP}`, onReward: () => { const r = meta.freeCoins(); if (r) showReveal(this.parent, 'Supply drop', 'Coins delivered', [r], () => this.render()); } }) : null;
+    const cdTxt = h('small', null, coinsLeft === 0 ? 'Watch a short ad' : `Next drop in ${fmtDuration(coinsLeft)}`);
+    if (coinsLeft > 0) this.timers.push(() => { const l = meta.coinsReadyIn(); if (l === 0) this.render(); else cdTxt.textContent = `Next drop in ${fmtDuration(l)}`; });
+    if (coinsBtn || coinsLeft > 0 && platform.rewardedReady) {
+      const r = row(ICON.coin(22), 'Supply drop', '', coinsBtn);
+      r.querySelector('small')!.replaceWith(cdTxt);
+      box.appendChild(r);
+    }
+    const boostLeft = meta.xpBoostLeft();
+    const xpBtn = adButton({ label: boostLeft > 0 ? '+15 min' : '2× XP', tone: 'violet', onReward: () => { meta.startXpBoost(); adToast(`2× XP active for ${fmtDuration(meta.xpBoostLeft())}`, 'good'); this.render(); } });
+    if (xpBtn) box.appendChild(row(ICON.xp(22), 'Double XP', boostLeft > 0 ? `Active · ${fmtDuration(boostLeft)} left` : `${BOOST_MIN} minutes of 2× match XP`, xpBtn));
+    // Ad Vault
+    for (const v of VAULT) {
+      const st = meta.vaultStatus(v.id);
+      if (st.owned) continue;
+      const pips = h('span', { class: 'pips' }, ...Array.from({ length: st.need }, (_, i) => h('i', { class: i < st.count ? 'on' : '' })));
+      const btn = adButton({ label: 'Unlock', badge: `${st.count + 1}/${st.need}`, tone: 'gold', onReward: () => this.vaultStep(v.id) });
+      if (!btn) continue;
+      const [kind, key] = v.id.split(':');
+      const r = row('', kind === 'outfit' ? OUTFITS[key].name : cosmeticName(v.id), '', btn);
+      const art = r.querySelector('.bi') as HTMLElement;
+      art.classList.add('vaultart');
+      art.appendChild(kind === 'outfit' ? avatarCanvas(composeLook(meta.p.base, key), 40) : h('div', { class: 'camosw', style: { background: camoCss(CAMOS[key]) } }));
+      r.querySelector('small')!.replaceWith(h('small', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'rar-legendary' }, 'Legendary'), pips));
+      box.appendChild(r);
+    }
+    return box.childElementCount > 1 ? box : h('div');
+  }
+
+  /** one more Ad Vault ad: progress, or the item itself on the last one */
+  private vaultStep(id: string) {
+    const meta = this.api.meta;
+    const r = meta.vaultAdvance(id);
+    if (r) showReveal(this.parent, 'Ad Vault', 'Unlocked!', [r], () => this.render());
+    else {
+      const st = meta.vaultStatus(id);
+      adToast(`${cosmeticName(id)}: ${st.count}/${st.need} ads watched`, 'good');
+      this.render();
+    }
   }
 
   private rankCard() {
@@ -309,7 +444,13 @@ export class Menu {
           const r = meta.claimDaily();
           if (r) showReveal(this.parent, `Daily reward · Day ${st.day + 1}`, 'Reward claimed', [r], () => this.render());
         } }, h('span', { html: ICON.calendar(14) }), 'Claim daily reward')
-      : null;
+      : meta.canDoubleDaily()
+        ? adButton({ label: "Double today's reward", sub: DAILY_TRACK[(meta.p.daily.day + 6) % 7].label + ' again', tone: 'gold', onReward: () => {
+            const r = meta.doubleDaily();
+            if (r) showReveal(this.parent, 'Daily reward', 'Doubled!', [r], () => this.render());
+          } })
+        : null;
+    if (btn && !st.claimable) btn.style.marginTop = '10px';
     return h('div', { class: 'card panel' }, h('div', { class: 'head' }, h('span', { class: 'label' }, 'Daily rewards'), cd), grid, btn);
   }
 
@@ -333,7 +474,8 @@ export class Menu {
           h('span', { class: 'row', style: { gap: '10px' } }, h('span', { class: 'row', style: { gap: '3px' } }, h('span', { html: ICON.xp(12) }), `${qs.xp} XP`), h('span', { class: 'row', style: { gap: '3px' } }, h('span', { html: ICON.coin(12) }), String(qs.coins))),
           qs.claimed ? h('span', { class: 'chip' }, 'Claimed')
             : done ? h('button', { class: 'btn primary', style: { padding: '4px 10px', fontSize: '11px' }, onclick: () => { const rw = meta.claimQuest(i); if (rw.length) showReveal(this.parent, 'Quest complete', qs.text, rw, () => this.render()); } }, 'Claim')
-            : q.rerolls < 1 ? h('button', { class: 'btn ghost', style: { padding: '2px 8px', fontSize: '10.5px' }, title: 'One free reroll per day', onclick: () => { if (meta.rerollQuest(i)) { audio.ui('click'); this.render(); } } }, h('span', { html: ICON.refresh(12) }), 'Reroll') : null));
+            : q.rerolls < 1 ? h('button', { class: 'btn ghost', style: { padding: '2px 8px', fontSize: '10.5px' }, title: 'One free reroll per day', onclick: () => { if (meta.rerollQuest(i)) { audio.ui('click'); this.render(); } } }, h('span', { html: ICON.refresh(12) }), 'Reroll')
+            : adButton({ label: 'Reroll', onReward: () => { if (meta.rerollQuestAd(i)) this.render(); } })));
       box.appendChild(row);
     });
     return box;
@@ -462,7 +604,10 @@ export class Menu {
         const own = meta.owns(c.id);
         const key = c.id.split(':')[1];
         const on = (cat === 'outfit' && p.equipped.outfit === key) || (cat === 'camo' && p.equipped.camo === key) || (cat === 'banner' && p.equipped.banner === key);
-        items.appendChild(this.itemTile(c, own, on, () => {
+        const vault = VAULT.find((v) => v.id === c.id);
+        const vs = vault ? meta.vaultStatus(c.id) : null;
+        items.appendChild(this.itemTile(vs ? { ...c, source: `Ad Vault · ${vs.count}/${vs.need} ads` } : c, own, on, () => {
+          if (!own && vault) return this.vaultModal(c.id);
           if (!own) return;
           meta.equip(cat as 'outfit', key);
           audio.ui('click');
@@ -474,6 +619,23 @@ export class Menu {
     }
     page.appendChild(right);
     this.body.appendChild(page);
+  }
+
+  /** an Ad Vault item: what it is, the ads watched so far, and the button for the next one */
+  private vaultModal(id: string) {
+    const meta = this.api.meta;
+    const st = meta.vaultStatus(id);
+    const btn = adButton({ label: st.count + 1 >= st.need ? 'Unlock now' : 'Watch ad', badge: `${st.count + 1}/${st.need}`, big: true, tone: 'gold', onReward: () => { modal.remove(); this.vaultStep(id); } });
+    const modal = h('div', { class: 'modal', onclick: (ev: MouseEvent) => { if (ev.target === modal) modal.remove(); } },
+      h('div', { class: 'box panel vaultbox' },
+        h('div', { class: 'label' }, 'Ad Vault · Legendary'),
+        h('div', { class: 'h2' }, cosmeticName(id)),
+        h('div', { class: 'vaultart big' }, rewardArt({ kind: 'cosmetic', id })),
+        h('div', { class: 'pips big' }, ...Array.from({ length: st.need }, (_, i) => h('i', { class: i < st.count ? 'on' : '' }))),
+        h('div', { class: 'dim', style: { fontSize: '13px', textAlign: 'center' } }, `Watch ${st.need} short ads to unlock it for good. ${st.count} done.`),
+        btn ?? h('div', { class: 'dim' }, 'Ads are not available right now.'),
+        h('button', { class: 'btn ghost', onclick: () => modal.remove() }, 'Close')));
+    this.parent.appendChild(modal);
   }
 
   /** the see-through box the 3D character is framed in; drag it to turn the character */
@@ -545,6 +707,17 @@ export class Menu {
       }, price);
       tile.classList.toggle('locked', false);
       (tile.querySelector('.src') as HTMLElement).textContent = own ? 'Owned' : `${c.kind} · ${c.rarity}`;
+      if (!own) {
+        const half = Math.ceil(c.price! / 2);
+        const ad = adButton({ label: `½ price · ${fmt(half)}`, check: () => (meta.canBuyHalf(c.id) ? null : `Need ${fmt(half - meta.p.coins)} more coins`), onReward: () => {
+          const r = meta.buyHalf(c.id);
+          if (r) showReveal(this.parent, 'Armory', 'Half price!', [r], () => this.render());
+        } });
+        if (ad) {
+          ad.classList.add('halfbtn');
+          tile.appendChild(ad);
+        }
+      }
       tile.style.minHeight = '150px';
       (tile.querySelector('.sw') as HTMLElement).style.height = '90px';
       grid.appendChild(tile);

@@ -36,6 +36,8 @@ import { h } from './ui/dom';
 import { logoMark, ICON } from './ui/icons';
 import { invalidateTerrainImage } from './ui/minimap';
 import { RNG } from './core/rng';
+import { BannerAds, adToast } from './ui/adui';
+import { setAdPause, breakAd } from './ads';
 import { B } from './world/blocks';
 
 const TIPS = [
@@ -79,6 +81,11 @@ export class App {
   private ambT = 0;
   private dyn = { slow: 0, fast: 0, cooldown: 0, avg: 16 };
   private resultsEl: HTMLElement | null = null;
+  /** a video ad is playing: the match is frozen and muted */
+  private adPaused = false;
+  private banner: BannerAds | null = null;
+  /** waiting for a break ad before a match starts */
+  private startingMatch = false;
   private settingsOpen = false;
   private ending = false;
   /** on-screen controls instead of keyboard + mouse */
@@ -93,7 +100,7 @@ export class App {
     this.input = new Input(this.canvas, this.settings);
     this.setTouch(touchControlsActive(this.settings));
     this.lockPrompt = h('div', { class: 'overlay', style: { display: 'none', background: 'rgba(6,8,11,0.35)', zIndex: '5', cursor: 'pointer' } },
-      h('div', { class: 'panel', style: { padding: '18px 28px', textAlign: 'center' } }, h('div', { class: 'h2' }, 'Click to play'), h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, 'Mouse is captured for aiming · Esc to pause')));
+      h('div', { class: 'panel', style: { padding: '18px 28px', textAlign: 'center' } }, h('div', { class: 'h2' }, 'Click to play'), h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, 'Mouse is captured for aiming · P to pause')));
     this.lockPrompt.addEventListener('click', () => this.lockPointer());
   }
 
@@ -140,10 +147,24 @@ export class App {
     await step(0.96, 'Loading profiles');
     getPool();
     this.meta = new Meta();
+    // signed in on CrazyGames: play under the account's name
+    const useAccount = (u: typeof platform.user) => {
+      if (!u) return;
+      this.meta.p.name = u.username.slice(0, 20);
+      this.meta.save();
+    };
+    useAccount(platform.user);
+    platform.onUser(useAccount);
+    setAdPause((paused) => {
+      this.adPaused = paused;
+      audio.setHostMute('ad', paused);
+      if (paused) this.input.exitLock();
+    });
     await step(1, 'Ready');
     clearInterval(tipTimer);
     boot.remove();
     this.ui.appendChild(this.lockPrompt);
+    this.banner = new BannerAds(this.ui);
     this.installHandlers();
     this.showMenu();
     // first visit: straight into the five-step Basics tutorial (test drivers can opt out)
@@ -177,6 +198,16 @@ export class App {
     };
     window.addEventListener('keydown', (e) => {
       if (this.state !== 'match' || !this.hud || !this.match || this.settingsOpen) return;
+      // P pauses: Esc also leaves fullscreen on portals, so it is not the only way to pause
+      if (e.code === 'KeyP' && !e.repeat && !Object.values(this.settings.bindings).includes('KeyP')) {
+        const o = this.hud.overlay;
+        if (o === 'pause') this.resume();
+        else if (o === 'none' && !this.match.ended && !this.ending) {
+          this.input.exitLock();
+          this.hud.openPause();
+        }
+        return;
+      }
       const b = this.settings.bindings;
       if (this.hud.handleInventoryKey(e.code)) return;
       if (e.code === 'KeyN' && !e.repeat && this.match instanceof TutorialMatch && this.hud.overlay === 'none') this.match.skipStep();
@@ -239,7 +270,13 @@ export class App {
 
   frame(dt: number, raw = dt) {
     const eng = this.engine;
-    if (this.state === 'match' && this.match && this.pc && this.hud) {
+    this.banner?.want(this.bannerSpot());
+    if (this.state === 'match' && this.match && this.pc && this.hud && this.adPaused) {
+      // a rewarded ad (Redeploy) is playing: nothing moves until it is over
+      this.input.consumeMouse();
+      this.input.endFrame();
+      platform.gameplayStop();
+    } else if (this.state === 'match' && this.match && this.pc && this.hud) {
       const steps = dt > 0.05 ? Math.ceil(dt / 0.05) : 1;
       const sdt = dt / steps;
       const t0 = performance.now();
@@ -282,6 +319,15 @@ export class App {
     const r0 = performance.now();
     eng.render(dt, this.time);
     this.perf.render = this.perf.render * 0.9 + (performance.now() - r0) * 0.1;
+  }
+
+  /** where the bottom banner belongs right now: the menu (every tab), results, BR spectating */
+  private bannerSpot(): 'menu' | 'results' | 'spectate' | null {
+    if (this.state === 'menu' && this.menu) return 'menu';
+    if (this.state === 'results' && this.resultsEl?.classList.contains('results')) return 'results';
+    const m = this.match;
+    if (this.state === 'match' && m instanceof BRMatch && !m.player.alive && !m.ended && !this.ending) return 'spectate';
+    return null;
   }
 
   private dynamicResolution(raw: number) {
@@ -530,7 +576,15 @@ export class App {
   }
 
   async play(sel: PlaySelection) {
-    if (this.state === 'lobby' || this.state === 'match') return;
+    if (this.state === 'lobby' || this.state === 'match' || this.startingMatch) return;
+    // a natural break before the match (none before the first-run Basics)
+    if (!sel.quick) {
+      this.startingMatch = true;
+      await breakAd();
+      this.startingMatch = false;
+      const st = this.state as State;
+      if (st === 'lobby' || st === 'match') return;
+    }
     this.lastSel = sel;
     const meta = this.meta;
     meta.refreshDaily();
@@ -626,6 +680,10 @@ export class App {
         pc.inShip = false;
         pc.jumpedAt = match.time;
       };
+      if (this.meta.takeStarterKit()) {
+        match.starterKit(match.player);
+        setTimeout(() => adToast('Starter kit equipped: Ranger AR, plates, bandages, wood', 'good'), 1500);
+      }
       // look in the flight direction
       match.player.yaw = Math.atan2(-match.ship.dir.x, -match.ship.dir.z);
       match.player.pitch = -0.25;
@@ -699,7 +757,13 @@ export class App {
     if (this.ending) return;
     this.ending = true;
     const delay = this.match && this.match.player.alive && result.mode !== 'tutorial' ? 1200 : 300;
-    setTimeout(() => this.finishMatch(result), delay);
+    // a natural break between the match and its results: not after the Basics, and not when this
+    // death already offered a rewarded "keep playing" (Redeploy) — never both at one break
+    const offered = this.hud?.redeployOffered ?? false;
+    setTimeout(async () => {
+      if (!result.basics && !offered) await breakAd();
+      this.finishMatch(result);
+    }, delay);
   }
 
   private finishMatch(result: MatchResult) {
@@ -721,9 +785,12 @@ export class App {
     this.resetAtmosphereForMenu();
     if (result.won) platform.happytime();
     // between matches is the one place a platform ad may run (muted, nothing else happening)
-    const afterAd = (go: () => void) =>
-      platform.midgameAd((paused) => audio.setHostMute('ad', paused), go);
+    const afterAd = (go: () => void) => void breakAd().then(go);
     this.resultsEl = showResults(this.ui, result, summary, {
+      double: () => {
+        const levelUps = this.meta.doubleMatchRewards(summary);
+        return { levelUps, level: this.meta.p.level, xp: this.meta.p.xp };
+      },
       again: () => {
         this.resultsEl = null;
         afterAd(() => (this.lastSel ? this.play(this.lastSel) : this.showMenu()));

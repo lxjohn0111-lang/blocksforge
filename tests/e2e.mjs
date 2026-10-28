@@ -18,6 +18,8 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.setDefaultTimeout(300000);
+// off CrazyGames the ad slots run labelled stand-ins: keep them short here
+await page.addInitScript(() => { window.__bfDemoAdMs = 30; });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(e.message));

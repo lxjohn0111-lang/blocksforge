@@ -6,7 +6,8 @@ import { IS_SOLID, B } from '../world/blocks';
 import type { VoxelWorld } from '../world/world';
 
 export const GRAVITY = 28;
-export const JUMP_V = 8.7;
+// jump apex v²/2g = 1.42 m at any frame rate (the integration below is exact for gravity)
+export const JUMP_V = 8.93;
 export const STAND_H = 1.8;
 export const CROUCH_H = 1.45;
 export const HALF_W = 0.3;
@@ -26,6 +27,9 @@ export interface Body {
   /** highest y since leaving the ground */
   fallPeakY: number;
   lastGroundTime: number;
+  /** vertical speed to move by this step (set by applyIntent): the mean of the step's start and end
+   * speeds, which makes jumps and falls the same at 60, 144 or 240 Hz */
+  stepVy?: number | null;
 }
 
 export function makeBody(x: number, y: number, z: number): Body {
@@ -113,7 +117,8 @@ export function moveBody(w: VoxelWorld, b: Body, dt: number, allowStep: boolean,
     }
   }
   // vertical
-  const dy = b.vel.y * dt;
+  const dy = (b.stepVy ?? b.vel.y) * dt;
+  b.stepVy = null;
   b.onGround = false;
   if (dy !== 0) {
     const steps = Math.max(1, Math.ceil(Math.abs(dy) / 0.35));
@@ -231,13 +236,14 @@ export function applyIntent(b: Body, it: MoveIntent, dt: number, t: MoveTuning =
     // hop out of water onto ledges
     if (it.jump && !b.headInWater && it.forward > 0) b.vel.y = Math.max(b.vel.y, 5.5);
   } else {
-    b.vel.y -= GRAVITY * dt;
-    if (b.vel.y < -55) b.vel.y = -55;
+    let v0 = b.vel.y;
     if (it.jump && b.onGround) {
-      b.vel.y = JUMP_V;
+      v0 = JUMP_V;
       b.onGround = false;
       jumped = true;
     }
+    b.vel.y = Math.max(-55, v0 - GRAVITY * dt);
+    b.stepVy = 0.5 * (v0 + b.vel.y);
   }
   return jumped;
 }

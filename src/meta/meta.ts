@@ -8,7 +8,7 @@ import { dayKey, nextMidnight, daysBetween } from './calendar';
 import { computeRP, rankOf, seasonAt, softReset, TIERS, type RPBreakdown } from './ranks';
 import { eventStatus, startsTomorrow, type EventInstance, type EventChallenge } from './events';
 import { ACHIEVEMENTS, type Achievement } from './achievements';
-import { catalog, cosmeticName, cosmeticRarity, LEVEL_UNLOCKS, type Cosmetic } from './cosmetics';
+import { catalog, cosmeticName, cosmeticRarity, LEVEL_UNLOCKS, VAULT, type Cosmetic } from './cosmetics';
 import { getPool, savePool, recordBotResult } from './botPool';
 import type { MatchResult } from '../game/match';
 import { RNG, hashString } from '../core/rng';
@@ -54,6 +54,25 @@ export const DAILY_TRACK: { label: string; reward: string }[] = [
   { label: '1,500 XP', reward: 'xp:1500' },
   { label: 'Inferno Knight', reward: 'outfit:inferno_knight' },
 ];
+
+/** Lucky Wheel slices, clockwise from the top. `w` is the chance weight (they add up to 100). */
+export const WHEEL: { label: string; short: string; reward: string; w: number; tone: 'coins' | 'none' | 'epic' | 'boost' | 'legendary' | 'jackpot' }[] = [
+  { label: '100 Coins', short: '100', reward: 'coins:100', w: 20, tone: 'coins' },
+  { label: 'Nothing', short: 'MISS', reward: 'none', w: 16, tone: 'none' },
+  { label: '250 Coins', short: '250', reward: 'coins:250', w: 12, tone: 'coins' },
+  { label: 'Epic Camo', short: 'EPIC', reward: 'epic', w: 6, tone: 'epic' },
+  { label: '50 Coins', short: '50', reward: 'coins:50', w: 16, tone: 'coins' },
+  { label: '500 Coins', short: '500', reward: 'coins:500', w: 5, tone: 'coins' },
+  { label: 'Nothing', short: 'MISS', reward: 'none', w: 16, tone: 'none' },
+  { label: '2× XP · 15 min', short: '2×XP', reward: 'boost', w: 6, tone: 'boost' },
+  { label: 'Lucky Ace Outfit', short: 'SKIN', reward: 'outfit:lucky_ace', w: 1.5, tone: 'legendary' },
+  { label: '1,000 Coins', short: '1000', reward: 'coins:1000', w: 1.5, tone: 'jackpot' },
+];
+
+export const WHEEL_COOLDOWN = 10 * 60 * 1000;
+export const COINS_COOLDOWN = 5 * 60 * 1000;
+export const COINS_DROP = 200;
+export const BOOST_MIN = 15;
 
 export class Meta {
   p: Profile;
@@ -339,6 +358,7 @@ export class Meta {
       if (r.ranked) xpLines.push({ label: 'Ranked bonus', value: Math.round(xpLines.reduce((a, b) => a + b.value, 0) * 0.1) });
       const mult = (mods.xpMult ?? 1) * (r.mode === 'tdm' ? mods.tdmXpMult ?? 1 : 1);
       if (mult > 1) xpLines.push({ label: `Event bonus ×${mult}`, value: Math.round(xpLines.reduce((a, b) => a + b.value, 0) * (mult - 1)) });
+      if (this.xpBoostLeft() > 0) xpLines.push({ label: '2× XP Boost', value: xpLines.reduce((a, b) => a + b.value, 0) });
     }
     const xpTotal = xpLines.reduce((a, b) => a + b.value, 0);
     const coins = coinLines.reduce((a, b) => a + b.value, 0);
@@ -349,6 +369,17 @@ export class Meta {
     let rp: RPBreakdown | null = null;
     if (r.ranked && r.mode !== 'tutorial') {
       rp = computeRP(p.rank.rp, r, p.rank.shield);
+      if (p.ads.rpGuard) {
+        // Rank Shield from a rewarded ad: this match cannot cost RP
+        p.ads.rpGuard = false;
+        if (rp.total < 0) {
+          rp.lines.push({ label: 'Rank Shield', value: -rp.total });
+          rp.total = 0;
+          rp.after = rp.before;
+          rp.demoted = rp.tierDown = false;
+          rp.shielded = true;
+        }
+      }
       const tierBefore = rankOf(p.rank.rp).tier;
       p.rank.rp = rp.after;
       p.rank.peakRp = Math.max(p.rank.peakRp, rp.after);
@@ -462,6 +493,159 @@ export class Meta {
       xpLines, xpTotal, levelBefore, xpBefore, levelAfter: p.level, xpAfter: p.xp, levelUps, coins, coinLines, rp, quests, achievements,
       eventLines, teaser, entry,
     };
+  }
+
+  // ------------------------------------------------------------ rewarded-ad perks
+  /** results screen: the same XP and coins again */
+  doubleMatchRewards(s: ResultSummary): LevelUp[] {
+    this.p.coins += s.coins;
+    const ups = this.addXp(s.xpTotal);
+    this.p.ads.watched++;
+    this.save();
+    return ups;
+  }
+
+  /** the daily reward claimed today can be doubled once */
+  canDoubleDaily() {
+    const st = this.dailyStatus();
+    return st.claimedToday && this.p.ads.dailyDoubled !== dayKey();
+  }
+
+  doubleDaily(): Reward | null {
+    if (!this.canDoubleDaily()) return null;
+    const entry = DAILY_TRACK[(this.p.daily.day + 6) % 7];
+    const r = this.grant(entry.reward);
+    this.p.ads.dailyDoubled = dayKey();
+    this.p.ads.watched++;
+    this.save();
+    return r;
+  }
+
+  coinsReadyIn() {
+    return Math.max(0, this.p.ads.coinsNext - Date.now());
+  }
+
+  freeCoins(): Reward | null {
+    if (this.coinsReadyIn() > 0) return null;
+    const r = this.grant(`coins:${COINS_DROP}`);
+    this.p.ads.coinsNext = Date.now() + COINS_COOLDOWN;
+    this.p.ads.watched++;
+    this.save();
+    return r;
+  }
+
+  xpBoostLeft() {
+    return Math.max(0, this.p.ads.xpBoostUntil - Date.now());
+  }
+
+  /** 2× match XP for 15 minutes (stacks onto a running boost) */
+  startXpBoost(fromAd = true) {
+    this.p.ads.xpBoostUntil = Math.max(Date.now(), this.p.ads.xpBoostUntil) + BOOST_MIN * 60000;
+    if (fromAd) this.p.ads.watched++;
+    this.save();
+  }
+
+  setStarterKit() {
+    this.p.ads.starterKit = true;
+    this.p.ads.watched++;
+    this.save();
+  }
+
+  /** the next Battle Royale match takes the starter kit (true when there was one) */
+  takeStarterKit() {
+    if (!this.p.ads.starterKit) return false;
+    this.p.ads.starterKit = false;
+    this.save();
+    return true;
+  }
+
+  setRpGuard() {
+    this.p.ads.rpGuard = true;
+    this.p.ads.watched++;
+    this.save();
+  }
+
+  /** Ad Vault: one more ad towards an item; the reward once it unlocks */
+  vaultStatus(id: string) {
+    const v = VAULT.find((x) => x.id === id);
+    return { need: v?.ads ?? 0, count: Math.min(v?.ads ?? 0, this.p.ads.vault[id] ?? 0), owned: this.owns(id) };
+  }
+
+  vaultAdvance(id: string): Reward | null {
+    const st = this.vaultStatus(id);
+    if (!st.need || st.owned) return null;
+    this.p.ads.vault[id] = st.count + 1;
+    this.p.ads.watched++;
+    let r: Reward | null = null;
+    if (st.count + 1 >= st.need) r = this.grant(id);
+    this.save();
+    return r;
+  }
+
+  /** extra quest reroll paid with a rewarded ad */
+  rerollQuestAd(i: number): boolean {
+    const q = this.p.quests.list[i];
+    if (!q || q.claimed || q.progress >= q.target) return false;
+    const fresh = generateQuests(this.p.quests.date, profileSalt(this.p), 11 + i + this.p.quests.rerolls * 5).find((n) => !this.p.quests.list.some((o) => o.id === n.id));
+    if (!fresh) return false;
+    this.p.quests.list[i] = fresh;
+    this.p.quests.rerolls++;
+    this.p.ads.watched++;
+    this.save();
+    return true;
+  }
+
+  /** Armory item at half price (after a rewarded ad) */
+  canBuyHalf(id: string) {
+    const item = this.shopItems().find((c) => c.id === id);
+    return !!item && item.price !== undefined && !this.owns(id) && this.p.coins >= Math.ceil(item.price / 2);
+  }
+
+  buyHalf(id: string): Reward | null {
+    const item = this.shopItems().find((c) => c.id === id);
+    if (!item || item.price === undefined || !this.canBuyHalf(id)) return null;
+    this.p.coins -= Math.ceil(item.price / 2);
+    this.p.shop.bought.push(id);
+    this.p.ads.watched++;
+    const r = this.grant(id);
+    this.save();
+    return r;
+  }
+
+  // ------------------------------------------------------------ Lucky Wheel
+  wheelReadyIn() {
+    return Math.max(0, this.p.ads.wheelNext - Date.now());
+  }
+
+  /** spin: free once per 10 minutes, any time after a rewarded ad. Returns the slice and its reward. */
+  spinWheel(free: boolean, roll = Math.random()): { index: number; reward: Reward | null } | null {
+    if (free && this.wheelReadyIn() > 0) return null;
+    let acc = 0;
+    const total = WHEEL.reduce((a, b) => a + b.w, 0);
+    let index = WHEEL.length - 1;
+    for (let i = 0; i < WHEEL.length; i++) {
+      acc += WHEEL[i].w / total;
+      if (roll < acc) {
+        index = i;
+        break;
+      }
+    }
+    const sl = WHEEL[index];
+    let reward: Reward | null = null;
+    if (sl.reward === 'boost') {
+      this.startXpBoost(false);
+      reward = { kind: 'xp', label: `2× XP for ${BOOST_MIN} minutes`, rarity: 'epic' };
+    } else if (sl.reward === 'epic') {
+      const pool = catalog().filter((c) => c.kind === 'camo' && c.rarity === 'epic' && c.price !== undefined);
+      const fresh = pool.filter((c) => !this.owns(c.id));
+      const pick = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length || pool.length))];
+      reward = pick ? this.grant(pick.id) : this.grant('coins:500');
+    } else if (sl.reward !== 'none') reward = this.grant(sl.reward);
+    if (free) this.p.ads.wheelNext = Date.now() + WHEEL_COOLDOWN;
+    else this.p.ads.watched++;
+    this.p.ads.wheelSpins++;
+    this.save();
+    return { index, reward };
   }
 
   markStreak5() {

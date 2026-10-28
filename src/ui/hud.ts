@@ -18,6 +18,7 @@ import { keyLabel, type Settings, type Action } from '../core/settings';
 import { loadJSON, saveJSON } from '../core/storage';
 import { audio } from '../audio/audio';
 import { clamp, fmtTime } from '../core/mathx';
+import { adButton } from './adui';
 
 const iconCache = new Map<string, HTMLCanvasElement>();
 function icon(key: string, make: () => HTMLCanvasElement) {
@@ -1086,6 +1087,9 @@ export class HUD {
     return h('div', { class: 'overlay', style: { background: 'rgba(6,8,11,0.45)' } }, h('div', { class: 'scoreboard panel' }, h('div', { class: 'teamhead' }, 'Players'), table(m.combatants.filter((c) => c.alive || c.stats.kills > 0).slice(0, 14))));
   }
 
+  /** a rewarded "keep playing" offer was shown at this death (no break ad on top of it, then) */
+  redeployOffered = false;
+
   /** re-render the TDM respawn loadout picker (after a hotkey choice) */
   refreshLoadouts: (() => void) | null = null;
 
@@ -1097,11 +1101,20 @@ export class HUD {
     const tdm = m instanceof TDMMatch ? m : null;
     const by = p.killedBy;
     if (br) {
+      // rewarded second chance (once a match): drop back in over the safe zone
+      const redeploy = br.canRedeploy()
+        ? adButton({ label: 'Redeploy', sub: `Drop back in · ${br.aliveCount} left`, big: true, tone: 'gold', check: () => (br.canRedeploy() ? null : 'The match is over'), onReward: () => br.redeploy() })
+        : null;
+      if (redeploy) this.redeployOffered = true;
+      // the death screen repeats the placement: drop the "#N" announcement under it
+      this.announceTimer = 0;
+      this.els.announce.style.display = 'none';
       const el = h(
         'div',
         { class: 'death' },
         h('div', { class: 'place' }, `#${br.playerPlacement}`),
         h('div', { class: 'by' }, by ? `Eliminated by ${by.name} · ${by.weapon}` : 'Eliminated'),
+        redeploy ? h('div', { class: 'redeploy' }, redeploy) : null,
         h('div', { class: 'row' },
           h('button', { class: 'btn primary', onclick: () => this.hooks.continueAfterDeath() }, 'Continue'),
           by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name}`, 'info'); } }, 'Spectate') : null),

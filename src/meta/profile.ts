@@ -84,6 +84,27 @@ export interface Profile {
   flags: string[];
   lastLoadout: string;
   notices: { kind: string; data: any }[];
+  /** rewarded-ad perks and timers */
+  ads: AdState;
+}
+
+export interface AdState {
+  /** Ad Vault: ads watched towards each item */
+  vault: Record<string, number>;
+  /** next free Lucky Wheel spin (ms timestamp) */
+  wheelNext: number;
+  wheelSpins: number;
+  /** next free-coins drop */
+  coinsNext: number;
+  /** double XP until (ms timestamp) */
+  xpBoostUntil: number;
+  /** next Battle Royale match starts with the starter kit */
+  starterKit: boolean;
+  /** next ranked match cannot cost RP */
+  rpGuard: boolean;
+  /** day key on which the daily reward was doubled */
+  dailyDoubled: string | null;
+  watched: number;
 }
 
 const KEY = 'blockforge.profile.v1';
@@ -125,6 +146,7 @@ export function newProfile(): Profile {
     flags: [],
     lastLoadout: 'assault',
     notices: [],
+    ads: { vault: {}, wheelNext: 0, wheelSpins: 0, coinsNext: 0, xpBoostUntil: 0, starterKit: false, rpGuard: false, dailyDoubled: null, watched: 0 },
   };
 }
 
@@ -142,6 +164,7 @@ function migrate(p: any): Profile {
     quests: { ...base.quests, ...(p.quests ?? {}) },
     equipped: { ...base.equipped, ...(p.equipped ?? {}) },
     shop: { ...base.shop, ...(p.shop ?? {}) },
+    ads: { ...base.ads, ...(p.ads ?? {}), vault: { ...(p.ads?.vault ?? {}) } },
     owned: Array.isArray(p.owned) ? Array.from(new Set([...DEFAULT_OWNED, ...p.owned])) : base.owned,
     history: Array.isArray(p.history) ? p.history.slice(0, 40) : [],
     flags: Array.isArray(p.flags) ? p.flags : [],

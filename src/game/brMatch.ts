@@ -153,6 +153,48 @@ export class BRMatch extends Match {
     b.jumpProgress = clamp((along - 25 - this.rng.next() * 15) / len, 0.14, 0.9);
   }
 
+  /** the player already used the rewarded-ad redeploy this match */
+  redeployed = false;
+
+  /** a rewarded-ad second chance is possible: eliminated, others still fighting, not used yet */
+  canRedeploy() {
+    const p = this.player;
+    return !p.alive && !this.ended && !this.redeployed && !this.winner && this.aliveCount >= 2;
+  }
+
+  /** drop the eliminated player back in over the next safe circle with a light kit */
+  redeploy() {
+    if (!this.canRedeploy()) return false;
+    const p = this.player;
+    this.redeployed = true;
+    const ang = this.rng.next() * Math.PI * 2;
+    const rr = Math.sqrt(this.rng.next()) * this.zone.toR * 0.6;
+    const x = Math.max(4, Math.min(this.world.sx - 5, this.zone.to.x + Math.cos(ang) * rr));
+    const z = Math.max(4, Math.min(this.world.sz - 5, this.zone.to.y + Math.sin(ang) * rr));
+    p.resetForSpawn();
+    p.body.pos.set(x, Math.min(SHIP_Y - 25, this.world.sy - 4), z);
+    p.body.fallPeakY = p.body.pos.y;
+    p.dropping = true;
+    p.placement = 0;
+    this.playerPlacement = 0;
+    this.playerDeadResult = null;
+    this.starterKit(p, false);
+    p.spawnShield = 3;
+    this.events.emit('respawn', { c: p });
+    this.events.emit('toast', { text: 'Redeployed: back in the fight!', kind: 'good' });
+    return true;
+  }
+
+  /** rewarded-ad kits: the full starter kit before the drop, a light one for a redeploy */
+  starterKit(p: Combatant, full = true) {
+    const res = p.giveWeapon(full ? 'ranger' : 'hornet');
+    p.addAmmo(full ? 'medium' : 'light', full ? 120 : 90);
+    p.addHeal('bandage', full ? 5 : 3);
+    if (full) p.addHeal('plate', 3);
+    p.addMat('wood', full ? 150 : 60);
+    p.lastGunSlot = res.slot as 0 | 1 | 2;
+  }
+
   get aliveCount() {
     return this.combatants.filter((c) => c.alive).length;
   }

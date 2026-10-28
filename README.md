@@ -39,7 +39,7 @@ Both competitive modes have **Casual** and **Ranked** playlists.
 | Quick grenade (hold to aim) | G | Harvest tool | F |
 | Build mode (1–4 choose a piece) | Q | Cycle build material | X |
 | Inventory and crafting / scoreboard | Tab | Map | M |
-| Scope zoom | Mouse wheel | Pause | Esc |
+| Scope zoom | Mouse wheel | Pause | P (or Esc) |
 
 ### Touch screens
 
@@ -61,17 +61,35 @@ BlockForge is designed to feel like an online shooter, but there are no real pla
 
 ## Publishing on CrazyGames
 
-The build is ready for a CrazyGames Basic Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is four files of about 1.3 MB, all at the root of the zip with no folders (a portal upload once lost the files in an `assets/` subfolder), with relative paths throughout.
+The build is ready for CrazyGames, Basic Launch and Full Launch: `npm run build`, then zip the *contents* of `dist/` (so `index.html` sits at the root of the zip): `cd dist && zip -r ../blockforge.zip .`. It is four files of about 1.3 MB, all at the root of the zip with no folders (a portal upload once lost the files in an `assets/` subfolder), with relative paths throughout.
 
 Portals may run a game in a sandboxed iframe (an opaque "null" origin), serve it from a static host without CORS headers and add a strict Content-Security-Policy. There, module scripts, `crossorigin` stylesheets, web fonts, inline scripts and inline styles can all be blocked and the page stays blank. So the build ships one classic, deferred script and one plain stylesheet file with the Latin font subsets inlined as woff2, no `crossorigin` attributes (`vite.config.ts`), and no inline scripts or `style="…"` attributes. `index.html` shows a BLOCKFORGE preloader until the game's own loading screen takes over, and `public/loader.js` watches the start: if one of the game's files fails to load, or the game has not reached its menu after 25 seconds, it shows the current loading step and the load errors with a Reload button instead of a blank or frozen page.
 
-`src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`); everywhere else every call is a no-op. With the SDK it:
+`src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`). With the SDK it:
 
-- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played (not in menus, pause, settings or the death screen);
+- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played (not in menus, pause, settings, the death screen or while an ad plays);
 - calls `happytime` on a win;
-- shows a midgame ad between matches (Play again / Menu on the results screen), at most every three minutes, with the game's audio muted while it plays;
 - follows the portal's mute setting;
-- saves all progress through the SDK's data module (see **Saving**).
+- saves all progress through the SDK's data module (see **Saving**);
+- uses the CrazyGames account: a signed-in player plays under their CrazyGames name and picture (read on every start and kept in sync through the auth listener). Guests can always play; a small **Sign in** button next to the name opens the platform's sign-in dialog, only when clicked. There are no other login options.
+
+Full Launch requirements, and where the game meets them:
+
+- **Lands in gameplay**: a first visit starts the five-step Basics tutorial straight away.
+- **Pause key**: `P` pauses (Esc still releases the mouse and pauses, but on portals Esc also leaves fullscreen). There is no custom fullscreen button.
+- **Consistent physics at 144 and 165 Hz**: gravity is integrated exactly (`src/game/physics.ts`), so jump height and air time are the same at any frame rate; ground movement matches within 1%.
+- **Legible at 907×510** and on phones: checked by the `ads` and `mobile` scenarios.
+- **English**, no external links, no other ads than the SDK's, and the game runs normally with ads off or blocked.
+
+### Ads
+
+All ads go through the SDK (`src/ads.ts`, `src/ui/adui.ts`). The game freezes and mutes while one plays.
+
+- **Midgame ads** are requested at every natural break: before a match starts (Find match / Play again), between a match and its results, and when leaving the results screen. The SDK decides how often one really plays (at most one every 3 minutes, none right at the start, spaced from rewarded ads) and ignores the rest, so the game never chains ads. None before the Basics tutorial, and none at a Battle Royale death that already offered Redeploy (CrazyGames allows a midgame ad or a "watch to keep playing" offer at one break, not both).
+- **Rewarded ads**, eleven offers that each pay out only after the ad finished: 2× XP and coins on the results screen; Redeploy after a Battle Royale elimination (once a match, drop back in over the safe zone); the Battle Royale starter kit (Ranger AR, plates, bandages, wood for the next drop); Rank Shield (the next ranked match cannot cost RP); the Lucky Wheel spin; a 200-coin supply drop every 5 minutes; 15 minutes of double XP; doubling the daily reward; an extra quest reroll; Armory items at half price; and the Ad Vault, where watching 3 ads unlocks the Gilded Phantom or Void Ronin legendary outfits (2 for the Prismatic camo). When no rewarded ad can play (ads off, an ad blocker, three no-fills in a row) every offer is hidden for a while, so no button is ever left without effect.
+- **Lucky Wheel**: a free spin every 10 minutes and another any time for a rewarded ad. Prizes are 50 to 1,000 coins, an epic camo, 15 minutes of double XP, the Lucky Ace legendary outfit, or nothing; the odds are listed under the wheel.
+- **Banner**: one bottom banner, shown on the menu (on every tab: Play, Career, Locker, Armory, Ladder), on the results screen, and from the moment the player is eliminated in Battle Royale while they spectate. It never shows during play, and those screens end above it so it never covers game UI. Its size follows the screen (728×90, 468×60 or 320×50) and it refreshes 30.5 seconds after each request, right after the SDK's minimum of about 30 seconds between refreshes of the same container, only while it is on screen and the tab is visible. A `bannerCooldown` answer retries after 5 seconds; after the SDK's per-session refresh limit (`maxRefreshReached`) the last banner stays.
+- **Off CrazyGames** (own hosting, previews) the ad slots show clearly labelled placeholders, so every flow can be tried; `?ads=off` turns them off.
 
 The text for the submission form (category, tags, description and controls) is in `docs/crazygames-submission.md`.
 
@@ -90,6 +108,7 @@ Your profile, settings and the AI competitors' records go through `src/core/stor
 - `tutorial`: plays all 14 training steps through the real input layer.
 - `ranked`: promotion, demotion, the ladder and a season rollover.
 - `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
+- `ads`: every ad placement with the stand-in ads: the menu banner on each tab (and that it covers nothing), the Lucky Wheel (free spin, cooldown, ad spin), the boosts, the daily double, the starter kit, the spectating banner with Redeploy, and 2× rewards. Run it at 1280×720, 907×510 and with `BF_MOBILE=1` at 844×390.
 - `basics`: run with `BF_FIRST_RUN=1` (the driver otherwise skips the first-visit tutorial). Plays the Basics tutorial through the real input layer, screenshots every step and the closing card, and checks it does not come back after a reload.
 - `mobile`: run with `BF_MOBILE=1` and a phone or tablet size, e.g. `BF_MOBILE=1 node tests/drive.mjs tests/scenarios/mobile.mjs 844 390`. Screenshots every screen, drives the stick, look, hotbar, build bar and overlay buttons with real touch events, and reports any HUD or touch control that overlaps another or leaves the screen.
 - Diagnostics: `vm` (weapon viewmodels at the hip and aiming down sights), `build` (placement onto the training ledge), `brearly` (landing spread, bot accuracy and early eliminations), `perf` (simulation cost and a CPU profile) and `mem` (geometry and memory across modes).

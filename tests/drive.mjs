@@ -39,6 +39,8 @@ const h = {
 };
 // scenarios start from the menu; BF_FIRST_RUN=1 keeps the first-visit Basics tutorial
 if (!process.env.BF_FIRST_RUN) await page.addInitScript(() => { window.__bfSkipBasics = true; });
+// off CrazyGames the ad slots run labelled stand-ins: keep them short in tests
+await page.addInitScript(() => { window.__bfDemoAdMs = 30; });
 const mod = await import(path.resolve(scriptPath));
 try {
   await page.goto(process.env.BF_URL || 'http://localhost:4173/');

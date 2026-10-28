@@ -27,7 +27,7 @@ Weapons: SMG, two assault rifles, pump shotgun, DMR, bolt-action sniper with a r
 
 Ranked: climb from Flint to Forgemaster. Opponents start easy and get tougher every rank, and each tier unlocks its own weapon camo.
 
-Progression: daily rewards, quests, achievements, levels and a locker full of outfits, camos and banners.
+Progression: daily rewards, quests, achievements, levels, a Lucky Wheel and a locker full of outfits, camos and banners.
 
 New here? A one-minute hands-on tutorial gets you moving, shooting, looting and building, and the Training Grounds teach the rest.
 
@@ -55,7 +55,7 @@ G: throw grenade
 H: heal
 Tab: inventory and crafting (scoreboard in Team Deathmatch)
 M: map
-Esc: pause and settings
+P (or Esc): pause and settings
 
 Mobile: left thumb stick to move, drag the right side of the screen to look, on-screen buttons for shoot, aim, jump, crouch, reload, build, heal, grenade and loot.
 

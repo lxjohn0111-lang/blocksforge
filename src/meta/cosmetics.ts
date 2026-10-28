@@ -59,6 +59,10 @@ export const OUTFITS: Record<string, OutfitDef> = {
   frost_warden: { id: 'frost_warden', name: 'Frost Warden', rarity: 'epic', shirt: 0xa8d8f0, jacket: 0x5aa0d0, pants: 0x3a6a8a, boots: 0x2a4a6a, gloves: 0x5aa0d0, vest: 0xe8f6ff, headgear: 'beanie', hat: 0xe8f6ff, backpack: 0x5aa0d0, accent: 0x9ae8ff, camo: 'glacier', scarf: 0xe8f6ff },
   storm_runner: { id: 'storm_runner', name: 'Storm Runner', rarity: 'epic', shirt: 0x2a3440, jacket: 0x3a4a5a, pants: 0x2a3440, boots: 0x1a1f26, gloves: 0x1a1f26, vest: 0x4a6a8a, headgear: 'hood', hat: 0x2a3440, backpack: 0x3a4a5a, accent: 0xbfe0ff, camo: 'stormfront', goggles: true, trim: 0xbfe0ff },
   sun_warden: { id: 'sun_warden', name: 'Sun Warden', rarity: 'legendary', shirt: 0xffd25a, jacket: 0xff9a2a, pants: 0x8a3a10, boots: 0x4a1a08, gloves: 0x8a3a10, vest: null, headgear: 'none', hat: 0xffd25a, backpack: null, accent: 0xffe0a0, camo: 'sunforged', plates: 0xe0b040, trim: 0xfff0b0, mask: 'visor', cape: 0xfff2d8 },
+  // Ad Vault exclusives (unlocked by watching rewarded ads) and the Lucky Wheel's top prize
+  gilded_phantom: { id: 'gilded_phantom', name: 'Gilded Phantom', rarity: 'legendary', shirt: 0x14110a, jacket: 0x1c170c, pants: 0x14110a, boots: 0x0c0a06, gloves: 0x2a2010, vest: null, headgear: 'none', hat: 0x1c170c, backpack: null, accent: 0xffd25a, camo: 'gilded', plates: 0xd8a83a, trim: 0xffe08a, helm: 'knight', cape: 0xc8961e, mask: 'visor' },
+  void_ronin: { id: 'void_ronin', name: 'Void Ronin', rarity: 'legendary', shirt: 0x120c1e, jacket: 0x1e1430, pants: 0x120c1e, boots: 0x08060e, gloves: 0x08060e, vest: null, headgear: 'none', hat: 0x1e1430, backpack: null, accent: 0xb45aff, camo: 'prism', plates: 0x2a1e44, trim: 0xc87aff, mask: 'ninja', scarf: 0x7a2aff, helm: 'horned', cape: 0x3a1a6a },
+  lucky_ace: { id: 'lucky_ace', name: 'Lucky Ace', rarity: 'legendary', shirt: 0xf2ead8, jacket: 0x0e5a34, pants: 0x0a2a1a, boots: 0x0a0a0a, gloves: 0xf2ead8, vest: 0x0a3a22, headgear: 'beret', hat: 0x0a3a22, backpack: null, accent: 0xffd25a, camo: null, trim: 0xffd25a, plates: 0x1a6a40, cape: 0x0e5a34, goggles: true },
   vanguard: { id: 'vanguard', name: 'Season Vanguard', rarity: 'epic', shirt: 0x2a2f38, jacket: 0x3a2a4a, pants: 0x23262e, boots: 0x15161a, gloves: 0x23262e, vest: null, headgear: 'helmet', hat: 0x3a2a4a, backpack: null, accent: 0xb779ff, camo: null, plates: 0x4a3a6a, trim: 0xb779ff },
 };
 
@@ -78,6 +82,13 @@ export const BANNERS: Record<string, { name: string; css: string; rarity: Rarity
 export const TITLES = [
   'Rookie', 'Scrapper', 'Survivor', 'Sharpshooter', 'Architect', 'Demolisher', 'Last Block Standing', 'Centurion', 'Marksman',
   'Scavenger', 'Grenadier', 'Apex', 'Veteran', 'Tactician', 'Forgemaster',
+];
+
+/** Ad Vault: exclusive items unlocked by watching this many rewarded ads */
+export const VAULT: { id: string; ads: number }[] = [
+  { id: 'outfit:gilded_phantom', ads: 3 },
+  { id: 'outfit:void_ronin', ads: 3 },
+  { id: 'camo:prism', ads: 2 },
 ];
 
 export const DEFAULT_OWNED = ['camo:factory', 'outfit:recruit', 'banner:stone', 'title:Rookie'];
@@ -116,6 +127,7 @@ export function catalog(): Cosmetic[] {
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
     else if (c.id.startsWith('rank_')) { source = 'Ranked season reward'; price = undefined; }
     else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
+    else if (VAULT.some((v) => v.id === id)) { source = `Ad Vault · ${VAULT.find((v) => v.id === id)!.ads} ads`; price = undefined; }
     out.push({ id, kind: 'camo', name: c.name, rarity: c.rarity, source, price });
   }
   for (const o of Object.values(OUTFITS)) {
@@ -128,6 +140,8 @@ export function catalog(): Cosmetic[] {
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
     else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
     else if (o.id === 'vanguard') { source = 'Reach Gold in any season'; price = undefined; }
+    else if (VAULT.some((v) => v.id === id)) { source = `Ad Vault · ${VAULT.find((v) => v.id === id)!.ads} ads`; price = undefined; }
+    else if (o.id === 'lucky_ace') { source = 'Lucky Wheel jackpot prize'; price = undefined; }
     out.push({ id, kind: 'outfit', name: o.name, rarity: o.rarity, source, price });
   }
   for (const [k, b] of Object.entries(BANNERS)) {

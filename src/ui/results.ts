@@ -5,13 +5,21 @@ import { h, fmt } from './dom';
 import { ICON, rankEmblem, avatarCanvas } from './icons';
 import { showReveal, clearReveals } from './menu';
 import type { MatchResult } from '../game/match';
-import type { ResultSummary, Reward } from '../meta/meta';
+import type { ResultSummary, Reward, LevelUp } from '../meta/meta';
+import { adButton } from './adui';
 import { rankOf, TIERS } from '../meta/ranks';
 import { xpForLevel } from '../meta/profile';
 import { audio } from '../audio/audio';
 import { fmtDuration } from '../core/mathx';
 
-export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummary, cb: { again(): void; menu(): void }) {
+export interface ResultsActions {
+  again(): void;
+  menu(): void;
+  /** grant the match's XP and coins a second time (after a rewarded ad) */
+  double?(): { levelUps: LevelUp[]; level: number; xp: number };
+}
+
+export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummary, cb: ResultsActions) {
   const root = h('div', { class: 'screen results' });
   parent.appendChild(root);
   const wrap = h('div', { class: 'res2' });
@@ -52,7 +60,8 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
   const lvlBadge = h('div', { class: 'badge' }, String(s.levelBefore));
   const xpFill = h('i', { style: { width: `${(s.xpBefore / xpForLevel(s.levelBefore)) * 100}%` } });
   strip.appendChild(h('div', { class: 'prog xp' }, h('div', { class: 'lvl' }, lvlBadge), h('div', { class: 'grow' }, h('div', { class: 'row-sb' }, h('span', null, 'Level'), h('b', { class: 'xpv' }, `+${fmt(s.xpTotal)} XP`)), h('div', { class: 'bar' }, xpFill))));
-  if (s.coins) strip.appendChild(h('div', { class: 'prog coins' }, h('span', { html: ICON.coin(20) }), h('b', null, `+${fmt(s.coins)}`)));
+  const coinsEl = h('b', null, `+${fmt(s.coins)}`);
+  if (s.coins) strip.appendChild(h('div', { class: 'prog coins' }, h('span', { html: ICON.coin(20) }), coinsEl));
   let rpBar: HTMLElement | null = null;
   let rpName: HTMLElement | null = null;
   let rpEmblem: HTMLElement | null = null;
@@ -65,6 +74,25 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
     strip.appendChild(h('div', { class: 'prog rank' }, rpEmblem, h('div', { class: 'grow' }, h('div', { class: 'row-sb' }, rpName, h('b', { class: rp.total >= 0 ? 'pos' : 'neg' }, `${rp.total >= 0 ? '+' : ''}${rp.total} RP`)), h('div', { class: 'bar' }, rpBar))));
   }
   wrap.appendChild(strip);
+
+  // rewarded: the match's XP and coins once more
+  if (cb.double && r.mode !== 'tutorial' && (s.xpTotal > 0 || s.coins > 0)) {
+    const xpv = strip.querySelector('.xpv') as HTMLElement;
+    const offer = adButton({
+      label: '2× Rewards', sub: `+${fmt(s.xpTotal)} XP${s.coins ? ` · +${fmt(s.coins)} coins` : ''}`, big: true, tone: 'gold',
+      onReward: () => {
+        const d = cb.double!();
+        offer!.replaceWith(h('div', { class: 'doubled' }, h('span', { html: ICON.check(16) }), 'Rewards doubled'));
+        xpv.textContent = `+${fmt(s.xpTotal * 2)} XP`;
+        xpv.appendChild(h('span', { class: 'x2' }, '×2'));
+        coinsEl.textContent = `+${fmt(s.coins * 2)}`;
+        lvlBadge.textContent = String(d.level);
+        xpFill.style.width = `${(d.xp / xpForLevel(d.level)) * 100}%`;
+        if (d.levelUps.length) showReveal(parent, 'Level up', `Level ${d.level}`, d.levelUps.flatMap((u) => u.rewards));
+      },
+    });
+    if (offer) wrap.appendChild(h('div', { class: 'res2-double' }, offer));
+  }
 
   // finished quests / achievements: one chip each, nothing about unfinished ones
   const done = [...s.quests.filter((q) => q.justDone).map((q) => q.text), ...s.eventLines.filter((e) => e.justDone).map((e) => e.text), ...s.achievements.map((a) => a.name)];
