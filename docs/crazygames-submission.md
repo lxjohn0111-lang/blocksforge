@@ -60,3 +60,17 @@ P (or Esc): pause and settings
 Mobile: left thumb stick to move, drag the right side of the screen to look, on-screen buttons for shoot, aim, jump, crouch, reload, build, heal, grenade and loot.
 
 All keys can be rebound in Settings.
+
+## Ad scenarios
+
+Midgame (153 characters):
+
+Midgame ads only at natural breaks: before a match, between match end and results, and when leaving results. Never during play. Game is paused and muted.
+
+Rewarded (249 characters):
+
+Opt-in, reward after the ad: 2x XP+coins after a match, BR Redeploy (1x/match), BR starter kit, Rank Shield, Lucky Wheel spin, 200 coins (5 min cooldown), 2x XP 15 min, double daily reward, quest reroll, half-price shop item, Ad Vault skins (3 ads).
+
+Banner (149 characters):
+
+One bottom banner in menus, on results and while spectating after a BR death. Never during play, never covers UI. Refreshes every ~30s while visible.
