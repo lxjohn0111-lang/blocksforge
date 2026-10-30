@@ -1169,3 +1169,39 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .res2-tiles .tile b { font-size: 32px; }
   .res2-head .score { font-size: 32px; margin-top: 4px; }
 }
+
+/* mode cards: the short name only in the compact row */
+.modecard .title .short { display: none; }
+@media (max-height: 640px) {
+  .modes .modecard .title .full { display: none; }
+  .modes .modecard .title .short { display: inline; }
+}
+@media (max-height: 900px) {
+  .menu-left.tdmsel .modes .modecard .title .full { display: none; }
+  .menu-left.tdmsel .modes .modecard .title .short { display: inline; }
+}
+/* the play bar is a solid footer: content that scrolls under it is hidden, not overlapped */
+.playbar { background: linear-gradient(180deg, rgba(8,10,13,0) 0, rgba(11,13,17,0.97) 12px); }
+/* offer texts wrap rather than being cut short */
+.btn.adbtn .adl, .btn.adbtn small { white-space: normal; overflow: visible; text-overflow: clip; }
+/* Team Deathmatch scoreboard: teams stacked, or side by side on short wide windows */
+.scoreboard { max-height: calc(100vh - 16px); overflow-y: auto; }
+.tdmsb .sbteam + .sbteam { margin-top: 14px; }
+@media (max-height: 640px) and (min-width: 700px) {
+  .scoreboard.tdmsb { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; width: min(1080px, 96vw); }
+  .tdmsb .sbteam + .sbteam { margin-top: 0; }
+}
+/* very short windows and phones: the inventory's columns scroll on their own */
+@media (max-height: 520px) {
+  .inv { height: calc(100vh - 20px); grid-template-rows: minmax(0, 1fr); overflow: hidden; padding: 10px 12px; }
+  .inv > .col { min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .inv .invw canvas { display: none; }
+  .invcell { min-height: 26px; padding: 3px 6px; }
+  .swatch { width: 24px; height: 24px; }
+  .swatchrow { gap: 5px; }
+  .locker .panel .h2 { margin-bottom: 8px !important; }
+}
+@media (max-height: 420px) {
+  .sbmodal .box { padding: 10px 14px; gap: 6px; }
+  .sbmodal .box > .btn { padding: 6px 14px; }
+}

@@ -253,18 +253,19 @@ export class Menu {
     this.body.appendChild(wrap);
     // left: modes
     const left = h('div', { class: 'menu-left' + (this.sel.mode === 'tdm' ? ' tdmsel' : '') });
-    const modes: [PlaySelection['mode'], string, string, string[]][] = [
-      ['br', 'Battle Royale', '24 players. Loot, build, outlast the storm.', []],
-      ['tdm', 'Team Deathmatch', '6 v 6. First team to 50 eliminations.', []],
-      ['tutorial', 'Training Grounds', 'Learn to shoot, loot and build.', p.tutorialDone ? [] : ['+300 coins']],
+    const modes: [PlaySelection['mode'], string, string, string, string[]][] = [
+      ['br', 'Battle Royale', 'Battle Royale', '24 players. Loot, build, outlast the storm.', []],
+      ['tdm', 'Team Deathmatch', 'Team DM', '6 v 6. First team to 50 eliminations.', []],
+      ['tutorial', 'Training Grounds', 'Training', 'Learn to shoot, loot and build.', p.tutorialDone ? [] : ['+300 coins']],
     ];
     const modesEl = h('div', { class: 'modes' });
     left.appendChild(modesEl);
-    for (const [id, title, sub, tags] of modes) {
+    for (const [id, title, short, sub, tags] of modes) {
       modesEl.appendChild(
         h('div', { class: 'modecard panel' + (this.sel.mode === id ? ' on' : ''), onclick: () => { audio.ui('click', 0.5); this.sel.mode = id; if (id === 'tutorial') this.sel.ranked = false; this.render(); }, onmouseenter: () => audio.ui('hover', 0.25) },
           h('div', { class: 'art', html: id === 'br' ? ICON.storm(120) : id === 'tdm' ? ICON.people(120) : ICON.crosshair(120) }),
-          h('div', { class: 'title' }, title),
+          // the compact row on short screens shows the short name
+          h('div', { class: 'title' }, h('span', { class: 'full' }, title), h('span', { class: 'short' }, short)),
           h('div', { class: 'sub' }, sub),
           tags.length ? h('div', { class: 'meta' }, ...tags.map((t) => h('span', { class: 'chip' }, t))) : null),
       );

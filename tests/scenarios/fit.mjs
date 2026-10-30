@@ -73,12 +73,29 @@ export default async function (page, h) {
         if (cs.textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 1) out.push(`ELLIPSIS ${name(e)}`);
         for (const t of boxes) texts.push({ e, t });
       }
+      // is `e` hidden at (x, y) by something solid painted over it (a sticky footer, a panel)?
+      const solid = (el) => {
+        const cs = getComputedStyle(el);
+        const m = /rgba?\(([^)]+)\)/.exec(cs.backgroundColor);
+        const alpha = m ? (m[1].split(',')[3] === undefined ? 1 : +m[1].split(',')[3]) : 0;
+        return alpha >= 0.85 || /gradient/.test(cs.backgroundImage);
+      };
+      const covered = (e, x, y) => {
+        for (const top of document.elementsFromPoint(x, y)) {
+          if (top === e || top.contains(e)) return false;
+          if (!e.contains(top) && solid(top)) return true;
+        }
+        return false;
+      };
       for (let i = 0; i < texts.length; i++)
         for (let j = i + 1; j < texts.length; j++) {
           if (texts[i].e === texts[j].e) continue;
           const a = texts[i].t, b = texts[j].t;
           const w = Math.min(a.r, b.r) - Math.max(a.l, b.l), hh = Math.min(a.b, b.b) - Math.max(a.t, b.t);
-          if (w > 2 && hh > 2) out.push(`OVERLAP ${name(texts[i].e)} x ${name(texts[j].e)}`);
+          if (!(w > 2 && hh > 2)) continue;
+          const x = (Math.max(a.l, b.l) + Math.min(a.r, b.r)) / 2, y = (Math.max(a.t, b.t) + Math.min(a.b, b.b)) / 2;
+          if (covered(texts[i].e, x, y) || covered(texts[j].e, x, y)) continue;
+          out.push(`OVERLAP ${name(texts[i].e)} x ${name(texts[j].e)}`);
         }
       // HUD blocks against each other (only when no panel is open over the HUD)
       if (scope.id === 'ui' && document.querySelector('.hud')) {

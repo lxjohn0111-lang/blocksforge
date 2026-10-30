@@ -1081,9 +1081,9 @@ export class HUD {
       return h(
         'div',
         { class: 'overlay', style: { background: 'rgba(6,8,11,0.45)' } },
-        h('div', { class: 'scoreboard panel' },
-          h('div', { class: 'teamhead a' }, h('span', null, 'Your team'), h('span', null, String(tdm.scores[p.team]))), table(mine),
-          h('div', { class: 'teamhead b', style: { marginTop: '14px' } }, h('span', null, 'Enemy team'), h('span', null, String(tdm.scores[1 - p.team]))), table(other)),
+        h('div', { class: 'scoreboard panel tdmsb' },
+          h('div', { class: 'sbteam' }, h('div', { class: 'teamhead a' }, h('span', null, 'Your team'), h('span', null, String(tdm.scores[p.team]))), table(mine)),
+          h('div', { class: 'sbteam' }, h('div', { class: 'teamhead b' }, h('span', null, 'Enemy team'), h('span', null, String(tdm.scores[1 - p.team]))), table(other))),
       );
     }
     return h('div', { class: 'overlay', style: { background: 'rgba(6,8,11,0.45)' } }, h('div', { class: 'scoreboard panel' }, h('div', { class: 'teamhead' }, 'Players'), table(m.combatants.filter((c) => c.alive || c.stats.kills > 0).slice(0, 14))));
