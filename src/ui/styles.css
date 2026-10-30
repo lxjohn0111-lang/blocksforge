@@ -1263,7 +1263,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 .shopitem { min-height: 150px; }
 .shopitem .sw { height: 90px; }
 @media (max-height: 760px) {
-  .shopitem { min-height: 0; }
+  .shopitem { min-height: auto; }
   .shopitem .sw { height: 64px; }
   .settings { height: calc(100vh - 24px); }
 }
@@ -1275,4 +1275,28 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 @media (max-height: 480px) {
   .menu-left.tdmsel .loadout.lo3 .lw { display: none; }
   .menu-left.tdmsel .loadout.lo3 { padding: 6px 8px; }
+}
+
+/* landscape phones: the Armory's six items in one row, a one-line header */
+@media (max-height: 480px) {
+  .armorypage > .row.panel { padding: 8px 14px; flex-direction: row; align-items: center; }
+  .armorypage .h1 { font-size: 22px; }
+  .armorypage > .shopgrid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+  .shopitem { padding: 7px; gap: 4px; }
+  .shopitem .sw { height: 40px; }
+  .shopitem .src { display: none; }
+}
+@media (max-height: 420px) {
+  .locker > .panel:first-child .btn { padding: 5px 10px; font-size: 11px; margin-bottom: 3px !important; }
+  .locker > .panel:first-child .h2 { margin-bottom: 6px !important; }
+  .swatch { width: 22px; height: 22px; }
+  .swatchrow { gap: 4px; }
+  .locker .panel .label { font-size: 10px; }
+  .inv h3, .inv h3[style] { font-size: 10px; margin: 1px 0 3px !important; }
+  .invcell { min-height: 22px; font-size: 10.5px; padding: 2px 6px; }
+  .invcell:not(.invw) > canvas { width: 18px; height: 18px; }
+  .recipe { padding: 3px 6px; gap: 1px; }
+  .recipe .rn { font-size: 11px; }
+  .recipe .cost { font-size: 10px; }
+  .recipe .kbd { transform: scale(0.85); }
 }
