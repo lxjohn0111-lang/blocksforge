@@ -1362,3 +1362,10 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .settings .main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-content: start; }
   .settings .main > :not(.setrow) { grid-column: 1 / -1; }
 }
+/* the daily track's seven days share the card's width whatever their labels */
+.daily { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.daily .d { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .daily { gap: 3px; }
+  .daily .d { font-size: 8px; letter-spacing: 0; padding: 2px 1px; }
+}
