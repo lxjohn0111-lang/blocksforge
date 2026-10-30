@@ -954,7 +954,7 @@ export class HUD {
     const p = m.player;
     const left = h('div', { class: 'col' });
     left.appendChild(h('h3', null, 'Weapons'));
-    const wg = h('div', { class: 'col', style: { gap: '6px' } });
+    const wg = h('div', { class: 'col invweapons', style: { gap: '6px' } });
     p.weapons.forEach((w, i) => {
       wg.appendChild(h('div', { class: 'invcell invw' }, h('span', { class: 'kbd' }, String(i + 1)), w ? weaponCanvas(w.def.id, 110, 40) : h('span', { class: 'faint' }, 'Empty'), w ? h('span', null, w.def.name) : null, w ? h('b', null, `${w.mag}/${p.ammo[w.def.ammo]}`) : null));
     });
