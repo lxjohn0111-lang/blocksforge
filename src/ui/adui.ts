@@ -1,5 +1,4 @@
-// Ad UI: the rewarded-ad button every offer uses, a small notice, and the bottom banner that the menu,
-// the results screen and Battle Royale spectating share.
+// Ad UI: the rewarded-ad button every offer uses, a small notice, and the main menu's bottom banner.
 
 import { h } from './dom';
 import { ICON } from './icons';
