@@ -1207,7 +1207,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 }
 
 /* very short windows (landscape phones): results become a compact single screen */
-@media (max-height: 440px) {
+@media (max-height: 480px) {
   .res2 { padding-top: 8px; gap: 8px; }
   .res2-head .kick, .res2-head .of { font-size: 10px; }
   .res2-head .res-title { font-size: clamp(32px, 12vh, 112px); margin-top: 2px; }
@@ -1270,4 +1270,9 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 @media (max-height: 640px) {
   .setrow { padding: 4px 0; }
   .ladder-tiers .col > span.dim { display: none; }
+}
+
+@media (max-height: 480px) {
+  .menu-left.tdmsel .loadout.lo3 .lw { display: none; }
+  .menu-left.tdmsel .loadout.lo3 { padding: 6px 8px; }
 }
