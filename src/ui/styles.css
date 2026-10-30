@@ -1205,3 +1205,32 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .sbmodal .box { padding: 10px 14px; gap: 6px; }
   .sbmodal .box > .btn { padding: 6px 14px; }
 }
+
+/* very short windows (landscape phones): results become a compact single screen */
+@media (max-height: 440px) {
+  .res2 { padding-top: 8px; gap: 8px; }
+  .res2-head .kick, .res2-head .of { font-size: 10px; }
+  .res2-head .res-title { font-size: clamp(32px, 12vh, 112px); margin-top: 2px; }
+  .res2-head .score { font-size: 24px; }
+  .res2-tiles .tile { flex-direction: row; justify-content: center; gap: 8px; padding: 6px 8px; }
+  .res2-tiles .tile b { font-size: 22px; }
+  .res2-tiles .tile small { font-size: 9.5px; }
+  .res2-strip { gap: 6px; }
+  .res2-strip .prog { padding: 6px 10px; }
+  .res2-strip .row-sb { margin-bottom: 3px; }
+  .res2-strip .lvl .badge { width: 28px; height: 28px; font-size: 13px; }
+  .res2-strip .coins { font-size: 20px; }
+  .res2 .btn.adbtn.big { padding: 6px 14px 6px 6px; }
+  .res2 .btn.adbtn.big .adl { font-size: 13px; }
+  .res2-actions .btn.big { padding: 9px 18px; font-size: 13px; }
+}
+/* the Locker on short windows: no player card under the categories, tighter rows */
+@media (max-height: 520px) {
+  .locker-card { display: none; }
+  .locker > .panel:first-child .btn { padding: 7px 12px; margin-bottom: 4px !important; }
+}
+@media (max-height: 420px) {
+  .locker .panel .label { margin-bottom: 2px; }
+  .locker .swatchrow .btn { padding: 4px 8px !important; }
+  .locker .col[style] { margin-bottom: 6px !important; }
+}

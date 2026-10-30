@@ -576,7 +576,7 @@ export class Menu {
     type Locker = Menu['lockerCat'];
     const left = h('div', { class: 'panel' }, h('div', { class: 'h2', style: { marginBottom: '12px' } }, 'Locker'));
     for (const [c, l] of cats) left.appendChild(h('button', { class: 'btn' + (this.lockerCat === c ? ' primary' : ''), style: { justifyContent: 'flex-start', marginBottom: '6px' }, onclick: () => { this.lockerCat = c; this.render(); } }, l));
-    left.appendChild(h('div', { style: { marginTop: 'auto' } }, playerCard({ id: 'player', name: p.name, look: composeLook(p.base, p.equipped.outfit), isBot: false, level: p.level, rp: p.rank.rp, title: p.equipped.title, banner: p.equipped.banner, camo: p.equipped.camo, skill: 0 })));
+    left.appendChild(h('div', { class: 'locker-card', style: { marginTop: 'auto' } }, playerCard({ id: 'player', name: p.name, look: composeLook(p.base, p.equipped.outfit), isBot: false, level: p.level, rp: p.rank.rp, title: p.equipped.title, banner: p.equipped.banner, camo: p.equipped.camo, skill: 0 })));
     page.appendChild(left);
     page.appendChild(this.previewBox());
     const right = h('div', { class: 'panel scroll' });
