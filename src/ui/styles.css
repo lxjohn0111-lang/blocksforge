@@ -1321,3 +1321,10 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .setrow { padding: 3px 0; font-size: 12.5px; }
   .settings .main .seg button { padding: 6px 8px; }
 }
+@media (max-height: 420px) {
+  .menu-left.tdmsel .loadouts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .menu-left.tdmsel .loadout.lo3 { width: auto; padding: 4px 5px; }
+  .menu-left.tdmsel .loadout.lo3 .ln { font-size: 10px; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+  .menu-left.tdmsel .modes .modecard { padding: 7px 8px; }
+  .locker > .panel { padding: 10px 12px; }
+}
