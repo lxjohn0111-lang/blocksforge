@@ -1315,3 +1315,9 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .btn.adbtn.halfbtn .adl { font-size: 10px; }
   .btn.adbtn.halfbtn small { font-size: 9.5px; }
 }
+@media (max-height: 480px) {
+  .menu-left.tdmsel { gap: 5px; }
+  .menu-left.tdmsel .seg button { padding: 6px; }
+  .setrow { padding: 3px 0; font-size: 12.5px; }
+  .settings .main .seg button { padding: 6px 8px; }
+}
