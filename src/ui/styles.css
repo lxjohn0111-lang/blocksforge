@@ -1255,3 +1255,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .invcell:not(.invw) > canvas { width: 22px; height: 22px; }
   .recipe { padding: 4px 7px; }
 }
+@media (max-height: 760px) {
+  .menu-left.tdmsel .loadout.lo3 canvas { height: 16px; }
+  .menu-left.tdmsel { gap: 10px; }
+}
