@@ -1336,3 +1336,6 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 @media (max-height: 520px) {
   .settings { height: 100vh; }
 }
+@media (max-height: 420px) {
+  .page.locker { padding-top: 6px; padding-bottom: 8px; }
+}
