@@ -1123,7 +1123,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .inv .invw canvas { display: none; }
 }
 
-.ammo .wn { margin-bottom: 4px; }
+.ammo .wn { margin-bottom: 8px; }
 .sbmodal .box { width: min(760px, 94vw); max-height: calc(100vh - 24px); overflow-y: auto; }
 .sbmodal .res2-sb { padding: 0; background: none; border: none; clip-path: none; }
 
