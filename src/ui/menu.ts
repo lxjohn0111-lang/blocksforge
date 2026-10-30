@@ -759,7 +759,7 @@ export class Menu {
       const rk = rankOf(r.rp);
       list.appendChild(h('div', { class: 'ladder-row' + (r.isPlayer ? ' me' : ''), style: { cursor: r.isPlayer ? 'default' : 'pointer' }, onclick: () => !r.isPlayer && this.showProfile(r.id) },
         h('span', { class: 'pos' }, `#${i + 1}`),
-        h('span', { class: 'row', style: { gap: '8px', minWidth: '0' } }, avatarCanvas(r.isPlayer ? composeLook(p.base, p.equipped.outfit) : r.ident.look, 22), h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, r.name), r.isPlayer ? h('span', { class: 'chip accent' }, 'You') : null),
+        h('span', { class: 'row', style: { gap: '8px', minWidth: '0' } }, avatarCanvas(r.isPlayer ? composeLook(p.base, p.equipped.outfit) : r.ident.look, 22), h('span', { class: 'lname' }, r.name), r.isPlayer ? h('span', { class: 'chip accent' }, 'You') : null),
         h('span', { class: 'row', style: { gap: '6px' } }, h('span', { html: rankEmblem(rk.tier, rk.division, 18) }), h('span', { style: { color: rk.tierDef.color, fontSize: '12px' } }, rk.label)),
         h('span', { class: 'mono' }, fmt(r.rp)),
         h('span', { class: 'mono dim' }, fmt(r.wins))));

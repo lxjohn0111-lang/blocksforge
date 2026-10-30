@@ -752,7 +752,7 @@ body.touch .toggle.on i { left: 27px; }
   .tabs::-webkit-scrollbar { display: none; }
   .tab { padding: 18px 11px 16px; white-space: nowrap; }
   .wallet { flex-shrink: 0; }
-  .wallet .who > .col { display: none; }
+  .wallet .who .col { display: none; }
   .lvl .xpbar { width: 80px; }
 }
 @media (max-width: 900px) {
@@ -1152,4 +1152,20 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .stat { padding: 7px 10px; }
   .stat .v { font-size: 22px; }
   .stat .l { margin-top: 2px; }
+}
+
+/* ladder names wrap instead of being cut short */
+.ladder-row .lname { min-width: 0; overflow-wrap: anywhere; line-height: 1.15; }
+/* narrower desktop windows: the brand shrinks to its mark so every tab and the wallet fit */
+@media (max-width: 1150px) {
+  .topbar .brand > span:last-child { display: none; }
+  .tab { padding-left: 10px; padding-right: 10px; }
+}
+/* results always fit one screen: the headline and spacing follow the window height */
+.res2-head .res-title { font-size: clamp(40px, min(11vw, 14vh), 112px); }
+@media (max-height: 760px) {
+  .res2 { padding-top: 3vh; padding-bottom: 16px; gap: 14px; }
+  .res2-tiles .tile { padding: 12px 8px 10px; }
+  .res2-tiles .tile b { font-size: 32px; }
+  .res2-head .score { font-size: 32px; margin-top: 4px; }
 }
