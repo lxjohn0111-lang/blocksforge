@@ -1336,6 +1336,24 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 @media (max-height: 520px) {
   .settings { height: 100vh; }
 }
+/* landscape phones: the TDM loadouts in two rows of three, the Locker's appearance and the inventory
+   compact enough to fit without scrolling */
 @media (max-height: 420px) {
+  .menu-left.tdmsel .modes .modecard { padding: 6px 8px; }
+  .menu-left.tdmsel .seg button { padding: 5px 6px; }
+  .menu-left.tdmsel .playbar { padding-top: 4px; }
+  .menu-left.tdmsel .playbar .btn.big { padding: 7px 18px; }
+  .menu-left.tdmsel .loadouts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .menu-left.tdmsel .loadout.lo3 { padding: 3px 5px; }
+  .menu-left.tdmsel .loadout.lo3 .ln { overflow-wrap: normal; font-size: 9.5px; letter-spacing: 0; }
   .page.locker { padding-top: 6px; padding-bottom: 8px; }
+  .locker > .panel.scroll .h2 { font-size: 15px; margin-bottom: 6px !important; }
+  .locker .swatchrow .btn { padding: 3px 7px !important; font-size: 10px !important; }
+  .locker .swatch { width: 20px; height: 20px; }
+  .locker .col[style] { margin-bottom: 4px !important; }
+  .recipe .rn { font-size: 10px; letter-spacing: 0; }
+  .hud.touch .inv { padding: 10px 12px; gap: 10px; }
+  .invcell { min-height: 20px; }
 }
+/* touch screens have no number keys to craft with */
+.hud.touch .recipe .kbd { display: none; }
