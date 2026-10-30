@@ -535,7 +535,7 @@ export class Menu {
     left.appendChild(h('div', { class: 'h2', style: { margin: '18px 0 8px' } }, 'Match history'));
     const hist = h('div', { class: 'scroll', style: { flex: '1', minHeight: '0' } });
     if (!p.history.length) hist.appendChild(h('div', { class: 'dim', style: { padding: '12px 0' } }, 'No matches yet. Your last 30 matches will appear here.'));
-    hist.appendChild(h('div', { class: 'histrow label', style: { borderTop: 'none' } }, h('span', null, 'Result'), h('span', null, 'Mode · Map'), h('span', null, 'K/D/A'), h('span', null, 'DMG'), h('span', null, 'ACC'), h('span', null, 'RP'), h('span', null, 'When')));
+    if (p.history.length) hist.appendChild(h('div', { class: 'histrow label', style: { borderTop: 'none' } }, h('span', null, 'Result'), h('span', null, 'Mode · Map'), h('span', null, 'K/D/A'), h('span', null, 'DMG'), h('span', null, 'ACC'), h('span', null, 'RP'), h('span', null, 'When')));
     for (const e of p.history) {
       const res = e.mode === 'br' ? (e.placement === 1 ? 'Victory' : `#${e.placement}`) : e.won ? 'Victory' : e.draw ? 'Draw' : 'Defeat';
       hist.appendChild(h('div', { class: 'histrow' },
@@ -718,8 +718,7 @@ export class Menu {
           tile.appendChild(ad);
         }
       }
-      tile.style.minHeight = '150px';
-      (tile.querySelector('.sw') as HTMLElement).style.height = '90px';
+      tile.classList.add('shopitem');
       grid.appendChild(tile);
     }
     page.appendChild(grid);

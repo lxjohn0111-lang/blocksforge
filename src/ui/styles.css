@@ -1259,3 +1259,15 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .menu-left.tdmsel .loadout.lo3 canvas { height: 16px; }
   .menu-left.tdmsel { gap: 10px; }
 }
+
+.shopitem { min-height: 150px; }
+.shopitem .sw { height: 90px; }
+@media (max-height: 760px) {
+  .shopitem { min-height: 0; }
+  .shopitem .sw { height: 64px; }
+  .settings { height: calc(100vh - 24px); }
+}
+@media (max-height: 640px) {
+  .setrow { padding: 4px 0; }
+  .ladder-tiers .col > span.dim { display: none; }
+}
