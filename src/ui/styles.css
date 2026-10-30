@@ -1238,3 +1238,20 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 .invcell:not(.invw) > canvas { flex: none; width: 28px; height: 28px; object-fit: contain; }
 .invcell { min-width: 0; line-height: 1.15; }
 .invcell b { flex: none; }
+/* short windows (landscape phones, small embeds): tighter play column, Armory grid scrolls on its own,
+   denser inventory */
+@media (max-height: 480px) {
+  .menu-left { gap: 6px; }
+  .playbar { gap: 4px; padding-top: 8px; }
+  .playbar .btn.big { padding: 10px 18px; }
+  .playbar .fineprint { font-size: 10px; }
+  .armorypage { overflow: hidden; }
+  .armorypage > .shopgrid { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  .inv h3, .inv h3[style] { margin: 2px 0 4px !important; }
+  .inv .col { gap: 3px; }
+  .inv .col > .dim { display: none; }
+  .invgrid { gap: 3px; }
+  .invcell { min-height: 24px; font-size: 11px; }
+  .invcell:not(.invw) > canvas { width: 22px; height: 22px; }
+  .recipe { padding: 4px 7px; }
+}
