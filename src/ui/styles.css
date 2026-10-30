@@ -1355,5 +1355,5 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .hud.touch .inv { padding: 10px 12px; gap: 10px; }
   .invcell { min-height: 20px; }
 }
-/* touch screens have no number keys to craft with */
-.hud.touch .recipe .kbd { display: none; }
+/* touch screens have no number keys: no key badges on the inventory's weapons and recipes */
+.hud.touch .inv .kbd { display: none; }
