@@ -252,7 +252,7 @@ export class Menu {
     const wrap = h('div', { class: 'menu-body', style: { flex: '1' } });
     this.body.appendChild(wrap);
     // left: modes
-    const left = h('div', { class: 'menu-left' });
+    const left = h('div', { class: 'menu-left' + (this.sel.mode === 'tdm' ? ' tdmsel' : '') });
     const modes: [PlaySelection['mode'], string, string, string[]][] = [
       ['br', 'Battle Royale', '24 players. Loot, build, outlast the storm.', []],
       ['tdm', 'Team Deathmatch', '6 v 6. First team to 50 eliminations.', []],
@@ -768,7 +768,7 @@ export class Menu {
     page.appendChild(left);
     const right = h('div', { class: 'panel' });
     right.appendChild(h('div', { class: 'h2', style: { marginBottom: '12px' } }, 'Rank tiers'));
-    const tiers = h('div', { class: 'col', style: { gap: '6px' } });
+    const tiers = h('div', { class: 'col ladder-tiers', style: { gap: '6px' } });
     TIERS.forEach((t, i) => {
       const reached = p.rank.peakRp >= t.min;
       tiers.appendChild(h('div', { class: 'row', style: { gap: '12px', padding: '6px', background: rankOf(p.rank.rp).tier === i ? 'rgba(255,255,255,0.06)' : 'none', clipPath: 'var(--chamfer-sm)' } },

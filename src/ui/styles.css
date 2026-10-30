@@ -1126,3 +1126,20 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 .ammo .wn { margin-bottom: 4px; }
 .sbmodal .box { width: min(760px, 94vw); max-height: calc(100vh - 24px); overflow-y: auto; }
 .sbmodal .res2-sb { padding: 0; background: none; border: none; clip-path: none; }
+
+/* names wrap instead of being cut short */
+.pcard .nm { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+/* Team Deathmatch adds map and loadout pickers: the modes take one compact row then */
+@media (max-height: 900px) {
+  .menu-left.tdmsel .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .menu-left.tdmsel .modes .modecard { padding: 10px 10px 9px; }
+  .menu-left.tdmsel .modes .modecard .title { font-size: 17px; }
+  .menu-left.tdmsel .modes .modecard .sub, .menu-left.tdmsel .modes .modecard .meta { display: none; }
+  .menu-left.tdmsel .modes .modecard .art { width: 54px; height: 54px; right: -6px; top: -6px; }
+}
+@media (max-height: 800px) {
+  .setrow { padding: 7px 0; }
+  .ladder-tiers { gap: 3px !important; }
+  .ladder-tiers > .row { padding: 3px 6px !important; }
+  .ladder-tiers svg { width: 28px; height: 28px; }
+}
