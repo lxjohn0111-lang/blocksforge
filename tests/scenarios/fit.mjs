@@ -122,6 +122,8 @@ export default async function (page, h) {
         const o = getComputedStyle(e);
         const extra = e.scrollHeight - e.clientHeight;
         if (/(auto|scroll)/.test(o.overflowY) && extra > 1 && extra < 60) out.push(`SCROLLS ${extra}px ${name(e)}`);
+        // sideways scrolling outside the strips made for it means content is cut at the side
+        if (/(auto|scroll)/.test(o.overflowX) && e.scrollWidth > e.clientWidth + 2 && !e.matches('.tabs, .settings .side')) out.push(`SCROLLS SIDEWAYS ${e.scrollWidth - e.clientWidth}px ${name(e)}`);
       }
       if (document.documentElement.scrollWidth > W + 1 || document.documentElement.scrollHeight > H + 1) out.push('PAGE SCROLLS');
       return [...new Set(out)];

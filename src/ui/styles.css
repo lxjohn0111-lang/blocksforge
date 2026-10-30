@@ -1328,3 +1328,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .menu-left.tdmsel .modes .modecard { padding: 7px 8px; }
   .locker > .panel { padding: 10px 12px; }
 }
+/* narrow screens: two supply / material cells per row so every name and count fits */
+@media (max-width: 760px) {
+  .invgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inv > .col { overflow-x: hidden; }
+}
