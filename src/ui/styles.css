@@ -1234,3 +1234,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .locker .swatchrow .btn { padding: 4px 8px !important; }
   .locker .col[style] { margin-bottom: 6px !important; }
 }
+/* inventory cells: item icons have one size, so names and counts always fit */
+.invcell:not(.invw) > canvas { flex: none; width: 28px; height: 28px; object-fit: contain; }
+.invcell { min-width: 0; line-height: 1.15; }
+.invcell b { flex: none; }
