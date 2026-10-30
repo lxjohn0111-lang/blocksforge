@@ -1333,3 +1333,6 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .invgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .inv > .col { overflow-x: hidden; }
 }
+@media (max-height: 520px) {
+  .settings { height: 100vh; }
+}
