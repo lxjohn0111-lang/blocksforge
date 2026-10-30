@@ -84,11 +84,11 @@ export const TITLES = [
   'Scavenger', 'Grenadier', 'Apex', 'Veteran', 'Tactician', 'Forgemaster',
 ];
 
-/** Ad Vault: exclusive items unlocked by watching this many rewarded ads */
+/** Ad Vault: exclusive items, each unlocked by one rewarded ad (CrazyGames does not allow stacked ads) */
 export const VAULT: { id: string; ads: number }[] = [
-  { id: 'outfit:gilded_phantom', ads: 3 },
-  { id: 'outfit:void_ronin', ads: 3 },
-  { id: 'camo:prism', ads: 2 },
+  { id: 'outfit:gilded_phantom', ads: 1 },
+  { id: 'outfit:void_ronin', ads: 1 },
+  { id: 'camo:prism', ads: 1 },
 ];
 
 export const DEFAULT_OWNED = ['camo:factory', 'outfit:recruit', 'banner:stone', 'title:Rookie'];
@@ -127,7 +127,7 @@ export function catalog(): Cosmetic[] {
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
     else if (c.id.startsWith('rank_')) { source = 'Ranked season reward'; price = undefined; }
     else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
-    else if (VAULT.some((v) => v.id === id)) { source = `Ad Vault · ${VAULT.find((v) => v.id === id)!.ads} ads`; price = undefined; }
+    else if (VAULT.some((v) => v.id === id)) { source = 'Ad Vault · watch an ad'; price = undefined; }
     out.push({ id, kind: 'camo', name: c.name, rarity: c.rarity, source, price });
   }
   for (const o of Object.values(OUTFITS)) {
@@ -140,7 +140,7 @@ export function catalog(): Cosmetic[] {
     else if (eventCos.has(id)) { source = 'Limited-time event'; price = undefined; }
     else if (DAILY_ITEMS[id]) { source = `Daily reward · Day ${DAILY_ITEMS[id]}`; price = undefined; }
     else if (o.id === 'vanguard') { source = 'Reach Gold in any season'; price = undefined; }
-    else if (VAULT.some((v) => v.id === id)) { source = `Ad Vault · ${VAULT.find((v) => v.id === id)!.ads} ads`; price = undefined; }
+    else if (VAULT.some((v) => v.id === id)) { source = 'Ad Vault · watch an ad'; price = undefined; }
     else if (o.id === 'lucky_ace') { source = 'Lucky Wheel jackpot prize'; price = undefined; }
     out.push({ id, kind: 'outfit', name: o.name, rarity: o.rarity, source, price });
   }

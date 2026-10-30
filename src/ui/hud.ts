@@ -123,6 +123,8 @@ export class HUD {
   constructor(parent: HTMLElement, public match: Match, public pc: PlayerController, public settings: Settings, private hooks: Hooks) {
     this.root = h('div', { class: 'hud mode-' + match.cfg.mode });
     parent.appendChild(this.root);
+    this.fit();
+    window.addEventListener('resize', this.fit);
     const E = this.els;
     const mk = (k: string, el: HTMLElement) => {
       E[k] = el;
@@ -954,7 +956,7 @@ export class HUD {
     left.appendChild(h('h3', null, 'Weapons'));
     const wg = h('div', { class: 'col', style: { gap: '6px' } });
     p.weapons.forEach((w, i) => {
-      wg.appendChild(h('div', { class: 'invcell' }, h('span', { class: 'kbd' }, String(i + 1)), w ? weaponCanvas(w.def.id, 110, 40) : h('span', { class: 'faint' }, 'Empty'), w ? h('span', null, w.def.name) : null, w ? h('b', null, `${w.mag}/${p.ammo[w.def.ammo]}`) : null));
+      wg.appendChild(h('div', { class: 'invcell invw' }, h('span', { class: 'kbd' }, String(i + 1)), w ? weaponCanvas(w.def.id, 110, 40) : h('span', { class: 'faint' }, 'Empty'), w ? h('span', null, w.def.name) : null, w ? h('b', null, `${w.mag}/${p.ammo[w.def.ammo]}`) : null));
     });
     left.appendChild(wg);
     left.appendChild(h('h3', { style: { marginTop: '10px' } }, 'Supplies'));
@@ -1145,7 +1147,15 @@ export class HUD {
     }
   }
 
+  /** the mouse-and-keyboard HUD shrinks with small windows: --hs scales every corner block toward its
+   * corner (touch screens have their own compact layout) */
+  private fit = () => {
+    const s = Math.max(0.6, Math.min(1, innerWidth / 1280, innerHeight / 720));
+    this.root.style.setProperty('--hs', s.toFixed(3));
+  };
+
   dispose() {
+    window.removeEventListener('resize', this.fit);
     this.root.remove();
   }
 }

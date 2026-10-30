@@ -222,7 +222,7 @@ export class Menu {
         u.avatar ? h('img', { class: 'cgavatar', src: u.avatar, alt: '', referrerpolicy: 'no-referrer' }) : avatarCanvas(composeLook(p.base, p.equipped.outfit), 34),
         h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, u.username)));
     return h('div', { class: 'row who' },
-      h('div', { class: 'row', style: { cursor: 'pointer', gap: '8px' }, onclick: () => this.editName(), title: 'Change name' }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
+      h('div', { class: 'row', style: { gap: '8px' } }, avatarCanvas(composeLook(p.base, p.equipped.outfit), 34), h('div', { class: 'col', style: { gap: '0' } }, h('b', { style: { fontSize: '13px' } }, p.name))),
       platform.userAvailable ? h('button', { class: 'btn ghost signin', title: 'Sign in with CrazyGames to keep your progress on every device', onclick: () => platform.signIn() }, 'Sign in') : null);
   }
 
@@ -258,8 +258,10 @@ export class Menu {
       ['tdm', 'Team Deathmatch', '6 v 6. First team to 50 eliminations.', []],
       ['tutorial', 'Training Grounds', 'Learn to shoot, loot and build.', p.tutorialDone ? [] : ['+300 coins']],
     ];
+    const modesEl = h('div', { class: 'modes' });
+    left.appendChild(modesEl);
     for (const [id, title, sub, tags] of modes) {
-      left.appendChild(
+      modesEl.appendChild(
         h('div', { class: 'modecard panel' + (this.sel.mode === id ? ' on' : ''), onclick: () => { audio.ui('click', 0.5); this.sel.mode = id; if (id === 'tutorial') this.sel.ranked = false; this.render(); }, onmouseenter: () => audio.ui('hover', 0.25) },
           h('div', { class: 'art', html: id === 'br' ? ICON.storm(120) : id === 'tdm' ? ICON.people(120) : ICON.crosshair(120) }),
           h('div', { class: 'title' }, title),
@@ -275,8 +277,6 @@ export class Menu {
           h('button', { class: this.sel.ranked ? 'on rk' : '', onclick: () => { this.sel.ranked = true; this.render(); } }, `Ranked · ${rk.label}`)),
       );
     }
-    const perks = this.perkOffers();
-    if (perks) left.appendChild(perks);
     if (this.sel.mode === 'tdm') {
       const st = eventStatus();
       const featured = st.current?.def.mods.featuredMap;
@@ -361,6 +361,9 @@ export class Menu {
   private boostCard() {
     const meta = this.api.meta;
     const box = h('div', { class: 'card panel boostcard' }, h('div', { class: 'head' }, h('span', { class: 'label' }, 'Boosts'), h('span', { class: 'chip accent' }, 'Free')));
+    // the selected mode's match perks first (BR starter kit, ranked Rank Shield)
+    const perks = this.perkOffers();
+    if (perks) box.appendChild(perks);
     const coinsLeft = meta.coinsReadyIn();
     const row = (icon: string, title: string, sub: string, action: HTMLElement | null) =>
       h('div', { class: 'boost' }, h('span', { class: 'bi', html: icon }), h('div', { class: 'col grow', style: { gap: '1px', minWidth: '0' } }, h('b', null, title), h('small', null, sub)), action);
@@ -379,15 +382,14 @@ export class Menu {
     for (const v of VAULT) {
       const st = meta.vaultStatus(v.id);
       if (st.owned) continue;
-      const pips = h('span', { class: 'pips' }, ...Array.from({ length: st.need }, (_, i) => h('i', { class: i < st.count ? 'on' : '' })));
-      const btn = adButton({ label: 'Unlock', badge: `${st.count + 1}/${st.need}`, tone: 'gold', onReward: () => this.vaultStep(v.id) });
+      const btn = adButton({ label: 'Unlock', tone: 'gold', onReward: () => this.vaultStep(v.id) });
       if (!btn) continue;
       const [kind, key] = v.id.split(':');
       const r = row('', kind === 'outfit' ? OUTFITS[key].name : cosmeticName(v.id), '', btn);
       const art = r.querySelector('.bi') as HTMLElement;
       art.classList.add('vaultart');
       art.appendChild(kind === 'outfit' ? avatarCanvas(composeLook(meta.p.base, key), 40) : h('div', { class: 'camosw', style: { background: camoCss(CAMOS[key]) } }));
-      r.querySelector('small')!.replaceWith(h('small', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'rar-legendary' }, 'Legendary'), pips));
+      r.querySelector('small')!.replaceWith(h('small', null, h('span', { class: 'rar-legendary' }, 'Legendary'), ' · 1 ad'));
       box.appendChild(r);
     }
     return box.childElementCount > 1 ? box : h('div');
@@ -605,8 +607,7 @@ export class Menu {
         const key = c.id.split(':')[1];
         const on = (cat === 'outfit' && p.equipped.outfit === key) || (cat === 'camo' && p.equipped.camo === key) || (cat === 'banner' && p.equipped.banner === key);
         const vault = VAULT.find((v) => v.id === c.id);
-        const vs = vault ? meta.vaultStatus(c.id) : null;
-        items.appendChild(this.itemTile(vs ? { ...c, source: `Ad Vault · ${vs.count}/${vs.need} ads` } : c, own, on, () => {
+        items.appendChild(this.itemTile(c, own, on, () => {
           if (!own && vault) return this.vaultModal(c.id);
           if (!own) return;
           meta.equip(cat as 'outfit', key);
@@ -624,15 +625,13 @@ export class Menu {
   /** an Ad Vault item: what it is, the ads watched so far, and the button for the next one */
   private vaultModal(id: string) {
     const meta = this.api.meta;
-    const st = meta.vaultStatus(id);
-    const btn = adButton({ label: st.count + 1 >= st.need ? 'Unlock now' : 'Watch ad', badge: `${st.count + 1}/${st.need}`, big: true, tone: 'gold', onReward: () => { modal.remove(); this.vaultStep(id); } });
+    const btn = adButton({ label: 'Unlock now', big: true, tone: 'gold', onReward: () => { modal.remove(); this.vaultStep(id); } });
     const modal = h('div', { class: 'modal', onclick: (ev: MouseEvent) => { if (ev.target === modal) modal.remove(); } },
       h('div', { class: 'box panel vaultbox' },
         h('div', { class: 'label' }, 'Ad Vault · Legendary'),
         h('div', { class: 'h2' }, cosmeticName(id)),
         h('div', { class: 'vaultart big' }, rewardArt({ kind: 'cosmetic', id })),
-        h('div', { class: 'pips big' }, ...Array.from({ length: st.need }, (_, i) => h('i', { class: i < st.count ? 'on' : '' }))),
-        h('div', { class: 'dim', style: { fontSize: '13px', textAlign: 'center' } }, `Watch ${st.need} short ads to unlock it for good. ${st.count} done.`),
+        h('div', { class: 'dim', style: { fontSize: '13px', textAlign: 'center' } }, 'Watch one short ad to unlock it for good.'),
         btn ?? h('div', { class: 'dim' }, 'Ads are not available right now.'),
         h('button', { class: 'btn ghost', onclick: () => modal.remove() }, 'Close')));
     this.parent.appendChild(modal);
@@ -709,7 +708,7 @@ export class Menu {
       (tile.querySelector('.src') as HTMLElement).textContent = own ? 'Owned' : `${c.kind} · ${c.rarity}`;
       if (!own) {
         const half = Math.ceil(c.price! / 2);
-        const ad = adButton({ label: `½ price · ${fmt(half)}`, check: () => (meta.canBuyHalf(c.id) ? null : `Need ${fmt(half - meta.p.coins)} more coins`), onReward: () => {
+        const ad = adButton({ label: '½ price', sub: `${fmt(half)} coins`, check: () => (meta.canBuyHalf(c.id) ? null : `Need ${fmt(half - meta.p.coins)} more coins`), onReward: () => {
           const r = meta.buyHalf(c.id);
           if (r) showReveal(this.parent, 'Armory', 'Half price!', [r], () => this.render());
         } });
@@ -736,12 +735,17 @@ export class Menu {
   private renderLadder() {
     const meta = this.api.meta;
     const p = meta.p;
-    const rows = meta.ladder();
+    // on CrazyGames only signed-in players are ranked on the ladder
+    const guest = platform.portal && !platform.user;
+    const rows = meta.ladder(!guest);
     const myIdx = rows.findIndex((r) => r.isPlayer);
     const page = h('div', { class: 'page two ladderpage', style: { flex: '1' } });
     const left = h('div', { class: 'panel' });
     const s = meta.season();
     left.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', marginBottom: '10px' } }, h('div', { class: 'h2' }, `Season ${s.number} Ladder`), h('span', { class: 'dim', style: { fontSize: '12px' } }, `${rows.length} players`)));
+    if (guest)
+      left.appendChild(h('div', { class: 'ladder-guest' }, h('span', null, 'Sign in to join the ladder.'),
+        platform.userAvailable ? h('button', { class: 'btn ghost signin', onclick: () => platform.signIn() }, 'Sign in') : null));
     left.appendChild(h('div', { class: 'ladder-row label', style: { borderTop: 'none' } }, h('span', null, 'Pos'), h('span', null, 'Player'), h('span', null, 'Rank'), h('span', null, 'RP'), h('span', null, 'Wins')));
     const list = h('div', { class: 'scroll', style: { flex: '1', minHeight: '0' } });
     const show = new Set<number>();
@@ -793,29 +797,6 @@ export class Menu {
   }
 
   // ------------------------------------------------------------ misc
-  editName() {
-    const meta = this.api.meta;
-    const input = h('input', { class: 'textin', value: meta.p.name, maxlength: '16' }) as HTMLInputElement;
-    const err = h('div', { class: 'dim', style: { fontSize: '12px', minHeight: '1em', color: '#ffb3a8' } });
-    const save = () => {
-      const v = input.value.trim();
-      if (!/^[A-Za-z0-9_.\-]{3,16}$/.test(v)) {
-        err.textContent = '3–16 characters: letters, numbers, _ . -';
-        return;
-      }
-      meta.p.name = v;
-      meta.save();
-      modal.remove();
-      this.render();
-    };
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') save();
-    });
-    const modal = h('div', { class: 'modal' }, h('div', { class: 'box panel' }, h('div', { class: 'h2' }, 'Player name'), input, err, h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn ghost', onclick: () => modal.remove() }, 'Cancel'), h('button', { class: 'btn primary', onclick: save }, 'Save'))));
-    this.parent.appendChild(modal);
-    setTimeout(() => input.focus(), 50);
-  }
-
   showNotices() {
     const meta = this.api.meta;
     const n = meta.p.notices.shift();

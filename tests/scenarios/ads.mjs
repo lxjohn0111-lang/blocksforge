@@ -1,16 +1,17 @@
 // Ads and rewarded offers, with the stand-in ads that run off CrazyGames:
 //   node tests/drive.mjs tests/scenarios/ads.mjs 1280 720
-// Checks the menu banner on every tab (and that it never covers menu UI), the Lucky Wheel (free spin,
-// cooldown, ad spin), the boosts, the daily double, the starter kit, the Battle Royale spectating
-// banner with Redeploy, and 2× rewards on the results screen.
+// Checks the 320×50 menu banner on every tab (and that it never covers menu UI), and that there is no
+// banner anywhere else; the Lucky Wheel (free spin, cooldown, ad spin), the boosts, the Ad Vault (one
+// ad per item), the daily double, the starter kit, Redeploy after a Battle Royale elimination, 2×
+// rewards on the results screen, and no ad on the way back to the menu.
 export default async function (page, h) {
   const ok = (cond, msg) => console.log(`${cond ? 'PASS' : 'FAIL'}  ${msg}`);
   await h.waitFor(() => window.__bf && window.__bf.state === 'menu');
   await h.eval(() => { window.__bfDemoAdMs = 250; });
   // the banner and what it would cover: every visible menu element that intersects it
   const banner = () => h.eval(() => {
-    const bar = document.querySelector('.adbar');
-    if (!bar || bar.style.display === 'none' || bar.classList.contains('pending')) return { shown: false };
+    const bar = document.querySelector('.adslot');
+    if (!bar || bar.style.display === 'none' || !bar.childElementCount) return { shown: false };
     const r = bar.getBoundingClientRect();
     const hits = [];
     // the part of an element that is really on screen (scrolling columns clip their content)
@@ -27,7 +28,7 @@ export default async function (page, h) {
       return box.r > box.l && box.b > box.t ? box : null;
     };
     for (const el of document.querySelectorAll('#ui .screen *, #ui .hud *')) {
-      if (el.closest('.adbar') || !el.offsetParent || el.children.length) continue;
+      if (el.closest('.adslot') || !el.offsetParent || el.children.length) continue;
       const v = visible(el);
       if (!v) continue;
       const b = { left: v.l, top: v.t, right: v.r, bottom: v.b };
@@ -42,7 +43,7 @@ export default async function (page, h) {
     await h.eval((t) => [...document.querySelectorAll('.topbar .tab')].find((b) => b.textContent === t)?.click(), tab);
     await h.run(400);
     const b = await banner();
-    ok(b.shown && b.reserved && !b.hits.length, `menu banner on ${tab}: ${JSON.stringify(b)}`);
+    ok(b.shown && b.reserved && b.w === 320 && b.h === 50 && !b.hits.length, `menu banner on ${tab}: ${JSON.stringify(b)}`);
     if (tab === 'Play' || tab === 'Armory' || tab === 'Locker') await h.shot(`ads_menu_${tab.toLowerCase()}`);
   }
   await h.eval(() => [...document.querySelectorAll('.topbar .tab')].find((b) => b.textContent === 'Play')?.click());
@@ -83,8 +84,9 @@ export default async function (page, h) {
   ok(boost.left > 14 * 60000, `2× XP boost running: ${JSON.stringify(boost)}`);
   await h.eval(() => [...document.querySelectorAll('.boostcard .adbtn')].find((b) => /Unlock/.test(b.textContent))?.click());
   await h.run(1200);
-  const vault = await h.eval(() => window.__bf.meta.p.ads.vault);
-  ok(Object.values(vault).some((v) => v === 1), `Ad Vault progress: ${JSON.stringify(vault)}`);
+  await h.eval(() => document.querySelector('.reveal .btn')?.click());
+  const vault = await h.eval(() => ({ owned: window.__bf.meta.owns('outfit:gilded_phantom'), vault: window.__bf.meta.p.ads.vault }));
+  ok(vault.owned, `Ad Vault item unlocked by one ad: ${JSON.stringify(vault)}`);
 
   // ---- daily reward, then doubling it
   await h.eval(() => [...document.querySelectorAll('.card .btn.primary')].find((b) => /Claim daily/.test(b.textContent))?.click());
@@ -119,14 +121,14 @@ export default async function (page, h) {
   await frames(2);
   await h.run(300);
   const spec = await banner();
-  ok(spec.shown && !spec.hits.length, `spectating banner right after the elimination: ${JSON.stringify(spec)}`);
+  ok(!spec.shown, 'no banner while spectating');
   await frames(50);
   await h.run(1600);
   await frames(2);
   const death = await h.eval(() => ({ overlay: window.__bf.hud.overlay, redeploy: !!document.querySelector('.death .redeploy .adbtn') }));
   ok(death.overlay === 'death' && death.redeploy, `death screen with Redeploy: ${JSON.stringify(death)}`);
   const spec2 = await banner();
-  ok(spec2.shown && !spec2.hits.length, `banner clear of the death screen: ${JSON.stringify(spec2)}`);
+  ok(!spec2.shown, 'no banner on the death screen');
   await h.eval(() => { window.__noRender = false; });
   await h.shot('ads_spectate');
   await h.eval(() => { window.__pause = true; window.__noRender = true; document.querySelector('.death .redeploy .adbtn')?.click(); });
@@ -151,7 +153,7 @@ export default async function (page, h) {
   await h.run(800);
   const before = await h.eval(() => ({ coins: window.__bf.meta.p.coins, xp: window.__bf.meta.p.xp, level: window.__bf.meta.p.level, offer: !!document.querySelector('.res2-double .adbtn'), xpLine: document.querySelector('.xpv')?.textContent }));
   const rb = await banner();
-  ok(before.offer && rb.shown && !rb.hits.length, `results: 2× offer and banner clear of the UI: ${JSON.stringify({ ...before, rb })}`);
+  ok(before.offer && !rb.shown, `results: 2× offer, no banner: ${JSON.stringify(before)}`);
   await h.shot('ads_results');
   await h.eval(() => document.querySelector('.res2-double .adbtn')?.click());
   await h.run(1200);
@@ -159,7 +161,11 @@ export default async function (page, h) {
   ok(after.doubled && after.coins > before.coins, `2× rewards granted: ${JSON.stringify(after)}`);
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
   await h.shot('ads_results_doubled');
+  // going to the menu is navigation: no midgame ad on the way
+  await h.eval(() => { window.__adSeen = false; new MutationObserver(() => { if (document.querySelector('.demo-ad')) window.__adSeen = true; }).observe(document.body, { childList: true }); });
   await h.eval(() => [...document.querySelectorAll('.res2-actions .btn')].find((b) => /Menu/.test(b.textContent))?.click());
   await h.waitFor(() => window.__bf.state === 'menu', 30000);
-  ok(true, 'back in the menu');
+  await h.run(1500);
+  ok(!(await h.eval(() => window.__adSeen)), 'no ad on the way back to the menu');
+  ok((await banner()).shown, 'menu banner back');
 }

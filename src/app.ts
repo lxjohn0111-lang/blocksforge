@@ -293,9 +293,10 @@ export class App {
       this.lockPrompt.style.display = !this.touch && !this.input.locked && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
       this.touchUI?.update();
       this.dynamicResolution(raw);
-      // the platform counts play time only while the player is actually in control
+      // the platform counts play time only while the player is actually in control: after "Click to
+      // play" captured the mouse (touch screens need no click), not in pause, death or settings
       const o = this.hud.overlay;
-      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death') platform.gameplayStart();
+      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death' && (this.touch || this.input.locked)) platform.gameplayStart();
       else platform.gameplayStop();
     } else {
       platform.gameplayStop();
@@ -321,13 +322,9 @@ export class App {
     this.perf.render = this.perf.render * 0.9 + (performance.now() - r0) * 0.1;
   }
 
-  /** where the bottom banner belongs right now: the menu (every tab), results, BR spectating */
-  private bannerSpot(): 'menu' | 'results' | 'spectate' | null {
-    if (this.state === 'menu' && this.menu) return 'menu';
-    if (this.state === 'results' && this.resultsEl?.classList.contains('results')) return 'results';
-    const m = this.match;
-    if (this.state === 'match' && m instanceof BRMatch && !m.player.alive && !m.ended && !this.ending) return 'spectate';
-    return null;
+  /** the banner shows in the main menu only (on every tab) */
+  private bannerSpot(): 'menu' | null {
+    return this.state === 'menu' && this.menu ? 'menu' : null;
   }
 
   private dynamicResolution(raw: number) {
@@ -693,7 +690,7 @@ export class App {
       resume: () => this.resume(),
       leave: () => this.leaveMatch(),
       settings: () => this.openSettingsUI(),
-      continueAfterDeath: () => this.leaveMatch(),
+      continueAfterDeath: () => this.leaveMatch(true),
       lockPointer: () => this.lockPointer(),
       unlockPointer: () => this.input.exitLock(),
     });
@@ -746,22 +743,25 @@ export class App {
     this.lockPointer();
   }
 
-  private leaveMatch() {
+  /** leave the match: `over` when the player's round is over anyway (eliminated), not a quit */
+  private leaveMatch(over = false) {
     const m = this.match;
     if (!m) return;
     const r = (m as BRMatch | TDMMatch | TutorialMatch).forfeitResult();
-    this.onMatchEnd(r);
+    this.onMatchEnd(r, over);
   }
 
-  private onMatchEnd(result: MatchResult) {
+  /** `natural`: the match (or the player's round) ended in play, not because the player quit */
+  private onMatchEnd(result: MatchResult, natural = true) {
     if (this.ending) return;
     this.ending = true;
     const delay = this.match && this.match.player.alive && result.mode !== 'tutorial' ? 1200 : 300;
-    // a natural break between the match and its results: not after the Basics, and not when this
-    // death already offered a rewarded "keep playing" (Redeploy) — never both at one break
+    // a natural break between the match and its results. None when the player quit (leaving is
+    // navigation, not a break), after the Basics, or when this death already offered a rewarded
+    // "keep playing" (Redeploy): never both at one break
     const offered = this.hud?.redeployOffered ?? false;
     setTimeout(async () => {
-      if (!result.basics && !offered) await breakAd();
+      if (natural && !result.basics && !offered) await breakAd();
       this.finishMatch(result);
     }, delay);
   }
@@ -795,9 +795,10 @@ export class App {
         this.resultsEl = null;
         afterAd(() => (this.lastSel ? this.play(this.lastSel) : this.showMenu()));
       },
+      // going back to the menu is navigation: no ad there
       menu: () => {
         this.resultsEl = null;
-        afterAd(() => this.showMenu());
+        this.showMenu();
       },
     });
   }

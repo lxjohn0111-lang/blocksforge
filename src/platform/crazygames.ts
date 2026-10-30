@@ -93,6 +93,7 @@ let rewardedFails = 0;
 let rewardedOffUntil = 0;
 let lastDemoMidgame = 0;
 let user: PlatformUser | null = null;
+let portalHost = false;
 let userAvailable = false;
 const adListeners = new Set<() => void>();
 const userListeners = new Set<(u: PlatformUser | null) => void>();
@@ -173,6 +174,10 @@ export const platform = {
   get active() {
     return active;
   },
+  /** running on a CrazyGames host (saves then go to the SDK's data module only, never the browser) */
+  get portal() {
+    return portalHost;
+  },
 
   /**
    * Initialise before the game reads saved progress (init also preloads the player's saved data, so it
@@ -180,6 +185,7 @@ export const platform = {
    */
   async init(timeoutMs = 8000) {
     const portal = onCrazyGames();
+    portalHost = portal;
     if (!sdk() && portal) await loadScript(SDK_URL, timeoutMs);
     const s = sdk();
     if (s) {

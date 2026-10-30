@@ -67,27 +67,22 @@ export function adButton(o: AdOffer): HTMLElement | null {
   return btn;
 }
 
-export type BannerSpot = 'menu' | 'results' | 'spectate';
+/** the one place a banner shows: the main menu (it stays while the player moves between its tabs) */
+export type BannerSpot = 'menu';
 
-/** the sizes CrazyGames serves, largest first */
-const SIZES: [number, number][] = [
-  [728, 90],
-  [468, 60],
-  [320, 50],
-];
-/**
- * Refresh period. The CrazyGames SDK refuses a refresh of the same container sooner than about 30 s
- * after the last one ("bannerCooldown") and caps refreshes per session ("maxRefreshReached"): refresh
- * right after the cooldown, and only while the banner is on screen.
- */
-export const BANNER_REFRESH_MS = 30500;
+/** CrazyGames asked for the 320×50 banner everywhere */
+const SIZE: [number, number] = [320, 50];
+/** refresh period CrazyGames asked for (the SDK itself refuses refreshes sooner than ~30 s) */
+export const BANNER_REFRESH_MS = 35000;
 const ID = 'bf-banner-slot';
 
+/**
+ * The menu banner: the SDK's 320×50 ad straight on the menu background, without a frame of our own,
+ * at the bottom centre. The menu ends above it, so it never covers the menu.
+ */
 export class BannerAds {
-  private wrap: HTMLElement;
   private slot: HTMLElement;
   private spot: BannerSpot | null = null;
-  private size: [number, number] | null = null;
   private filled = false;
   private lastRequest = 0;
   private retryAt = 0;
@@ -97,82 +92,50 @@ export class BannerAds {
 
   constructor(parent: HTMLElement) {
     this.slot = h('div', { id: ID, class: 'adslot' });
-    this.wrap = h('div', { class: 'adbar' }, h('span', { class: 'adlabel' }, 'Advertisement'), this.slot);
-    this.wrap.style.display = 'none';
-    // a dark band across the bottom so the banner sits in the UI rather than over the 3D scene
-    parent.appendChild(h('div', { class: 'adband' }));
-    parent.appendChild(this.wrap);
+    this.slot.style.width = `${SIZE[0]}px`;
+    this.slot.style.height = `${SIZE[1]}px`;
+    this.slot.style.display = 'none';
+    parent.appendChild(this.slot);
     setInterval(() => this.tick(), 1000);
-    let rt = 0;
-    window.addEventListener('resize', () => {
-      clearTimeout(rt);
-      rt = window.setTimeout(() => this.resized(), 400);
-    });
   }
 
-  /** where a banner should show now (null: none, e.g. during play) */
+  /** where a banner should show now (null: nowhere, e.g. outside the main menu) */
   want(spot: BannerSpot | null) {
     if (spot === this.spot) return;
     this.spot = spot;
-    document.body.classList.toggle('ad-spec', spot === 'spectate');
     if (!spot) {
-      this.wrap.style.display = 'none';
+      this.slot.style.display = 'none';
       this.reserve(false);
       return;
     }
     if (platform.adsMode === 'none') return;
-    this.wrap.dataset.spot = spot;
-    const size = this.pick();
-    if (!this.size || size[0] !== this.size[0]) {
-      this.setSize(size);
-      this.filled = false;
-    }
     // back on screen: show what is there and refresh if the cooldown allows
-    if (this.filled) this.showFilled();
+    if (this.filled) this.show();
     this.request();
   }
 
-  private pick(): [number, number] {
-    const w = window.innerWidth;
-    const hh = window.innerHeight;
-    if (w >= 760 && hh >= 560) return SIZES[0];
-    if (w >= 500 && hh >= 400) return SIZES[1];
-    return SIZES[2];
-  }
-
-  private setSize(s: [number, number]) {
-    if (this.size) platform.clearBanner(ID);
-    this.size = s;
-    this.slot.style.width = `${s[0]}px`;
-    this.slot.style.height = `${s[1]}px`;
-  }
-
-  private showFilled() {
-    this.wrap.style.display = '';
+  private show() {
+    this.slot.style.display = '';
     this.reserve(true);
   }
 
-  /** keep the screen's own UI clear of the banner (a banner must never cover game UI) */
+  /** the menu leaves room for the banner (a banner must never cover game UI) */
   private reserve(on: boolean) {
-    const b = document.body;
-    b.classList.toggle('ad-on', on);
-    // banner + its frame (22 px) + the gap below it (6 px) + 2 px air
-    if (on && this.size) document.documentElement.style.setProperty('--adh', `${this.size[1] + 30}px`);
+    document.body.classList.toggle('ad-on', on);
+    // banner + 6 px below + 6 px above
+    if (on) document.documentElement.style.setProperty('--adh', `${SIZE[1] + 12}px`);
   }
 
   private async request() {
-    if (!this.spot || this.busy || this.maxed || !this.size) return;
+    if (!this.spot || this.busy || this.maxed) return;
     const now = Date.now();
     if (now < this.retryAt) return;
     if (this.filled && now - this.lastRequest < BANNER_REFRESH_MS) return;
     if (document.visibilityState === 'hidden' || platform.adPlaying) return;
     this.busy = true;
-    // the container has to be laid out at its size while the SDK fills it; until the first banner
-    // arrives the frame around it stays invisible
-    this.wrap.style.display = '';
-    this.wrap.classList.toggle('pending', !this.filled);
-    const size = this.size;
-    const res = await platform.requestBanner(ID, size[0], size[1]);
+    // the container has to be laid out at its size while the SDK fills it
+    this.slot.style.display = '';
+    const res = await platform.requestBanner(ID, SIZE[0], SIZE[1]);
     this.busy = false;
     this.lastRequest = Date.now();
     if (res === 'ok') {
@@ -181,34 +144,19 @@ export class BannerAds {
     } else if (res === 'cooldown') this.retryAt = Date.now() + 5000;
     else if (res === 'max') this.maxed = true;
     else {
-      // no banner here (ads off, blocked, no fill): back off and keep the screen clear
+      // no banner here (ads off, blocked, no fill): back off and keep the menu as it is
       this.failures++;
       this.retryAt = Date.now() + Math.min(600000, 60000 * this.failures);
     }
-    if (!this.spot) {
-      this.wrap.style.display = 'none';
-      return;
-    }
-    this.wrap.classList.toggle('pending', !this.filled);
-    if (this.filled) this.showFilled();
+    if (this.spot && this.filled) this.show();
     else {
-      this.wrap.style.display = 'none';
+      this.slot.style.display = 'none';
       this.reserve(false);
     }
   }
 
   private tick() {
     if (!this.spot || platform.adsMode === 'none') return;
-    this.request();
-  }
-
-  private resized() {
-    if (!this.spot || platform.adsMode === 'none') return;
-    const s = this.pick();
-    if (this.size && s[0] === this.size[0]) return;
-    this.setSize(s);
-    this.filled = false;
-    this.lastRequest = 0;
     this.request();
   }
 }

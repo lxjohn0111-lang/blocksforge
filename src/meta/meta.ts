@@ -309,10 +309,11 @@ export class Meta {
   }
 
   // ------------------------------------------------------------ ladder
-  ladder() {
+  /** the season ladder; guests (not signed in on CrazyGames) are not listed */
+  ladder(withPlayer = true) {
     const pool = getPool();
     const rows = pool.map((e) => ({ id: e.ident.id, name: e.ident.name, rp: e.state.rp, level: e.state.level, isPlayer: false, wins: e.state.wins, matches: e.state.matches, ident: e.ident }));
-    rows.push({ id: 'player', name: this.p.name, rp: this.p.rank.rp, level: this.p.level, isPlayer: true, wins: this.p.stats.wins, matches: this.p.stats.matches, ident: null as any });
+    if (withPlayer) rows.push({ id: 'player', name: this.p.name, rp: this.p.rank.rp, level: this.p.level, isPlayer: true, wins: this.p.stats.wins, matches: this.p.stats.matches, ident: null as any });
     rows.sort((a, b) => b.rp - a.rp || (a.isPlayer ? -1 : 1));
     return rows;
   }

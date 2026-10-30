@@ -63,14 +63,14 @@ All keys can be rebound in Settings.
 
 ## Ad scenarios
 
-Midgame (153 characters):
+Midgame (141 characters):
 
-Midgame ads only at natural breaks: before a match, between match end and results, and when leaving results. Never during play. Game is paused and muted.
+Midgame ads only at natural breaks: before a match starts and when a match ends, before the results. Never when leaving or going to the menu.
 
-Rewarded (249 characters):
+Rewarded (240 characters):
 
-Opt-in, reward after the ad: 2x XP+coins after a match, BR Redeploy (1x/match), BR starter kit, Rank Shield, Lucky Wheel spin, 200 coins (5 min cooldown), 2x XP 15 min, double daily reward, quest reroll, half-price shop item, Ad Vault skins (3 ads).
+Opt-in, reward after one ad: 2x XP+coins after a match, BR Redeploy (1x/match), BR starter kit, Rank Shield, Lucky Wheel spin, 200 coins (5 min cooldown), 2x XP 15 min, double daily reward, quest reroll, half-price shop item, Ad Vault skin.
 
-Banner (149 characters):
+Banner (125 characters):
 
-One bottom banner in menus, on results and while spectating after a BR death. Never during play, never covers UI. Refreshes every ~30s while visible.
+One 320x50 banner at the bottom of the main menu, on every menu tab. Never in game or on results. Refreshes every 35 seconds.

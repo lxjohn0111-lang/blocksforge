@@ -102,11 +102,14 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
   }
 
   // ---------------------------------------------------------------- actions
-  const sbBox = h('div', { class: 'res2-sb', style: { display: 'none' } });
+  // the scoreboard opens over the results (the results themselves always fit one screen)
+  const sbBox = h('div', { class: 'res2-sb' });
+  const sbModal = h('div', { class: 'modal sbmodal', onclick: (e: MouseEvent) => { if (e.target === sbModal) sbModal.remove(); } },
+    h('div', { class: 'box panel' }, sbBox, h('button', { class: 'btn', onclick: () => sbModal.remove() }, 'Close')));
   const actions = h('div', { class: 'res2-actions' },
     r.mode !== 'tutorial' ? h('button', { class: 'btn big primary', onclick: () => { clearReveals(); root.remove(); cb.again(); } }, h('span', { html: ICON.play(16) }), 'Play again') : null,
     h('button', { class: 'btn big', onclick: () => { clearReveals(); root.remove(); cb.menu(); } }, 'Menu'),
-    r.mode !== 'tutorial' ? h('button', { class: 'btn ghost sbtoggle', onclick: (e: Event) => { const open = sbBox.style.display === 'none'; sbBox.style.display = open ? 'block' : 'none'; (e.currentTarget as HTMLElement).classList.toggle('on', open); } }, h('span', { html: ICON.people(16) }), 'Scoreboard') : null);
+    r.mode !== 'tutorial' ? h('button', { class: 'btn ghost sbtoggle', onclick: () => root.appendChild(sbModal) }, h('span', { html: ICON.people(16) }), 'Scoreboard') : null);
   wrap.appendChild(actions);
   if (r.mode !== 'tutorial') {
     const roster = [...r.roster];
@@ -126,7 +129,7 @@ export function showResults(parent: HTMLElement, r: MatchResult, s: ResultSummar
         h('div', null, h('div', { class: 'teamhead a' }, 'Your team'), h('table', { class: 'sbt' }, headRow(), ...mine.map(row))),
         h('div', null, h('div', { class: 'teamhead b' }, 'Enemies'), h('table', { class: 'sbt' }, headRow(), ...other.map(row)))));
     }
-    wrap.appendChild(sbBox);
+
   }
 
   // ---------------------------------------------------------------- animations: XP through level ups, then RP

@@ -1,6 +1,7 @@
-// Saved data. On CrazyGames every key lives in the SDK's data module (synced to the player's account,
-// kept locally for guests); everywhere else in localStorage. If neither is usable (private mode,
-// blocked site data) the game keeps running from memory and the UI says progress will not persist.
+// Saved data. On CrazyGames every key lives in the SDK's data module only (synced to the player's
+// account, kept by the SDK for guests): the game never touches browser storage there. Everywhere else
+// it uses localStorage. If neither is usable (private mode, blocked site data, the SDK missing) the
+// game keeps running from memory and the UI says progress will not persist.
 
 import { platform } from '../platform/crazygames';
 
@@ -9,6 +10,7 @@ let available: boolean | null = null;
 
 export function storageAvailable(): boolean {
   if (available !== null) return available;
+  if (platform.portal) return (available = false);
   try {
     const k = '__bf_probe__';
     localStorage.setItem(k, '1');
@@ -38,14 +40,7 @@ function readRaw(key: string): string | null {
   const m = memory.get(key);
   if (m != null) return m;
   const cloud = platform.storage();
-  if (cloud) {
-    const v = cloud.get(key);
-    if (v != null) return v;
-    // first run with the SDK: bring progress saved by an earlier, SDK-less build along
-    const local = localGet(key);
-    if (local != null) cloud.set(key, local);
-    return local;
-  }
+  if (cloud) return cloud.get(key);
   return localGet(key);
 }
 
@@ -77,7 +72,8 @@ export function saveJSON(key: string, value: unknown): boolean {
 
 export function removeKey(key: string) {
   memory.delete(key);
-  platform.storage()?.remove(key);
+  const cloud = platform.storage();
+  if (cloud) return cloud.remove(key);
   try {
     if (storageAvailable()) localStorage.removeItem(key);
   } catch {

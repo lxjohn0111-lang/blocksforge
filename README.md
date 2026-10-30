@@ -67,35 +67,35 @@ Portals may run a game in a sandboxed iframe (an opaque "null" origin), serve it
 
 `src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`). With the SDK it:
 
-- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played (not in menus, pause, settings, the death screen or while an ad plays);
+- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played: only after the player clicked **Click to play** (on touch screens play starts right away), and not in menus, pause, settings, the death screen or while an ad plays;
 - calls `happytime` on a win;
 - follows the portal's mute setting;
 - saves all progress through the SDK's data module (see **Saving**);
-- uses the CrazyGames account: a signed-in player plays under their CrazyGames name and picture (read on every start and kept in sync through the auth listener). Guests can always play; a small **Sign in** button next to the name opens the platform's sign-in dialog, only when clicked. There are no other login options.
+- uses the CrazyGames account: a signed-in player plays under their CrazyGames name and picture (read on every start and kept in sync through the auth listener). The name cannot be edited in the game, by guests either. Guests can always play; a small **Sign in** button next to the name opens the platform's sign-in dialog, only when clicked. Guests are not listed on the season ladder. There are no other login options.
 
 Full Launch requirements, and where the game meets them:
 
 - **Lands in gameplay**: a first visit starts the five-step Basics tutorial straight away.
 - **Pause key**: `P` pauses (Esc still releases the mouse and pauses, but on portals Esc also leaves fullscreen). There is no custom fullscreen button.
 - **Consistent physics at 144 and 165 Hz**: gravity is integrated exactly (`src/game/physics.ts`), so jump height and air time are the same at any frame rate; ground movement matches within 1%.
-- **Legible at 907×510** and on phones: checked by the `ads` and `mobile` scenarios.
+- **Fits every screen size**: nothing cut off, overlapping or scrolling just a little, at CrazyGames' embed sizes down to 640×360 with mouse and keyboard and on phones and tablets: checked by the `fit` scenario. On small windows the mouse-and-keyboard HUD shrinks each block toward its corner, and the menu, inventory and scoreboard switch to compact layouts.
 - **English**, no external links, no other ads than the SDK's, and the game runs normally with ads off or blocked.
 
 ### Ads
 
 All ads go through the SDK (`src/ads.ts`, `src/ui/adui.ts`). The game freezes and mutes while one plays.
 
-- **Midgame ads** are requested at every natural break: before a match starts (Find match / Play again), between a match and its results, and when leaving the results screen. The SDK decides how often one really plays (at most one every 3 minutes, none right at the start, spaced from rewarded ads) and ignores the rest, so the game never chains ads. None before the Basics tutorial, and none at a Battle Royale death that already offered Redeploy (CrazyGames allows a midgame ad or a "watch to keep playing" offer at one break, not both).
-- **Rewarded ads**, eleven offers that each pay out only after the ad finished: 2× XP and coins on the results screen; Redeploy after a Battle Royale elimination (once a match, drop back in over the safe zone); the Battle Royale starter kit (Ranger AR, plates, bandages, wood for the next drop); Rank Shield (the next ranked match cannot cost RP); the Lucky Wheel spin; a 200-coin supply drop every 5 minutes; 15 minutes of double XP; doubling the daily reward; an extra quest reroll; Armory items at half price; and the Ad Vault, where watching 3 ads unlocks the Gilded Phantom or Void Ronin legendary outfits (2 for the Prismatic camo). When no rewarded ad can play (ads off, an ad blocker, three no-fills in a row) every offer is hidden for a while, so no button is ever left without effect.
+- **Midgame ads** are requested at the natural breaks between matches: before a match starts (Find match / Play again) and when a match ends in play (win, elimination) before its results. Never when the player leaves a match or goes back to the menu: that is navigation, not a break. The SDK decides how often one really plays (at most one every 3 minutes, none right at the start, spaced from rewarded ads) and ignores the rest. None before the Basics tutorial, and none at a Battle Royale death that already offered Redeploy (CrazyGames allows a midgame ad or a "watch to keep playing" offer at one break, not both).
+- **Rewarded ads**, eleven offers that each pay out only after the ad finished: 2× XP and coins on the results screen; Redeploy after a Battle Royale elimination (once a match, drop back in over the safe zone); the Battle Royale starter kit (Ranger AR, plates, bandages, wood for the next drop); Rank Shield (the next ranked match cannot cost RP); the Lucky Wheel spin; a 200-coin supply drop every 5 minutes; 15 minutes of double XP; doubling the daily reward; an extra quest reroll; Armory items at half price; and the Ad Vault, where one ad unlocks the Gilded Phantom or Void Ronin legendary outfit or the Prismatic camo (CrazyGames does not allow stacked rewarded ads). When no rewarded ad can play (ads off, an ad blocker, three no-fills in a row) every offer is hidden for a while, so no button is ever left without effect.
 - **Lucky Wheel**: a free spin every 10 minutes and another any time for a rewarded ad. Prizes are 50 to 1,000 coins, an epic camo, 15 minutes of double XP, the Lucky Ace legendary outfit, or nothing; the odds are listed under the wheel.
-- **Banner**: one bottom banner, shown on the menu (on every tab: Play, Career, Locker, Armory, Ladder), on the results screen, and from the moment the player is eliminated in Battle Royale while they spectate. It never shows during play, and those screens end above it so it never covers game UI. Its size follows the screen (728×90, 468×60 or 320×50) and it refreshes 30.5 seconds after each request, right after the SDK's minimum of about 30 seconds between refreshes of the same container, only while it is on screen and the tab is visible. A `bannerCooldown` answer retries after 5 seconds; after the SDK's per-session refresh limit (`maxRefreshReached`) the last banner stays.
+- **Banner**: one 320×50 banner at the bottom of the main menu, on every tab (Play, Career, Locker, Armory, Ladder), nowhere else. It sits straight on the menu background without a frame, and the menu's content ends above it, so it never covers the menu. It refreshes every 35 seconds while it is on screen and the tab is visible. A `bannerCooldown` answer retries after 5 seconds; after the SDK's per-session refresh limit (`maxRefreshReached`) the last banner stays.
 - **Off CrazyGames** (own hosting, previews) the ad slots show clearly labelled placeholders, so every flow can be tried; `?ads=off` turns them off.
 
 The text for the submission form (category, tags, description and controls) is in `docs/crazygames-submission.md`.
 
 ## Saving
 
-Your profile, settings and the AI competitors' records go through `src/core/storage.ts`. On CrazyGames every key is stored in the SDK's data module, which syncs it to the player's CrazyGames account (guests keep it locally until they sign in). Progress saved earlier by a build without the SDK is copied over on first load. Everywhere else it is saved in `localStorage` on your device, and if neither is available the game runs from memory and says so in the menu. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
+Your profile, settings and the AI competitors' records go through `src/core/storage.ts`. On CrazyGames every key is stored in the SDK's data module only, which syncs it to the player's CrazyGames account (the SDK keeps guests' progress until they sign in); the game never reads or writes browser storage there. Everywhere else it is saved in `localStorage` on your device, and if neither is available the game runs from memory and says so in the menu. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
 
 ## Testing
 
@@ -108,6 +108,7 @@ Your profile, settings and the AI competitors' records go through `src/core/stor
 - `tutorial`: plays all 14 training steps through the real input layer.
 - `ranked`: promotion, demotion, the ladder and a season rollover.
 - `menutabs`: every menu tab, settings, and the daily reward and its claim limit.
+- `fit`: every screen (menu tabs, Locker categories, the wheel, settings, lobby, Battle Royale and Team Deathmatch HUDs with their panels, death screens, results, the tutorials) at one window size, reporting text that is cut off, text or HUD blocks that overlap, and scroll areas that only scroll a little. Run it at each size, e.g. `node tests/drive.mjs tests/scenarios/fit.mjs 907 510`, and with `BF_MOBILE=1` for touch; `BF_SHOTS=1` saves screenshots.
 - `ads`: every ad placement with the stand-in ads: the menu banner on each tab (and that it covers nothing), the Lucky Wheel (free spin, cooldown, ad spin), the boosts, the daily double, the starter kit, the spectating banner with Redeploy, and 2× rewards. Run it at 1280×720, 907×510 and with `BF_MOBILE=1` at 844×390.
 - `basics`: run with `BF_FIRST_RUN=1` (the driver otherwise skips the first-visit tutorial). Plays the Basics tutorial through the real input layer, screenshots every step and the closing card, and checks it does not come back after a reload.
 - `mobile`: run with `BF_MOBILE=1` and a phone or tablet size, e.g. `BF_MOBILE=1 node tests/drive.mjs tests/scenarios/mobile.mjs 844 390`. Screenshots every screen, drives the stick, look, hotbar, build bar and overlay buttons with real touch events, and reports any HUD or touch control that overlaps another or leaves the screen.

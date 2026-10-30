@@ -934,20 +934,10 @@ body.touch .toggle.on i { left: 27px; }
 .btn.adbtn.loading .adtag { animation: pulse 0.8s infinite; }
 .adtoast { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 60; white-space: nowrap; }
 
-/* bottom banner: one container shared by the menu, results and spectating; the screens leave room */
-.adbar { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 1; padding: 14px 6px 6px; background: rgba(11,13,17,0.88); border: 1px solid var(--line-2); clip-path: var(--chamfer-sm); }
-.adband { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 0px); z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(8,10,13,0.55), rgba(8,10,13,0.92) 40%); border-top: 1px solid var(--line); }
-body.ad-on:not(.ad-spec) .adband { display: block; }
-#ui .adband { pointer-events: none; }
-.adbar .adlabel { position: absolute; top: 2px; left: 8px; font-size: 8.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint); }
-.adbar .adslot { display: block; overflow: hidden; }
-.adbar.pending { background: transparent; border-color: transparent; }
-.adbar.pending .adlabel { visibility: hidden; }
-/* the screen ends above the banner, so nothing (scrolled content included) can slide under it */
-body.ad-on .screen.menu, body.ad-on .screen.results { bottom: var(--adh, 0px); }
-body.ad-on.ad-spec .hud .death { padding-bottom: calc(var(--adh, 0px) + 4vh); }
-/* spectating after a BR elimination: the dead player's own bars give way to the banner */
-body.ad-spec .hud .vitals, body.ad-spec .hud .slots, body.ad-spec .hud .ammo, body.ad-spec .hud .mats, body.ad-spec .hud .buildbar, body.ad-spec .hud .prompt, body.ad-spec .hud .tipbar { display: none !important; }
+/* menu banner: the SDK's 320×50 ad straight on the menu background (no frame of our own); the menu's
+   content ends above it, and the menu background darkens a little behind it */
+.adslot { position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 1; overflow: hidden; }
+body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gradient(0deg, rgba(8,10,13,0.8), rgba(8,10,13,0) calc(var(--adh, 0px) + 28px)), linear-gradient(90deg, rgba(8,10,13,0.86) 0%, rgba(8,10,13,0.45) 42%, rgba(8,10,13,0.2) 60%, rgba(8,10,13,0.7) 100%); }
 
 /* stand-ins off CrazyGames */
 .demo-ad { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(0,0,0,0.93); }
@@ -1048,3 +1038,91 @@ body.ad-spec .hud .vitals, body.ad-spec .hud .slots, body.ad-spec .hud .ammo, bo
 @media (max-width: 1100px) {
   .boostchip { display: none; }
 }
+
+/* ---------------------------------------------------------------- fit on every screen */
+/* scrollbars: thin and dark, in the UI's colours */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.22) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(242,169,59,0.65); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+.modes { display: flex; flex-direction: column; gap: 14px; }
+.seg { flex-wrap: wrap; }
+.seg button { flex: 1 0 auto; white-space: nowrap; }
+.wheel-odds { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 10px; }
+.wheel-odds span { margin: 0; }
+.perks { margin-top: 6px; }
+.ladder-guest { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 8px 12px; font-size: 12.5px; color: var(--dim); background: rgba(255,255,255,0.04); border: 1px solid var(--line); clip-path: var(--chamfer-sm); }
+.btn.adbtn.halfbtn small { opacity: 0.9; }
+
+/* short screens (CrazyGames' small embeds, landscape phones): the modes become one compact row */
+@media (max-height: 640px) {
+  .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .modes .modecard { padding: 10px 10px 9px; }
+  .modes .modecard .title { font-size: 17px; }
+  .modes .modecard .sub, .modes .modecard .meta { display: none; }
+  .modes .modecard .art { width: 54px; height: 54px; right: -6px; top: -6px; }
+}
+
+/* mouse-and-keyboard HUD on small windows: each block shrinks toward its own corner by --hs (set from
+   the window size, 1 at 1280×720 and up), and the blocks stacked on the right move up with them */
+.hud:not(.touch) .vitals { transform: scale(var(--hs, 1)); transform-origin: 0 100%; }
+.hud:not(.touch) .slots { transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 100%; }
+.hud:not(.touch) .ammo { transform: scale(var(--hs, 1)); transform-origin: 100% 100%; }
+.hud:not(.touch) .mats { bottom: calc(22px + 108px * var(--hs, 1)); transform: scale(var(--hs, 1)); transform-origin: 100% 100%; }
+.hud:not(.touch) .minimap { transform: scale(var(--hs, 1)); transform-origin: 100% 0; }
+.hud:not(.touch) .mstatus { top: calc(16px + 202px * var(--hs, 1)); transform: scale(var(--hs, 1)); transform-origin: 100% 0; }
+.hud:not(.touch) .feed { top: calc(16px + 284px * var(--hs, 1)); transform: scale(var(--hs, 1)); transform-origin: 100% 0; }
+.hud:not(.touch) .compass { transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 0; }
+.hud:not(.touch) .scorebar { transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 0; }
+.hud:not(.touch) .toasts { top: calc(14px + 82px * var(--hs, 1)); transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 0; }
+.hud.basics:not(.touch) .toasts { top: calc(14px + 136px * var(--hs, 1)); }
+.hud:not(.touch) .buildbar { bottom: calc(20px + 72px * var(--hs, 1)); transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 100%; }
+.hud:not(.touch) .droptip { bottom: calc(20px + 100px * var(--hs, 1)); transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 100%; }
+.hud:not(.touch) .spawnshield { bottom: calc(20px + 130px * var(--hs, 1)); transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 100%; }
+.hud:not(.touch) .coach { bottom: calc(20px + 180px * var(--hs, 1)); transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 100%; }
+.hud:not(.touch) .tut { top: calc(16px + 94px * var(--hs, 1)); transform: scale(var(--hs, 1)); transform-origin: 0 0; }
+.hud:not(.touch) .prompt { transform: translateX(-50%) scale(var(--hs, 1)); transform-origin: 50% 0; }
+@media (max-width: 900px) {
+  .hud:not(.touch) .vitals { width: 210px; }
+}
+@media (max-height: 420px) {
+  .hud:not(.touch) .feed .k:nth-child(n+3) { display: none; }
+}
+
+/* short windows: the inventory, the scoreboard and the TDM loadouts get compact */
+@media (max-height: 760px) {
+  .inv { max-height: calc(100vh - 20px); padding: 14px 16px; gap: 14px; }
+  .inv h3 { margin-bottom: 6px; font-size: 11px; }
+  .inv h3[style] { margin-top: 6px !important; }
+  .inv .col { gap: 5px; }
+  .invgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .invcell { padding: 4px 7px; gap: 6px; font-size: 11.5px; min-height: 30px; }
+  .invcell canvas { max-height: 22px; width: auto; }
+  .inv .invw canvas { max-height: 26px; }
+  .recipes { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .recipe { padding: 6px 8px; gap: 2px; }
+  .recipe .rn { font-size: 12px; }
+  .recipe .cost { font-size: 10.5px; gap: 6px; flex-wrap: wrap; }
+  .recipe .hint { display: none; }
+  .sbt { font-size: 12px; }
+  .sbt th { padding: 4px 8px; }
+  .sbt td { padding: 3px 8px; }
+  .scoreboard { padding: 12px 16px; max-height: calc(100vh - 16px); }
+}
+@media (max-height: 640px) {
+  .loadout.lo3 canvas { display: none; }
+  .loadout.lo3 { padding: 6px 8px; }
+  .loadout.lo3 .ln { font-size: 12px; }
+  .loadout.lo3 .lw { margin-top: 1px; font-size: 10.5px; }
+  .menu-left > .label { display: none; }
+}
+@media (max-height: 420px) {
+  .inv .invw canvas { display: none; }
+}
+
+.ammo .wn { margin-bottom: 4px; }
+.sbmodal .box { width: min(760px, 94vw); max-height: calc(100vh - 24px); overflow-y: auto; }
+.sbmodal .res2-sb { padding: 0; background: none; border: none; clip-path: none; }
