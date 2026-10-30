@@ -1357,3 +1357,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
 }
 /* touch screens have no number keys: no key badges on the inventory's weapons and recipes */
 .hud.touch .inv .kbd { display: none; }
+/* short but wide windows: settings rows in two columns so each tab fits on one screen */
+@media (max-height: 520px) and (min-width: 640px) {
+  .settings .main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-content: start; }
+  .settings .main > :not(.setrow) { grid-column: 1 / -1; }
+}
