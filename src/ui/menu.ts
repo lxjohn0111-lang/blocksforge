@@ -685,7 +685,7 @@ export class Menu {
   // ------------------------------------------------------------ ARMORY
   private renderArmory() {
     const meta = this.api.meta;
-    const page = h('div', { class: 'page', style: { flex: '1', gridTemplateRows: 'auto 1fr' } });
+    const page = h('div', { class: 'page armorypage', style: { flex: '1', gridTemplateRows: 'auto minmax(0, 1fr)' } });
     const cd = h('span', { class: 'mono dim' });
     const nx = meta.dailyStatus().nextReset;
     const upd = () => (cd.textContent = `Rotates in ${fmtDuration(nx - Date.now())}`);

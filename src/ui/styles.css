@@ -1143,3 +1143,13 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); background: linear-gr
   .ladder-tiers > .row { padding: 3px 6px !important; }
   .ladder-tiers svg { width: 28px; height: 28px; }
 }
+
+/* Armory: the header keeps its full height; only the item grid scrolls */
+.armorypage > .row.panel { overflow: visible; }
+.armorypage > .shopgrid { min-height: 0; overflow-y: auto; }
+@media (max-height: 800px) {
+  .statgrid { gap: 6px; }
+  .stat { padding: 7px 10px; }
+  .stat .v { font-size: 22px; }
+  .stat .l { margin-top: 2px; }
+}
