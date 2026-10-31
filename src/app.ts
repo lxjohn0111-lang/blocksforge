@@ -88,6 +88,9 @@ export class App {
   private startingMatch = false;
   private settingsOpen = false;
   private ending = false;
+  /** the player has started this match themselves ("Click to play", a click or a key in the game, or
+   *  the click that started it): gameplayStart waits for this even when the mouse is already captured */
+  private engaged = false;
   /** on-screen controls instead of keyboard + mouse */
   touch = false;
   private touchUI: TouchControls | null = null;
@@ -101,7 +104,10 @@ export class App {
     this.setTouch(touchControlsActive(this.settings));
     this.lockPrompt = h('div', { class: 'overlay', style: { display: 'none', background: 'rgba(6,8,11,0.35)', zIndex: '5', cursor: 'pointer' } },
       h('div', { class: 'panel', style: { padding: '18px 28px', textAlign: 'center' } }, h('div', { class: 'h2' }, 'Click to play'), h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, 'Mouse is captured for aiming · P to pause')));
-    this.lockPrompt.addEventListener('click', () => this.lockPointer());
+    this.lockPrompt.addEventListener('click', () => {
+      this.engaged = true;
+      this.lockPointer();
+    });
   }
 
   // ===================================================================== boot
@@ -198,6 +204,7 @@ export class App {
     };
     window.addEventListener('keydown', (e) => {
       if (this.state !== 'match' || !this.hud || !this.match || this.settingsOpen) return;
+      this.engaged = true;
       // P pauses: Esc also leaves fullscreen on portals, so it is not the only way to pause
       if (e.code === 'KeyP' && !e.repeat && !Object.values(this.settings.bindings).includes('KeyP')) {
         const o = this.hud.overlay;
@@ -233,6 +240,8 @@ export class App {
       if (e.code === this.settings.bindings.inventory && this.match instanceof TDMMatch) this.hud.showScoreboard(false);
     });
     this.canvas.addEventListener('click', () => {
+      // with the mouse captured, clicks land here (also on "Click to play")
+      if (this.state === 'match') this.engaged = true;
       if (this.state === 'match' && this.hud && this.hud.overlay === 'none' && !this.input.locked) this.lockPointer();
     });
     window.addEventListener('beforeunload', () => this.meta?.save());
@@ -290,13 +299,14 @@ export class App {
       this.hud.update(dt);
       this.perf.hud = this.perf.hud * 0.9 + (performance.now() - t2) * 0.1;
       this.updateAmbience(dt);
-      this.lockPrompt.style.display = !this.touch && !this.input.locked && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
+      this.lockPrompt.style.display = !this.touch && (!this.input.locked || !this.engaged) && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
       this.touchUI?.update();
       this.dynamicResolution(raw);
-      // the platform counts play time only while the player is actually in control: after "Click to
-      // play" captured the mouse (touch screens need no click), not in pause, death or settings
+      // the platform counts play time only while the player is actually in control: once they started
+      // the match themselves and the mouse is captured (touch screens need no click), not in pause,
+      // death or settings
       const o = this.hud.overlay;
-      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death' && (this.touch || this.input.locked)) platform.gameplayStart();
+      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death' && (this.touch || (this.input.locked && this.engaged))) platform.gameplayStart();
       else platform.gameplayStop();
     } else {
       platform.gameplayStop();
@@ -733,6 +743,9 @@ export class App {
     });
     this.state = 'match';
     this.ending = false;
+    // a match the player just clicked into starts at once; one that started on its own (the first
+    // visit's Basics, a slow load) waits for "Click to play"
+    this.engaged = !!(navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
     this.lockPointer();
     audio.resume();
   }
