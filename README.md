@@ -67,7 +67,7 @@ Portals may run a game in a sandboxed iframe (an opaque "null" origin), serve it
 
 `src/platform/crazygames.ts` integrates the HTML5 SDK v3. It loads the SDK only when the game runs on a CrazyGames domain (or locally with `?useLocalSdk=true`). With the SDK it:
 
-- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played: only after the player clicked **Click to play** (on touch screens play starts right away), and not in menus, pause, settings, the death screen or while an ad plays;
+- reports `loadingStart` / `loadingStop` around boot, and `gameplayStart` / `gameplayStop` whenever a match is actually being played: only once the player started the match themselves (clicked **Click to play**, clicked or pressed a key in the game, or clicked the button that started it; on touch screens play starts right away; a match that starts on its own, like the first visit's Basics, waits for **Click to play** even when the browser already captured the mouse), and not in menus, pause, settings, the death screen or while an ad plays;
 - calls `happytime` on a win;
 - follows the portal's mute setting;
 - saves all progress through the SDK's data module (see **Saving**);
