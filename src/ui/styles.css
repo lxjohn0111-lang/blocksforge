@@ -485,7 +485,7 @@ input { font-family: var(--font); }
 .hud.basics .compass, .hud.basics .tut { display: none !important; }
 .hud.basics .toasts { top: calc(150px + env(safe-area-inset-top, 0px)); }
 .qt { position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(380px, 70vw); padding: 12px 18px 14px; text-align: center; background: linear-gradient(180deg, rgba(17,21,27,0.92), rgba(11,13,16,0.88)); border: 1px solid rgba(242,169,59,0.35); clip-path: var(--chamfer); z-index: 6; animation: qtIn .3s cubic-bezier(.2,.9,.2,1); }
-@keyframes qtIn { from { opacity: 0; transform: translate(-50%, -10px); } }
+@keyframes qtIn { from { opacity: 0; transform: translate(-50%, -6px); } }
 .qt-top { display: flex; align-items: center; justify-content: center; gap: 10px; position: relative; min-height: 18px; }
 .qt-n { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: var(--accent); }
 .qt-dots { display: flex; gap: 5px; }
