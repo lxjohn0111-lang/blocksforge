@@ -167,5 +167,7 @@ export default async function (page, h) {
   await h.waitFor(() => window.__bf.state === 'menu', 30000);
   await h.run(1500);
   ok(!(await h.eval(() => window.__adSeen)), 'no ad on the way back to the menu');
+  // the banner comes with the menu's first frame (slow in software rendering)
+  for (let i = 0; i < 30 && !(await banner()).shown; i++) await h.run(500);
   ok((await banner()).shown, 'menu banner back');
 }
