@@ -1154,11 +1154,13 @@ export class HUD {
     }
   }
 
-  /** the mouse-and-keyboard HUD shrinks with small windows: --hs scales every corner block toward its
-   * corner (touch screens have their own compact layout) */
+  /** the mouse-and-keyboard HUD shrinks a little with small windows: --hs scales every corner block
+   * toward its corner, --ht the text-heavy ones (feed, notices, match status, materials), which stay
+   * nearly full size to stay readable (touch screens have their own compact layout) */
   private fit = () => {
-    const s = Math.max(0.6, Math.min(1, innerWidth / 1280, innerHeight / 720));
+    const s = Math.max(0.75, Math.min(1, innerWidth / 1100, innerHeight / 620));
     this.root.style.setProperty('--hs', s.toFixed(3));
+    this.root.style.setProperty('--ht', Math.max(0.9, s).toFixed(3));
   };
 
   dispose() {

@@ -145,6 +145,10 @@ export class Menu {
     this.tick = window.setInterval(() => this.timers.forEach((f) => f()), 1000);
     // rewarded offers appear / disappear with ad availability, the name with the CrazyGames account
     this.unsub.push(platform.onAdsChange(() => this.render()), platform.onUser(() => this.render()));
+    addEventListener('resize', this.fitTopbar);
+    // the display font changes the bar's width once it has loaded
+    void document.fonts?.ready.then(this.fitTopbar);
+    this.unsub.push(() => removeEventListener('resize', this.fitTopbar));
     // pending notices (season reset etc.)
     setTimeout(() => this.showNotices(), 300);
   }
@@ -165,6 +169,7 @@ export class Menu {
     clear(this.root);
     this.timers = [];
     this.root.appendChild(this.topbar());
+    this.fitTopbar();
     this.body = h('div', { class: 'mbody', style: { flex: '1', display: 'flex', minHeight: '0' } });
     this.root.appendChild(this.body);
     switch (this.tab) {
@@ -212,6 +217,22 @@ export class Menu {
       ),
     );
   }
+
+  /** the top bar always fits the window: when it would not (a long account name, a narrow window) it
+   *  drops, one at a time, the brand's name, the XP bar, the player's name and the player box, so the
+   *  tabs and the buttons at the right end never leave the screen */
+  private fitTopbar = () => {
+    const bar = this.root.querySelector<HTMLElement>('.topbar');
+    if (!bar) return;
+    const tabs = bar.querySelector<HTMLElement>('.tabs');
+    const over = () => bar.scrollWidth > bar.clientWidth + 1 || (!!tabs && tabs.scrollWidth > tabs.clientWidth + 1);
+    const steps = ['fit1', 'fit2', 'fit3', 'fit4'];
+    bar.classList.remove(...steps);
+    for (const st of steps) {
+      if (!over()) break;
+      bar.classList.add(st);
+    }
+  };
 
   /** player name and look; the CrazyGames account name and picture when signed in */
   private whoBox() {
@@ -454,7 +475,7 @@ export class Menu {
           } })
         : null;
     if (btn && !st.claimable) btn.style.marginTop = '10px';
-    return h('div', { class: 'card panel' }, h('div', { class: 'head' }, h('span', { class: 'label' }, 'Daily rewards'), cd), grid, btn);
+    return h('div', { class: 'card panel dailycard' }, h('div', { class: 'head' }, h('span', { class: 'label' }, 'Daily rewards'), cd), grid, btn);
   }
 
   private questCard() {
@@ -506,7 +527,7 @@ export class Menu {
       const rewardRarity = ch.reward.startsWith('coins') ? 'common' : 'epic';
       const rw = { kind: ch.reward.startsWith('coins') ? 'coins' : 'cosmetic', id: ch.reward, label: ch.reward.startsWith('coins') ? `${ch.reward.split(':')[1]} Coins` : cosmeticName(ch.reward), rarity: rewardRarity } as Reward;
       row.appendChild(h('div', { class: 'row', style: { background: 'rgba(0,0,0,0.35)', padding: '6px 8px', clipPath: 'var(--chamfer-sm)', gap: '10px' } },
-        h('div', { style: { width: '62px', height: '34px', display: 'grid', placeItems: 'center', transform: 'scale(0.5)', transformOrigin: 'center' } }, rewardArt(rw)),
+        h('div', { class: 'evart' }, rewardArt(rw)),
         h('div', { class: 'col grow', style: { gap: '3px' } }, h('span', { style: { fontSize: '12.5px' } }, ch.text), h('span', { class: `rar-${rw.rarity}`, style: { fontSize: '10.5px', letterSpacing: '0.08em', textTransform: 'uppercase' } }, rw.label),
           live ? h('div', { class: 'bar', style: { height: '4px' } }, h('i', { style: { width: `${(prog / ch.target) * 100}%`, background: def.accent } })) : null),
         live ? (claimed ? h('span', { class: 'chip' }, 'Claimed') : done ? h('button', { class: 'btn primary', style: { padding: '4px 10px', fontSize: '11px' }, onclick: () => { const r = meta.claimEvent(ch); if (r) showReveal(this.parent, def.name, 'Event reward', [r], () => this.render()); } }, 'Claim') : h('span', { class: 'mono dim', style: { fontSize: '11px' } }, `${fmt(prog)}/${fmt(ch.target)}`)) : h('span', { html: ICON.lock(14), class: 'dim' })));

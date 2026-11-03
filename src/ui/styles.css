@@ -1365,12 +1365,15 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
   .settings .main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-content: start; }
   .settings .main > :not(.setrow) { grid-column: 1 / -1; }
 }
-/* the daily track's seven days share the card's width whatever their labels */
+/* the daily track's seven days share the card's width whatever their labels; on a narrow card they
+   go in two rows (4 + 3) so the labels stay readable */
 .daily { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .daily .d { min-width: 0; overflow-wrap: anywhere; }
-@media (max-width: 900px) {
-  .daily { gap: 3px; }
-  .daily .d { font-size: 8px; letter-spacing: 0; padding: 2px 1px; }
+.dailycard { container-type: inline-size; }
+@container (max-width: 440px) {
+  .daily { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .daily .d { aspect-ratio: auto; min-height: 52px; padding: 5px 3px; font-size: 10.5px; letter-spacing: 0.02em; overflow-wrap: normal; line-height: 1.15; }
+  .daily .d b { font-size: 15px; }
 }
 /* the smallest windows (360 px high): a little tighter still */
 @media (max-height: 380px) {
@@ -1383,3 +1386,56 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
   .recipe .cost { font-size: 9.5px; }
   .recipe .kbd { transform: scale(0.75); margin: -4px -5px -4px 0; }
 }
+/* event rewards: a fixed thumbnail that never shrinks into the challenge text */
+.event-card .evart { flex: none; width: 64px; height: 36px; display: grid; place-items: center; overflow: hidden; }
+.event-card .evart > * { flex: none; transform: scale(0.46); }
+
+/* ---- mouse-and-keyboard HUD, readable on small windows (CrazyGames review): blocks scale by --hs
+   (0.75 at the smallest), text blocks by --ht (0.9 at the smallest); the right column stacks the
+   minimap, the match status and the kill feed, the feed shows fewer lines on shorter windows, and
+   on short windows the materials move to the left above the health bars */
+.feed .k { font-size: 13.5px; }
+.feed .k .w { font-size: 12px; }
+.toast { font-size: 14px; }
+.mstatus .r { font-size: 13px; }
+.mstatus .r b { font-size: 18px; }
+.slot .k { font-size: 11px; }
+.slot .n { font-size: 12px; }
+.hud:not(.touch) { --mm: 196px; }
+.hud:not(.touch) .mstatus { top: calc(16px + (var(--mm) + 6px) * var(--hs, 1)); transform: scale(var(--ht, 1)); }
+.hud:not(.touch) .feed { top: calc(16px + (var(--mm) + 6px) * var(--hs, 1) + 82px * var(--ht, 1)); transform: scale(var(--ht, 1)); }
+.hud:not(.touch) .toasts { transform: translateX(-50%) scale(var(--ht, 1)); }
+.hud:not(.touch) .prompt { transform: translateX(-50%) scale(var(--ht, 1)); }
+.hud:not(.touch) .mats { bottom: calc(22px + 100px * var(--hs, 1)); transform: scale(var(--ht, 1)); }
+@media (max-height: 620px) {
+  .hud:not(.touch) .feed .k:nth-child(n+4) { display: none; }
+}
+@media (max-height: 520px) {
+  .hud:not(.touch) .mats { right: auto; left: 24px; align-items: flex-start; bottom: calc(22px + 70px * var(--hs, 1)); transform-origin: 0 100%; }
+}
+@media (max-height: 420px) {
+  .hud:not(.touch) { --mm: 160px; }
+  .hud:not(.touch) .minimap { width: 160px; height: 160px; }
+}
+@media (max-width: 1100px) {
+  .hud:not(.touch) .slot { width: 76px; height: 50px; }
+  .hud:not(.touch) .slot.small { width: 48px; }
+  .hud:not(.touch) .slot canvas { max-width: 66px; max-height: 34px; }
+  .hud:not(.touch) .vitals { width: 220px; }
+}
+@media (max-width: 900px) {
+  .hud:not(.touch) .vitals { width: 210px; }
+  .hud:not(.touch) .compass { width: 380px; }
+}
+@media (max-width: 760px) {
+  .hud:not(.touch) .slot { width: 62px; height: 46px; }
+  .hud:not(.touch) .slot.small { width: 40px; }
+  .hud:not(.touch) .slot canvas { max-width: 54px; max-height: 30px; }
+  .hud:not(.touch) .vitals { width: 170px; }
+}
+/* the top bar's fallbacks when it would not fit (set by the menu after measuring) */
+.topbar .wallet { flex-shrink: 0; }
+.topbar.fit1 .brand > span:last-child { display: none; }
+.topbar.fit2 .lvl > .col { display: none; }
+.topbar.fit3 .wallet .who .col { display: none; }
+.topbar.fit4 .wallet .who { display: none; }

@@ -521,7 +521,8 @@ export class Effects {
     } else {
       for (let i = 0; i < 6; i++) {
         const v = dir.clone().multiplyScalar(2.5).add(new THREE.Vector3((Math.random() - 0.5) * 3, Math.random() * 3, (Math.random() - 0.5) * 3));
-        this.cube(p, v, new THREE.Color(0.35, 0.02, 0.02), 0.05 + Math.random() * 0.04, 0.6 + Math.random() * 0.5);
+        // black, never red: the game shows no blood
+        this.cube(p, v, new THREE.Color(0.025, 0.025, 0.03), 0.05 + Math.random() * 0.04, 0.6 + Math.random() * 0.5);
       }
     }
   }

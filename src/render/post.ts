@@ -187,8 +187,9 @@ void main() {
   float vig = 1.0 - dot(d, d) * uVignette;
   c *= vig;
   float edge = smoothstep(0.25, 0.75, length(d) * 1.4);
-  c = mix(c, vec3(0.55, 0.02, 0.02), edge * uDamage * 0.7);
-  c = mix(c, c * vec3(1.0, 0.75, 0.75), uLowHealth * edge * (0.5 + 0.5 * sin(uTime * 6.0)));
+  // taking damage darkens the screen's edges (black, not blood red)
+  c = mix(c, vec3(0.02, 0.02, 0.025), edge * uDamage * 0.7);
+  c = mix(c, c * 0.6, uLowHealth * edge * (0.5 + 0.5 * sin(uTime * 6.0)));
   c = mix(c, c + vec3(0.1, 0.3, 0.5) * edge, uSpawnShield * 0.5);
   c += vec3(uFlash);
   float g = fract(sin(dot(vUv * (uTime + 1.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
