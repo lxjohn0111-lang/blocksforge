@@ -17,7 +17,7 @@ import { computeAllLight } from './world/lighting';
 import type { MapData } from './world/maps/builder';
 import { CHUNK } from './world/world';
 import { Meta } from './meta/meta';
-import { playerIdentity } from './meta/profile';
+import { guestName, playerIdentity } from './meta/profile';
 import { composeLook } from './meta/cosmetics';
 import { getPool, pickBots, difficultyFor, lobbySkills } from './meta/botPool';
 import { Match, type MatchConfig, type MatchResult } from './game/match';
@@ -153,10 +153,12 @@ export class App {
     await step(0.96, 'Loading profiles');
     getPool();
     this.meta = new Meta();
-    // signed in on CrazyGames: play under the account's name
+    // signed in on CrazyGames: play under the account's name; guests, also right after signing out,
+    // play under their own guest name, never the last account's
     const useAccount = (u: typeof platform.user) => {
-      if (!u) return;
-      this.meta.p.name = u.username.slice(0, 20);
+      const name = u ? u.username.slice(0, 20) : guestName(this.meta.p);
+      if (this.meta.p.name === name) return;
+      this.meta.p.name = name;
       this.meta.save();
     };
     useAccount(platform.user);

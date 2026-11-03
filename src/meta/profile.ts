@@ -117,6 +117,11 @@ function emptyStats(): LifetimeStats {
   };
 }
 
+/** the name a player has without an account (also right after signing out) */
+export function guestName(p: Profile) {
+  return 'Player' + (1000 + (p.seed % 9000));
+}
+
 export function newProfile(): Profile {
   const now = Date.now();
   const seed = Math.floor(Math.random() * 1e9);

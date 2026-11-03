@@ -71,7 +71,7 @@ Portals may run a game in a sandboxed iframe (an opaque "null" origin), serve it
 - calls `happytime` on a win;
 - follows the portal's mute setting;
 - saves all progress through the SDK's data module (see **Saving**);
-- uses the CrazyGames account: a signed-in player plays under their CrazyGames name and picture (read on every start and kept in sync through the auth listener). The name cannot be edited in the game, by guests either. Guests can always play; a small **Sign in** button next to the name opens the platform's sign-in dialog, only when clicked. Guests are not listed on the season ladder. There are no other login options.
+- uses the CrazyGames account: a signed-in player plays under their CrazyGames name and picture (read on every start and kept in sync through the auth listener). The name cannot be edited in the game, by guests either; guests play as their own `Player####` guest name, and signing out switches back to it (the account's name never carries over). Guests can always play; a small **Sign in** button next to the name opens the platform's sign-in dialog, only when clicked. Guests are not listed on the season ladder. There are no other login options.
 
 Full Launch requirements, and where the game meets them:
 
@@ -95,7 +95,7 @@ The text for the submission form (category, tags, description and controls) is i
 
 ## Saving
 
-Your profile, settings and the AI competitors' records go through `src/core/storage.ts`. On CrazyGames every key is stored in the SDK's data module only, which syncs it to the player's CrazyGames account (the SDK keeps guests' progress until they sign in); the game never reads or writes browser storage there. Everywhere else it is saved in `localStorage` on your device, and if neither is available the game runs from memory and says so in the menu. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
+Your profile, settings and the AI competitors' records go through `src/core/storage.ts`. On CrazyGames every key is stored in the SDK's data module only, which syncs it to the player's CrazyGames account (the SDK keeps guests' progress until they sign in); the game never reads or writes browser storage there. The data module is not called on every change: each key is read once, and changes go out in one batch at most every 30 seconds (and right away when the page is left or hidden, or progress is reset). Everywhere else it is saved in `localStorage` on your device, and if neither is available the game runs from memory and says so in the menu. Daily rewards, quests and events follow your device clock. You can erase all of it under **Settings → About → Reset progress**.
 
 ## Testing
 

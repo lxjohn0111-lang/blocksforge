@@ -6,6 +6,7 @@ import { audio } from '../audio/audio';
 import { ICON } from './icons';
 import { resetProfile } from '../meta/profile';
 import { resetPool } from '../meta/botPool';
+import { flushSaves } from '../core/storage';
 
 type Tab = 'graphics' | 'audio' | 'controls' | 'gameplay' | 'about';
 
@@ -149,6 +150,8 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
         }
         resetProfile();
         resetPool();
+        // a reset is a save that cannot wait for the next batch
+        flushSaves();
         location.reload();
       } }, h('span', { html: ICON.close(12) }), 'Reset') as HTMLButtonElement;
       main.appendChild(h('div', { class: 'setrow' }, h('div', null, 'Reset progress', h('div', { class: 'd' }, 'Erase level, coins, unlocks, rank and history on this device. Click twice to confirm; this cannot be undone.')), resetBtn));
