@@ -1442,3 +1442,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 @media (max-width: 680px) {
   .tab { padding-left: 8px; padding-right: 8px; letter-spacing: 0.1em; }
 }
+/* shorter windows: the Armory header on one line, so two rows of items fit without a little scroll */
+@media (max-height: 680px) {
+  .armorypage > .row.panel { padding: 10px 18px !important; flex-direction: row; align-items: center; }
+  .armorypage .h1 { font-size: 28px; }
+}
