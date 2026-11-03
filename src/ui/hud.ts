@@ -270,7 +270,12 @@ export class HUD {
         );
       card.appendChild(h('div', { class: 'qt-tick', html: ICON.check(28) }));
     }
-    // marker: where the step happens, pinned to the screen edge when it is off screen
+    this.updateGoalMarker(tut);
+  }
+
+  /** the tutorial's marker: where the step happens, pinned to the screen edge when it is off screen */
+  private updateGoalMarker(tut: TutorialMatch) {
+    const E = this.els;
     const goal = tut.objective();
     const mark = E.qtmark;
     if (!goal || !tut.player.alive) {
@@ -820,6 +825,7 @@ export class HUD {
               this.touch ? 'Skip step' : h('span', null, h('span', { class: 'kbd' }, 'N'), ' Skip step')),
           );
       }
+      this.updateGoalMarker(tut);
     }
 
     // post fx for damage/zone

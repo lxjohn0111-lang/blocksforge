@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { Match, type MatchConfig, type MatchResult, type KillEvent } from './match';
 import type { Engine } from '../render/engine';
 import type { MapData } from '../world/maps/builder';
-import type { Combatant, Identity } from './combatant';
+import type { Combatant, Identity, SlotIndex } from './combatant';
 import { randomLook } from '../render/characters';
 import { BotBrain } from './ai/bot';
 import { makePersonality } from './ai/personality';
 import { keyLabel, type Settings } from '../core/settings';
 import { audio } from '../audio/audio';
+import { B } from '../world/blocks';
 
 export interface TutorialStep {
   id: string;
@@ -84,8 +85,8 @@ export class TutorialMatch extends Match {
       { id: 'shoot', title: 'Down a target dummy', hint: t(`${k('fire')} to fire. Short bursts stay accurate.`, 'Hold the fire button. Short bursts stay accurate.') },
       { id: 'reload', title: 'Reload', hint: t(`Press ${k('reload')} to reload.`, 'Tap the reload button.') },
       { id: 'ads', title: 'Aim down sights', hint: t(`Hold ${k('aim')} and hit the dummy on the wall.`, 'Tap the aim button, then hit the dummy on the wall.') },
-      { id: 'chest', title: 'Open the supply chest', hint: t(`Chests by the firing line hold better loot. ${k('interact')} to open.`, 'Chests by the firing line hold better loot. Tap the open button next to one.') },
-      { id: 'scope', title: 'Scope in', hint: t(`Equip the Longshot, hold ${k('aim')}, scroll to change zoom, hit a far dummy.`, 'Equip the Longshot, tap aim to scope in and hit a far dummy.') },
+      { id: 'chest', title: 'Open the supply chest', hint: t(`Follow the marker to the chest at the end of the firing line, face it and press ${k('interact')}.`, 'Follow the marker to the chest at the end of the firing line, face it and tap the hand button.') },
+      { id: 'scope', title: 'Scope in', hint: t(`The Longshot is in your hands: hold ${k('aim')} to scope in, scroll to zoom, then hit a far dummy.`, 'The Longshot is in your hands: tap aim to scope in, then hit a far dummy.') },
       { id: 'harvest', title: 'Harvest materials', hint: t(`Harvest tool ${k('tool')}. Hit trees and boulders for 30 wood.`, 'Tap the pick in the hotbar, then hold fire on trees and boulders for 30 wood.'), progress: () => `${Math.min(30, this.player.mats.wood)}/30` },
       { id: 'build', title: 'Build up to the ledge', hint: t(`Press ${k('build')} to build, choose Ramp and ${k('fire')} to place it. Climb onto the ledge.`, 'Tap the build button, choose Ramp and tap fire to place it. Climb onto the ledge.') },
       { id: 'craft', title: 'Craft bandages', hint: t(`Open ${k('inventory')} and craft Bandages from cloth.`, 'Open the bag and tap Bandages to craft them from cloth.') },
@@ -138,7 +139,7 @@ export class TutorialMatch extends Match {
     return this.steps[this.index];
   }
 
-  /** where the current step happens, for the on-screen marker (quick tutorial) */
+  /** where the current step happens, for the on-screen marker */
   objective(): THREE.Vector3 | null {
     const st = this.map.stations!;
     const at = (q: { x: number; y: number; z: number }, up = 0.6) => new THREE.Vector3(q.x, q.y + up, q.z);
@@ -154,6 +155,14 @@ export class TutorialMatch extends Match {
       case 'shoot': {
         const d = this.dummies.find((x) => x.key === 'dummy1');
         return d && d.c.alive ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : null;
+      }
+      case 'chest': {
+        const ch = this.map.chests.find((c) => this.world.get(c.x, c.y, c.z) === B.CHEST);
+        return ch ? new THREE.Vector3(ch.x + 0.5, ch.y + 1.4, ch.z + 0.5) : null;
+      }
+      case 'scope': {
+        const d = this.dummies.find((x) => x.key === 'far1' && x.c.alive) ?? this.dummies.find((x) => x.key === 'far2' && x.c.alive);
+        return d ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : null;
       }
       default:
         return null;
@@ -220,15 +229,17 @@ export class TutorialMatch extends Match {
   }
 
   private ensureLongshot() {
-    // chest loot is random: make sure a Longshot is always within reach for the scope step
+    // chest loot is random: the scope step puts a Longshot straight into the player's hands
     const p = this.player;
-    const st = this.map.stations!;
-    const has = p.weapons.some((w) => w?.def.id === 'longshot') || this.items.some((it) => !it.taken && it.spec.kind === 'weapon' && it.spec.weapon === 'longshot');
-    if (!has) {
-      this.spawnItem({ kind: 'weapon', weapon: 'longshot' }, new THREE.Vector3(st.range.x + 2, st.range.y + 0.5, st.range.z), new THREE.Vector3(0, 3, 0));
-      this.events.emit('toast', { text: 'A Longshot was dropped at the firing line', kind: 'loot' });
+    let slot = p.weapons.findIndex((w) => w?.def.id === 'longshot');
+    if (slot < 0) {
+      const given = p.giveWeapon('longshot');
+      slot = given.slot;
+      if (given.dropped) this.spawnItem({ kind: 'weapon', weapon: given.dropped.def.id }, p.body.pos.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, 2, 0));
+      this.events.emit('toast', { text: `Longshot added to slot ${slot + 1}`, kind: 'loot' });
     }
-    if (p.ammo.heavy < 10) this.spawnItem({ kind: 'ammo', ammo: 'heavy', count: 20 }, new THREE.Vector3(st.range.x + 3, st.range.y + 0.5, st.range.z), new THREE.Vector3(0, 3, 0));
+    if (p.ammo.heavy < 10) p.addAmmo('heavy', 20);
+    if (p.alive) this.switchSlot(p, slot as SlotIndex);
   }
 
   private giveCloth() {

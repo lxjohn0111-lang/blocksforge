@@ -1378,9 +1378,29 @@ export class Match {
   lookChest(c: Combatant): { x: number; y: number; z: number } | null {
     const eye = c.eye();
     const dir = c.aimDir();
-    const hit = this.world.raycast(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, 3.3, (id) => IS_SOLID[id] === 1 || id === B.CHEST);
+    const solid = (id: number) => IS_SOLID[id] === 1 || id === B.CHEST;
+    const hit = this.world.raycast(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, 3.3, solid);
     if (hit && hit.id === B.CHEST) return { x: hit.x, y: hit.y, z: hit.z };
-    return null;
+    // a closed chest right in front counts too: a one-block chest is easy to miss with the crosshair
+    const hd = Math.hypot(dir.x, dir.z);
+    let best: { x: number; y: number; z: number } | null = null;
+    let bestCos = 0.8;
+    for (const ch of this.map.chests) {
+      const fx = ch.x + 0.5 - c.body.pos.x, fz = ch.z + 0.5 - c.body.pos.z;
+      const flat = Math.hypot(fx, fz);
+      if (flat > 2.4 || this.world.get(ch.x, ch.y, ch.z) !== B.CHEST) continue;
+      // which way the player faces matters, not how far up or down they look
+      const cos = hd < 0.2 || flat < 0.6 ? 1 : (fx * dir.x + fz * dir.z) / (flat * hd);
+      if (cos <= bestCos) continue;
+      // and nothing solid in between
+      const tx = ch.x + 0.5 - eye.x, ty = ch.y + 0.5 - eye.y, tz = ch.z + 0.5 - eye.z;
+      const d = Math.hypot(tx, ty, tz);
+      const los = this.world.raycast(eye.x, eye.y, eye.z, tx / d, ty / d, tz / d, d + 0.5, solid);
+      if (!los || los.x !== ch.x || los.y !== ch.y || los.z !== ch.z) continue;
+      bestCos = cos;
+      best = { x: ch.x, y: ch.y, z: ch.z };
+    }
+    return best;
   }
 
   interact(c: Combatant): boolean {
