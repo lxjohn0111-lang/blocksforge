@@ -88,6 +88,10 @@ export class App {
   private startingMatch = false;
   private settingsOpen = false;
   private ending = false;
+  /** this match already had its break ad (at the player's elimination) */
+  private breakShown = false;
+  /** the latest death screen offered Redeploy (a rewarded "keep playing") instead of a break ad */
+  private rewardedOffer = false;
   /** the player has started this match themselves ("Click to play", a click or a key in the game, or
    *  the click that started it): gameplayStart waits for this even when the mouse is already captured */
   private engaged = false;
@@ -702,7 +706,15 @@ export class App {
       resume: () => this.resume(),
       leave: () => this.leaveMatch(),
       settings: () => this.openSettingsUI(),
-      continueAfterDeath: () => this.leaveMatch(true),
+      // Continue after an elimination is navigation: the break ad already ran when the player died
+      continueAfterDeath: () => this.leaveMatch(),
+      deathBreak: (rewardedOffer) => {
+        // a "watch to keep playing" offer (Redeploy) and a midgame ad never share a break
+        this.rewardedOffer = rewardedOffer;
+        if (rewardedOffer || this.breakShown) return;
+        this.breakShown = true;
+        void breakAd();
+      },
       lockPointer: () => this.lockPointer(),
       unlockPointer: () => this.input.exitLock(),
     });
@@ -745,6 +757,8 @@ export class App {
     });
     this.state = 'match';
     this.ending = false;
+    this.breakShown = false;
+    this.rewardedOffer = false;
     // a match the player just clicked into starts at once; one that started on its own (the first
     // visit's Basics, a slow load) waits for "Click to play"
     this.engaged = !!(navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
@@ -758,12 +772,12 @@ export class App {
     this.lockPointer();
   }
 
-  /** leave the match: `over` when the player's round is over anyway (eliminated), not a quit */
-  private leaveMatch(over = false) {
+  /** leave the match (quit, or Continue after an elimination): navigation, so no ad on the way */
+  private leaveMatch() {
     const m = this.match;
     if (!m) return;
     const r = (m as BRMatch | TDMMatch | TutorialMatch).forfeitResult();
-    this.onMatchEnd(r, over);
+    this.onMatchEnd(r, false);
   }
 
   /** `natural`: the match (or the player's round) ended in play, not because the player quit */
@@ -771,12 +785,12 @@ export class App {
     if (this.ending) return;
     this.ending = true;
     const delay = this.match && this.match.player.alive && result.mode !== 'tutorial' ? 1200 : 300;
-    // a natural break between the match and its results. None when the player quit (leaving is
-    // navigation, not a break), after the Basics, or when this death already offered a rewarded
-    // "keep playing" (Redeploy): never both at one break
-    const offered = this.hud?.redeployOffered ?? false;
+    // a natural break between the match and its results. None when the player left (navigation, not
+    // a break), after the Basics, or when the player's elimination already had its break (an ad, or a
+    // Redeploy offer the player let go)
+    const breakDone = this.breakShown || (this.rewardedOffer && !this.match?.player.alive);
     setTimeout(async () => {
-      if (natural && !result.basics && !offered) await breakAd();
+      if (natural && !result.basics && !breakDone) await breakAd();
       this.finishMatch(result);
     }, delay);
   }
@@ -799,16 +813,16 @@ export class App {
     this.engine.setChunks(this.brRenderer);
     this.resetAtmosphereForMenu();
     if (result.won) platform.happytime();
-    // between matches is the one place a platform ad may run (muted, nothing else happening)
-    const afterAd = (go: () => void) => void breakAd().then(go);
     this.resultsEl = showResults(this.ui, result, summary, {
       double: () => {
         const levelUps = this.meta.doubleMatchRewards(summary);
         return { levelUps, level: this.meta.p.level, xp: this.meta.p.xp };
       },
+      // the next match brings its own break before it starts
       again: () => {
         this.resultsEl = null;
-        afterAd(() => (this.lastSel ? this.play(this.lastSel) : this.showMenu()));
+        if (this.lastSel) void this.play(this.lastSel);
+        else this.showMenu();
       },
       // going back to the menu is navigation: no ad there
       menu: () => {

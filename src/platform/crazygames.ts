@@ -328,8 +328,10 @@ export const platform = {
     if (adPlaying) return void done();
     if (adsMode === 'demo') {
       // the same pacing the SDK applies: not in the first 3 minutes, then at most one per 3 minutes
+      // (tests shorten it to see where the breaks fall)
+      const pace = (window as unknown as { __bfDemoPacingMs?: number }).__bfDemoPacingMs ?? 180000;
       const now = performance.now();
-      if (now - bootAt < 180000 || now - lastDemoMidgame < 180000) return void done();
+      if (now - bootAt < pace || now - lastDemoMidgame < pace) return void done();
       lastDemoMidgame = now;
       demoAd('midgame', cb);
       return;

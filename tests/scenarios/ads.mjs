@@ -11,8 +11,9 @@ export default async function (page, h) {
   // the banner and what it would cover: every visible menu element that intersects it
   const banner = () => h.eval(() => {
     const bar = document.querySelector('.adslot');
-    if (!bar || bar.style.display === 'none' || !bar.childElementCount) return { shown: false };
-    const r = bar.getBoundingClientRect();
+    if (!bar || !bar.checkVisibility() || !bar.childElementCount) return { shown: false };
+    // nothing of the menu may reach into the banner's footer bar
+    const r = bar.closest('.adfoot').getBoundingClientRect();
     const hits = [];
     // the part of an element that is really on screen (scrolling columns clip their content)
     const visible = (el) => {
@@ -28,7 +29,7 @@ export default async function (page, h) {
       return box.r > box.l && box.b > box.t ? box : null;
     };
     for (const el of document.querySelectorAll('#ui .screen *, #ui .hud *')) {
-      if (el.closest('.adslot') || !el.offsetParent || el.children.length) continue;
+      if (el.closest('.adfoot') || !el.offsetParent || el.children.length) continue;
       const v = visible(el);
       if (!v) continue;
       const b = { left: v.l, top: v.t, right: v.r, bottom: v.b };
@@ -36,7 +37,8 @@ export default async function (page, h) {
       if (cs.visibility === 'hidden' || +cs.opacity === 0) continue;
       if (b.right > r.left + 1 && b.left < r.right - 1 && b.bottom > r.top + 1 && b.top < r.bottom - 1) hits.push(`${el.className || el.tagName}:${(el.textContent || '').trim().slice(0, 20)}`);
     }
-    return { shown: true, w: Math.round(r.width), h: Math.round(r.height), hits: hits.slice(0, 6), reserved: document.body.classList.contains('ad-on') };
+    const slot = bar.getBoundingClientRect();
+    return { shown: true, w: Math.round(slot.width), h: Math.round(slot.height), hits: hits.slice(0, 6), reserved: document.body.classList.contains('ad-on') };
   });
   await h.run(1500);
   for (const tab of ['Play', 'Career', 'Locker', 'Armory', 'Ladder']) {
@@ -116,7 +118,13 @@ export default async function (page, h) {
   ok(kit.weapons.includes('ranger') && kit.plates >= 3 && kit.wood >= 150 && !kit.used, `starter kit in the match: ${JSON.stringify(kit)}`);
   ok(!(await banner()).shown, 'no banner during play');
   await h.eval(() => { const bf = window.__bf; const m = bf.match; bf.simulate(5); m.jumpFromShip(m.player); bf.simulate(30); });
-  // eliminated: the banner comes up while spectating, the death screen offers Redeploy
+  // count the break ads from here on (the 3-minute pacing is lifted so every break shows)
+  await h.eval(() => {
+    window.__bfDemoPacingMs = 0;
+    window.__breaks = 0;
+    new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.classList?.contains('demo-ad') && /Advertisement/.test(n.textContent)) window.__breaks++; }).observe(document.body, { childList: true });
+  });
+  // eliminated: no banner while spectating, the death screen offers Redeploy
   await h.eval(() => { const m = window.__bf.match; m.damage(m.player, 500, { attacker: m.combatants.find((c) => !c.isPlayer && c.alive), kind: 'bullet', weapon: 'Ranger AR' }); });
   await frames(2);
   await h.run(300);
@@ -129,6 +137,8 @@ export default async function (page, h) {
   ok(death.overlay === 'death' && death.redeploy, `death screen with Redeploy: ${JSON.stringify(death)}`);
   const spec2 = await banner();
   ok(!spec2.shown, 'no banner on the death screen');
+  await h.run(400);
+  ok(await h.eval(() => window.__breaks === 0), `no break ad next to the Redeploy offer (${await h.eval(() => window.__breaks)})`);
   await h.eval(() => { window.__noRender = false; });
   await h.shot('ads_spectate');
   await h.eval(() => { window.__pause = true; window.__noRender = true; document.querySelector('.death .redeploy .adbtn')?.click(); });
@@ -143,6 +153,8 @@ export default async function (page, h) {
   await h.run(1600);
   await frames(2);
   ok(await h.eval(() => window.__bf.hud.overlay === 'death' && !document.querySelector('.death .redeploy')), 'Redeploy only once a match');
+  await h.run(400);
+  ok(await h.eval(() => window.__breaks === 1), `break ad when the death screen without Redeploy comes up (${await h.eval(() => window.__breaks)})`);
   await h.eval(() => [...document.querySelectorAll('.death .btn')].find((b) => /Continue/.test(b.textContent))?.click());
   for (let i = 0; i < 40 && !(await h.eval(() => window.__bf.state === 'results')); i++) {
     await frames(2);
@@ -154,6 +166,8 @@ export default async function (page, h) {
   const before = await h.eval(() => ({ coins: window.__bf.meta.p.coins, xp: window.__bf.meta.p.xp, level: window.__bf.meta.p.level, offer: !!document.querySelector('.res2-double .adbtn'), xpLine: document.querySelector('.xpv')?.textContent }));
   const rb = await banner();
   ok(before.offer && !rb.shown, `results: 2× offer, no banner: ${JSON.stringify(before)}`);
+  ok(await h.eval(() => window.__breaks === 1), 'no break ad on Continue (navigation)');
+  await h.eval(() => { window.__bfDemoPacingMs = undefined; });
   await h.shot('ads_results');
   await h.eval(() => document.querySelector('.res2-double .adbtn')?.click());
   await h.run(1200);

@@ -82,6 +82,9 @@ interface Hooks {
   leave(): void;
   settings(): void;
   continueAfterDeath(): void;
+  /** the Battle Royale death screen is up: the natural break for a midgame ad, unless it offers a
+   *  rewarded Redeploy instead */
+  deathBreak(rewardedOffer: boolean): void;
   lockPointer(): void;
   unlockPointer(): void;
 }
@@ -1095,9 +1098,6 @@ export class HUD {
     return h('div', { class: 'overlay', style: { background: 'rgba(6,8,11,0.45)' } }, h('div', { class: 'scoreboard panel' }, h('div', { class: 'teamhead' }, 'Players'), table(m.combatants.filter((c) => c.alive || c.stats.kills > 0).slice(0, 14))));
   }
 
-  /** a rewarded "keep playing" offer was shown at this death (no break ad on top of it, then) */
-  redeployOffered = false;
-
   /** re-render the TDM respawn loadout picker (after a hotkey choice) */
   refreshLoadouts: (() => void) | null = null;
 
@@ -1113,7 +1113,6 @@ export class HUD {
       const redeploy = br.canRedeploy()
         ? adButton({ label: 'Redeploy', sub: `Drop back in · ${br.aliveCount} left`, big: true, tone: 'gold', check: () => (br.canRedeploy() ? null : 'The match is over'), onReward: () => br.redeploy() })
         : null;
-      if (redeploy) this.redeployOffered = true;
       // the death screen repeats the placement: drop the "#N" announcement under it
       this.announceTimer = 0;
       this.els.announce.style.display = 'none';
@@ -1128,6 +1127,8 @@ export class HUD {
           by ? h('button', { class: 'btn', onclick: () => { this.pc.spectate = by.id; this.closeOverlay(); this.toast(`Spectating ${by.name}`, 'info'); } }, 'Spectate') : null),
       );
       this.openOverlay('death', el);
+      // the elimination is the break: the ad runs now, never on Continue (that is navigation)
+      this.hooks.deathBreak(!!redeploy);
     } else if (tdm) {
       this.respawnEl = h('div', { class: 'respawn' });
       const lo = h('div', { class: 'loadouts' });

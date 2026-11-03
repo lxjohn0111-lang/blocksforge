@@ -76,10 +76,12 @@ export const BANNER_REFRESH_MS = 35000;
 const ID = 'bf-banner-slot';
 
 /**
- * The menu banner: the SDK's 320×50 ad straight on the menu background, without a frame of our own,
- * at the bottom centre. The menu ends above it, so it never covers the menu.
+ * The menu banner: the SDK's 320×50 ad in a footer bar that mirrors the top bar, so it reads as part of
+ * the menu's frame. The bar is there from the moment the menu opens (whether or not an ad has loaded
+ * yet) and the menu ends above it: nothing moves when the ad arrives and it never covers the menu.
  */
 export class BannerAds {
+  private bar: HTMLElement;
   private slot: HTMLElement;
   private spot: BannerSpot | null = null;
   private filled = false;
@@ -93,8 +95,11 @@ export class BannerAds {
     this.slot = h('div', { id: ID, class: 'adslot' });
     this.slot.style.width = `${SIZE[0]}px`;
     this.slot.style.height = `${SIZE[1]}px`;
-    this.slot.style.display = 'none';
-    parent.appendChild(this.slot);
+    this.bar = h('div', { class: 'adfoot' }, this.slot);
+    this.bar.style.display = 'none';
+    // banner + 6 px above and below
+    document.documentElement.style.setProperty('--adh', `${SIZE[1] + 12}px`);
+    parent.appendChild(this.bar);
     setInterval(() => this.tick(), 1000);
   }
 
@@ -102,38 +107,24 @@ export class BannerAds {
   want(spot: BannerSpot | null) {
     if (spot === this.spot) return;
     this.spot = spot;
-    if (!spot) {
-      this.slot.style.display = 'none';
-      this.reserve(false);
-      return;
-    }
-    if (platform.adsMode === 'none') return;
-    // back on screen: show what is there and refresh if the cooldown allows
-    if (this.filled) this.show();
-    this.request();
+    this.place();
+    if (spot) this.request();
   }
 
-  private show() {
-    this.slot.style.display = '';
-    this.reserve(true);
-  }
-
-  /** the menu leaves room for the banner (a banner must never cover game UI) */
-  private reserve(on: boolean) {
+  /** the bar (and the room for it) whenever the menu is up and an ad can come */
+  private place() {
+    const on = !!this.spot && platform.adsMode !== 'none';
+    this.bar.style.display = on ? '' : 'none';
     document.body.classList.toggle('ad-on', on);
-    // banner + 6 px below + 6 px above
-    if (on) document.documentElement.style.setProperty('--adh', `${SIZE[1] + 12}px`);
   }
 
   private async request() {
-    if (!this.spot || this.busy || this.maxed) return;
+    if (!this.spot || this.busy || this.maxed || platform.adsMode === 'none') return;
     const now = Date.now();
     if (now < this.retryAt) return;
     if (this.filled && now - this.lastRequest < BANNER_REFRESH_MS) return;
     if (document.visibilityState === 'hidden' || platform.adPlaying) return;
     this.busy = true;
-    // the container has to be laid out at its size while the SDK fills it
-    this.slot.style.display = '';
     const res = await platform.requestBanner(ID, SIZE[0], SIZE[1]);
     this.busy = false;
     this.lastRequest = Date.now();
@@ -143,19 +134,14 @@ export class BannerAds {
     } else if (res === 'cooldown') this.retryAt = Date.now() + 5000;
     else if (res === 'max') this.maxed = true;
     else {
-      // no banner here (ads off, blocked, no fill): back off and keep the menu as it is
+      // no banner this time (no fill, blocked): the bar stays as it is and asks again later
       this.failures++;
       this.retryAt = Date.now() + Math.min(600000, 60000 * this.failures);
-    }
-    if (this.spot && this.filled) this.show();
-    else {
-      this.slot.style.display = 'none';
-      this.reserve(false);
     }
   }
 
   private tick() {
-    if (!this.spot || platform.adsMode === 'none') return;
-    this.request();
+    this.place();
+    if (this.spot) this.request();
   }
 }
