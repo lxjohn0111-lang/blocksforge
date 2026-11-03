@@ -281,7 +281,8 @@ export class HUD {
     const E = this.els;
     const goal = tut.objective();
     const mark = E.qtmark;
-    if (!goal || !tut.player.alive) {
+    // once the player is there, the marker would only sit on top of the prompt
+    if (!goal || !tut.player.alive || goal.distanceTo(tut.player.body.pos) < 3.2) {
       mark.style.display = 'none';
       return;
     }
