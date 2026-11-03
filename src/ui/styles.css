@@ -1387,8 +1387,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
   .recipe .kbd { transform: scale(0.75); margin: -4px -5px -4px 0; }
 }
 /* event rewards: a fixed thumbnail that never shrinks into the challenge text */
-.event-card .evart { flex: none; width: 64px; height: 36px; display: grid; place-items: center; overflow: hidden; }
-.event-card .evart > * { flex: none; transform: scale(0.46); }
+.event-card .evart { flex: none; position: relative; width: 64px; height: 36px; overflow: hidden; }
+.event-card .evart > * { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.5); }
 
 /* ---- mouse-and-keyboard HUD, readable on small windows (CrazyGames review): blocks scale by --hs
    (0.75 at the smallest), text blocks by --ht (0.9 at the smallest); the right column stacks the
@@ -1439,3 +1439,6 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 .topbar.fit2 .lvl > .col { display: none; }
 .topbar.fit3 .wallet .who .col { display: none; }
 .topbar.fit4 .wallet .who { display: none; }
+@media (max-width: 680px) {
+  .tab { padding-left: 8px; padding-right: 8px; letter-spacing: 0.1em; }
+}
