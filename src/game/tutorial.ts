@@ -34,6 +34,9 @@ function dummyIdent(name: string, seed: number): Identity {
   return { id: 'dummy_' + seed, name, look, isBot: true, level: 1, rp: 0, title: 'Training', banner: 'stone', camo: 'factory', skill: 0.1, personality: makePersonality(seed) };
 }
 
+/** wood the harvest step asks for: one tree of the grove gives that much */
+const HARVEST_WOOD = 20;
+
 export class TutorialMatch extends Match {
   steps: TutorialStep[] = [];
   /** the first step not yet completed (what the panel suggests next) */
@@ -87,7 +90,7 @@ export class TutorialMatch extends Match {
       { id: 'ads', title: 'Aim down sights', hint: t(`Hold ${k('aim')} and hit the dummy on the wall.`, 'Tap the aim button, then hit the dummy on the wall.') },
       { id: 'chest', title: 'Open the supply chest', hint: t(`Follow the marker to the chest at the end of the firing line, face it and press ${k('interact')}.`, 'Follow the marker to the chest at the end of the firing line, face it and tap the hand button.') },
       { id: 'scope', title: 'Scope in', hint: t(`The Longshot is in your hands: hold ${k('aim')} to scope in, scroll to zoom, then hit a far dummy.`, 'The Longshot is in your hands: tap aim to scope in, then hit a far dummy.') },
-      { id: 'harvest', title: 'Harvest materials', hint: t(`Harvest tool ${k('tool')}. Hit trees and boulders for 30 wood.`, 'Tap the pick in the hotbar, then hold fire on trees and boulders for 30 wood.'), progress: () => `${Math.min(30, this.player.mats.wood)}/30` },
+      { id: 'harvest', title: 'Harvest materials', hint: t(`Take the pick (${k('tool')}) and hit a tree in the marked grove for 20 wood.`, 'Tap the pick in the hotbar, then hold fire on a tree in the marked grove for 20 wood.'), progress: () => `${Math.min(HARVEST_WOOD, this.player.mats.wood)}/${HARVEST_WOOD}` },
       { id: 'build', title: 'Build up to the ledge', hint: t(`Go to the marked ledge. Press ${k('build')}, pick Ramp (${k('slot3')}), face the ledge and press ${k('fire')} to place it, then walk up.`, 'Go to the marked ledge. Tap the build button, pick Ramp, face the ledge and tap fire to place it, then walk up.') },
       { id: 'craft', title: 'Craft bandages', hint: t(`Open ${k('inventory')} and craft Bandages from cloth.`, 'Open the bag and tap Bandages to craft them from cloth.') },
       { id: 'grenade', title: 'Flush out cover', hint: t(`Hold ${k('grenade')} to aim the arc, release to throw over the wall.`, 'Hold the grenade button to aim the arc, release to throw it over the wall.') },
@@ -181,6 +184,14 @@ export class TutorialMatch extends Match {
       default:
         return null;
     }
+  }
+
+  /** a grenade of the player's that goes off by the dummy behind the wall teaches the lesson too (the
+   *  dummy need not be hit: getting the grenade over the wall is the point) */
+  explode(pos: THREE.Vector3, radius: number, damage: number, owner: Combatant | null, weapon: string, blockDamage: number) {
+    super.explode(pos, radius, damage, owner, weapon, blockDamage);
+    const st = this.map.stations;
+    if (owner === this.player && st && Math.hypot(pos.x - st.nadeDummy.x, pos.z - st.nadeDummy.z) < 7 && pos.z < st.nade.z - 7) this.flags.add('nade');
   }
 
   get doneCount() {
@@ -333,6 +344,11 @@ export class TutorialMatch extends Match {
     const isDone = (id: string) => this.done[this.steps.findIndex((s) => s.id === id)];
     // stations prepare themselves when the player shows up early, so any order works
     if (!isDone('grenade') && near(st.nade, 8) && p.throws.frag === 0) this.giveFrags();
+    // out of grenades before the lesson worked: three more, once none of the player's is still live
+    if (!isDone('grenade') && this.flags.has('gave_frags') && near(st.nade, 14) && p.throws.frag === 0 && p.throwHold < 0 && !this.projectiles.some((q) => q.owner === p && q.kind === 'frag')) {
+      p.addThrow('frag', 3);
+      this.events.emit('toast', { text: '+3 Frag Grenades', kind: 'loot' });
+    }
     if (!isDone('build') && near(st.build, 10) && p.mats.wood < 20) this.giveWood();
     if (!isDone('duel') && (near(st.arena, 9) || near(st.duel, 9))) this.spawnDuelBot();
     // every step is checked every frame and stays done once achieved
@@ -346,7 +362,7 @@ export class TutorialMatch extends Match {
       ads: () => this.flags.has('ads_hit'),
       chest: () => this.flags.has('chest'),
       scope: () => this.flags.has('scope_hit'),
-      harvest: () => p.mats.wood >= 30 || p.stats.harvested >= 30,
+      harvest: () => p.mats.wood >= HARVEST_WOOD || p.stats.harvested >= HARVEST_WOOD,
       build: () => p.body.onGround && p.body.pos.y >= st.ledge.y - 0.1 && Math.abs(p.body.pos.x - st.ledge.x) < 8 && Math.abs(p.body.pos.z - st.ledge.z) < 4.6,
       craft: () => this.flags.has('crafted'),
       grenade: () => this.flags.has('nade'),
