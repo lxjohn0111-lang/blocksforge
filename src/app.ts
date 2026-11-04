@@ -790,6 +790,8 @@ export class App {
   private onMatchEnd(result: MatchResult, natural = true) {
     if (this.ending) return;
     this.ending = true;
+    // at once, not on the next frame: a slow frame must not leave it over the results
+    this.lockPrompt.style.display = 'none';
     const delay = this.match && this.match.player.alive && result.mode !== 'tutorial' ? 1200 : 300;
     // a natural break between the match and its results. None when the player left (navigation, not
     // a break), after the Basics, or when the player's elimination already had its break (an ad, or a
