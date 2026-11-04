@@ -102,6 +102,8 @@ export class App {
 
   constructor() {
     this.canvas = document.getElementById('game') as HTMLCanvasElement;
+    // focusable, so the game can take the keyboard back (see Input.focus)
+    this.canvas.tabIndex = -1;
     this.ui = document.getElementById('ui')!;
     this.settings = loadSettings();
     this.input = new Input(this.canvas, this.settings);
@@ -171,6 +173,8 @@ export class App {
       this.adPaused = paused;
       audio.setHostMute('ad', paused);
       if (paused) this.input.exitLock();
+      // an ad runs on the host page and can keep the keyboard focus there
+      else this.input.focus();
     });
     await step(1, 'Ready');
     clearInterval(tipTimer);
@@ -305,14 +309,16 @@ export class App {
       this.hud.update(dt);
       this.perf.hud = this.perf.hud * 0.9 + (performance.now() - t2) * 0.1;
       this.updateAmbience(dt);
-      this.lockPrompt.style.display = !this.touch && (!this.input.locked || !this.engaged) && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
+      // keys only reach the game while its page has the focus: without it, "Click to play" brings it back
+      const focused = document.hasFocus();
+      this.lockPrompt.style.display = !this.touch && (!this.input.locked || !this.engaged || !focused) && this.hud.overlay === 'none' && !this.match.ended && !this.ending ? 'flex' : 'none';
       this.touchUI?.update();
       this.dynamicResolution(raw);
       // the platform counts play time only while the player is actually in control: once they started
       // the match themselves and the mouse is captured (touch screens need no click), not in pause,
       // death or settings
       const o = this.hud.overlay;
-      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death' && (this.touch || (this.input.locked && this.engaged))) platform.gameplayStart();
+      if (!this.match.ended && !this.ending && !this.settingsOpen && o !== 'pause' && o !== 'death' && (this.touch || (this.input.locked && this.engaged && focused))) platform.gameplayStart();
       else platform.gameplayStop();
     } else {
       platform.gameplayStop();

@@ -48,7 +48,12 @@ export class Input {
       },
       { passive: false },
     );
-    window.addEventListener('blur', () => this.clearAll());
+    // losing focus (a click on the host page, an ad) means keys no longer reach the game: drop held
+    // keys, and leave cursor steering so "Click to play" brings the focus back
+    window.addEventListener('blur', () => {
+      this.clearAll();
+      if (this.fallback && this.locked && !this.touchMode) this.setFallbackLocked(false);
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.clearAll();
     });
@@ -74,7 +79,18 @@ export class Input {
     });
   }
 
+  /** keyboard focus for the game's page (best effort: browsers only move it on a user action) */
+  focus() {
+    try {
+      window.focus();
+      (this.canvas as HTMLElement & { focus(o?: FocusOptions): void }).focus({ preventScroll: true });
+    } catch {
+      /* not allowed here */
+    }
+  }
+
   requestLock() {
+    this.focus();
     if (this.locked) return;
     if (this.touchMode) {
       this.setFallbackLocked(true);
