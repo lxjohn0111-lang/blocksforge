@@ -89,6 +89,22 @@ export class BuildSystem {
           bz = pz + fz;
           by = Math.floor(c.body.pos.y + 0.01);
         }
+        // aimed at a wall or a cliff: pull the ramp back toward the player so its top row ends right in
+        // front of the obstacle instead of running into it (never back under the player's feet)
+        let back = 0;
+        for (let d = 1; d < 3; d++)
+          if (!isReplaceable(w.get(bx + fx * d, by + d, bz + fz * d))) {
+            back = 3 - d;
+            break;
+          }
+        back = Math.min(back, Math.max(0, (bx - px) * fx + (bz - pz) * fz - 1));
+        if (back > 0) {
+          bx -= fx * back;
+          bz -= fz * back;
+          // the foot of the ramp on the ground under its new start
+          for (let g = 0; g < 4 && IS_SOLID[w.get(bx, by, bz)]; g++) by++;
+          for (let g = 0; g < 4 && !IS_SOLID[w.get(bx, by - 1, bz)]; g++) by--;
+        }
         for (let d = 0; d < 3; d++) for (let i = -1; i <= 1; i++) blocks.push({ x: bx + fx * d + rx * i, y: by + d, z: bz + fz * d + rz * i });
       }
     }

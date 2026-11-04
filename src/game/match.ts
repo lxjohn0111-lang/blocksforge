@@ -12,7 +12,7 @@ import { Combatant, type Identity, type SlotIndex } from './combatant';
 import { applyIntent, moveBody, unstick, GRAVITY, bodyCollides } from './physics';
 import {
   WEAPONS, HEALS, THROWABLES, FRAG, ARMOR_VEST, WeaponInstance, type WeaponDef, type HealKind, type ItemSpec, type WeaponId,
-  AMMO_MAX, itemName,
+  AMMO_MAX, AMMO_NAMES, itemName,
 } from './weapons';
 import { WorldItem, rollChest, rollFloor } from './items';
 import { BuildSystem, type Piece, type Placement } from './building';
@@ -555,6 +555,11 @@ export class Match {
     const g = c.gun;
     if (!g || !c.alive) return;
     const d = g.def;
+    // say why a reload does not happen, rather than ignore the key
+    if (c.isPlayer && g.reloading <= 0 && c.swapTimer <= 0) {
+      if (g.mag >= d.mag) this.events.emit('toast', { text: 'Magazine is already full', kind: 'info' });
+      else if (c.ammo[d.ammo] <= 0) this.events.emit('toast', { text: `No spare ${AMMO_NAMES[d.ammo]} to reload`, kind: 'warn' });
+    }
     if (g.reloading > 0 || g.mag >= d.mag || c.ammo[d.ammo] <= 0 || c.swapTimer > 0) return;
     if (c.useTimer >= 0) return;
     const empty = g.mag === 0;

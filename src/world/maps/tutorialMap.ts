@@ -58,15 +58,14 @@ export function buildTraining(): MapData {
   mb.boulder(8, Y, 71, 1.4);
   mb.set(15, Y, 80, B.IRON_ORE);
   mb.set(15, Y, 81, B.COAL_ORE);
-  // 6. build gap (east): a pit with a high ledge beyond
+  // 6. build station (east): a ledge three blocks high, too high to jump: one ramp placed against
+  // its face leads up
   st.build = { x: 52.5, y: Y, z: 74.5 };
-  mb.fill(48, G - 6, 62, 62, G, 68, B.AIR);
-  mb.fill(48, G - 7, 62, 62, G - 7, 68, B.STONE);
-  mb.fill(48, Y, 54, 62, Y + 3, 61, B.STONE_BRICKS);
-  mb.fill(50, Y + 4, 56, 60, Y + 4, 59, B.OAK_PLANKS);
-  st.ledge = { x: 55, y: Y + 4, z: 57.5 };
-  mb.lampPost(48, Y + 4, 54);
-  mb.lampPost(62, Y + 4, 54);
+  mb.fill(48, Y, 54, 62, Y + 2, 61, B.STONE_BRICKS);
+  mb.fill(50, Y + 2, 56, 60, Y + 2, 59, B.OAK_PLANKS);
+  st.ledge = { x: 55, y: Y + 3, z: 57.5 };
+  mb.lampPost(48, Y + 3, 54);
+  mb.lampPost(62, Y + 3, 54);
   // 7. grenade wall with a dummy behind
   st.nade = { x: 18.5, y: Y, z: 48.5 };
   mb.fill(14, Y, 41, 23, Y + 2, 41, B.STONE_BRICKS);

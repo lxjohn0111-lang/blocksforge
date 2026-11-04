@@ -83,12 +83,12 @@ export class TutorialMatch extends Match {
       { id: 'jump', title: 'Jump the wall', hint: t(`${k('jump')} to jump. One-block steps are climbed automatically.`, 'Tap the jump button. One-block steps are climbed automatically.') },
       { id: 'loot', title: 'Grab the rifle', hint: t(`Look at the Ranger AR and press ${k('interact')}`, 'Walk up to the Ranger AR and tap the pick-up button.') },
       { id: 'shoot', title: 'Down a target dummy', hint: t(`${k('fire')} to fire. Short bursts stay accurate.`, 'Hold the fire button. Short bursts stay accurate.') },
-      { id: 'reload', title: 'Reload', hint: t(`Press ${k('reload')} to reload.`, 'Tap the reload button.') },
+      { id: 'reload', title: 'Reload', hint: t(`Fire a few shots, then press ${k('reload')} to reload.`, 'Fire a few shots, then tap the reload button.') },
       { id: 'ads', title: 'Aim down sights', hint: t(`Hold ${k('aim')} and hit the dummy on the wall.`, 'Tap the aim button, then hit the dummy on the wall.') },
       { id: 'chest', title: 'Open the supply chest', hint: t(`Follow the marker to the chest at the end of the firing line, face it and press ${k('interact')}.`, 'Follow the marker to the chest at the end of the firing line, face it and tap the hand button.') },
       { id: 'scope', title: 'Scope in', hint: t(`The Longshot is in your hands: hold ${k('aim')} to scope in, scroll to zoom, then hit a far dummy.`, 'The Longshot is in your hands: tap aim to scope in, then hit a far dummy.') },
       { id: 'harvest', title: 'Harvest materials', hint: t(`Harvest tool ${k('tool')}. Hit trees and boulders for 30 wood.`, 'Tap the pick in the hotbar, then hold fire on trees and boulders for 30 wood.'), progress: () => `${Math.min(30, this.player.mats.wood)}/30` },
-      { id: 'build', title: 'Build up to the ledge', hint: t(`Press ${k('build')} to build, choose Ramp and ${k('fire')} to place it. Climb onto the ledge.`, 'Tap the build button, choose Ramp and tap fire to place it. Climb onto the ledge.') },
+      { id: 'build', title: 'Build up to the ledge', hint: t(`Go to the marked ledge. Press ${k('build')}, pick Ramp (${k('slot3')}), face the ledge and press ${k('fire')} to place it, then walk up.`, 'Go to the marked ledge. Tap the build button, pick Ramp, face the ledge and tap fire to place it, then walk up.') },
       { id: 'craft', title: 'Craft bandages', hint: t(`Open ${k('inventory')} and craft Bandages from cloth.`, 'Open the bag and tap Bandages to craft them from cloth.') },
       { id: 'grenade', title: 'Flush out cover', hint: t(`Hold ${k('grenade')} to aim the arc, release to throw over the wall.`, 'Hold the grenade button to aim the arc, release to throw it over the wall.') },
       { id: 'duel', title: 'Final test', hint: t(`Defeat the sparring bot in the arena. Use cover, heal with ${k('heal')}.`, 'Defeat the sparring bot in the arena. Use cover and heal between fights.') },
@@ -156,6 +156,20 @@ export class TutorialMatch extends Match {
         const d = this.dummies.find((x) => x.key === 'dummy1');
         return d && d.c.alive ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : null;
       }
+      case 'ads': {
+        const d = this.dummies.find((x) => x.key === 'dummy3');
+        return d && d.c.alive ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : null;
+      }
+      case 'harvest':
+        return at(st.harvest, 1.5);
+      case 'build':
+        return at(st.ledge, 0.4);
+      case 'grenade': {
+        const d = this.dummies.find((x) => x.key === 'nadeDummy');
+        return d ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : at(st.nadeDummy, 2);
+      }
+      case 'duel':
+        return this.duelBot?.c.alive ? this.duelBot.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : at(st.duel, 1);
       case 'chest': {
         const ch = this.map.chests.find((c) => this.world.get(c.x, c.y, c.z) === B.CHEST);
         return ch ? new THREE.Vector3(ch.x + 0.5, ch.y + 1.4, ch.z + 0.5) : null;
@@ -307,6 +321,14 @@ export class TutorialMatch extends Match {
       p.respawnAt = 0;
     }
     if (this.duelBot && !this.duelBot.c.alive) this.flags.add('duel');
+    // the course never runs out of rifle ammo: the shooting, reload and aiming steps need it
+    if (p.alive && p.weapons.some((w) => w?.def.id === 'ranger') && p.ammo.medium < 30) {
+      p.addAmmo('medium', 90 - p.ammo.medium);
+      if (!this.flags.has('ammo_note')) {
+        this.flags.add('ammo_note');
+        this.events.emit('toast', { text: 'Spare Medium Rounds topped up', kind: 'loot' });
+      }
+    }
     const near = (q: { x: number; y: number; z: number }, r: number) => Math.hypot(p.body.pos.x - q.x, p.body.pos.z - q.z) < r;
     const isDone = (id: string) => this.done[this.steps.findIndex((s) => s.id === id)];
     // stations prepare themselves when the player shows up early, so any order works
@@ -325,7 +347,7 @@ export class TutorialMatch extends Match {
       chest: () => this.flags.has('chest'),
       scope: () => this.flags.has('scope_hit'),
       harvest: () => p.mats.wood >= 30 || p.stats.harvested >= 30,
-      build: () => p.body.onGround && p.body.pos.y >= st.ledge.y - 0.1 && Math.hypot(p.body.pos.x - st.ledge.x, p.body.pos.z - st.ledge.z) < 7,
+      build: () => p.body.onGround && p.body.pos.y >= st.ledge.y - 0.1 && Math.abs(p.body.pos.x - st.ledge.x) < 8 && Math.abs(p.body.pos.z - st.ledge.z) < 4.6,
       craft: () => this.flags.has('crafted'),
       grenade: () => this.flags.has('nade'),
       duel: () => this.flags.has('duel'),
