@@ -936,9 +936,10 @@ body.touch .toggle.on i { left: 27px; }
 
 /* menu banner: the SDK's 320×50 ad straight on the menu background (no frame of our own); the menu's
    content ends above it, and the menu background darkens a little behind it */
-/* the menu's footer bar for the 320x50 banner: the top bar's mirror image, there from the start so
-   nothing shifts when the ad loads, and the menu ends above it */
-.adfoot { position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 62px); display: flex; align-items: center; justify-content: center; z-index: 1; background: linear-gradient(0deg, rgba(8,10,13,0.92), rgba(8,10,13,0.55)); border-top: 1px solid var(--line); pointer-events: none; }
+/* the room for the 320x50 banner at the bottom of the menu: no background of its own (the banner sits
+   right on the game's background), there from the start so nothing shifts when the ad loads, and the
+   menu ends above it */
+.adfoot { position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 62px); display: flex; align-items: center; justify-content: center; z-index: 1; pointer-events: none; }
 .adslot { flex: none; overflow: hidden; pointer-events: auto; }
 body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 

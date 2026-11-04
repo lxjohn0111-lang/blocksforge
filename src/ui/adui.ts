@@ -76,8 +76,8 @@ export const BANNER_REFRESH_MS = 35000;
 const ID = 'bf-banner-slot';
 
 /**
- * The menu banner: the SDK's 320×50 ad in a footer bar that mirrors the top bar, so it reads as part of
- * the menu's frame. The bar is there from the moment the menu opens (whether or not an ad has loaded
+ * The menu banner: the SDK's 320×50 ad at the bottom centre, straight on the game's background (no frame
+ * or bar of its own). Its room is kept from the moment the menu opens (whether or not an ad has loaded
  * yet) and the menu ends above it: nothing moves when the ad arrives and it never covers the menu.
  */
 export class BannerAds {

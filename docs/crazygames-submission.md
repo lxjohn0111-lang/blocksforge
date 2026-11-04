@@ -71,6 +71,6 @@ Rewarded (240 characters):
 
 Opt-in, reward after one ad: 2x XP+coins after a match, BR Redeploy (1x/match), BR starter kit, Rank Shield, Lucky Wheel spin, 200 coins (5 min cooldown), 2x XP 15 min, double daily reward, quest reroll, half-price shop item, Ad Vault skin.
 
-Banner (142 characters):
+Banner (146 characters):
 
-One 320x50 banner in a footer bar of the main menu, on every tab, reserved before it loads. Never in game or on results. Refreshes every 35 s.
+One 320x50 banner at the bottom of the main menu, on every tab, space reserved before it loads. Never in game or on results. Refreshes every 35 s.
