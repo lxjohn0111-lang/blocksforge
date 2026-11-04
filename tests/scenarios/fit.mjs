@@ -15,7 +15,7 @@ export default async function (page, h) {
       // (fade-in animations may still hold a layer's opacity near 0: only display/visibility count here)
       const layers = [...document.querySelectorAll('.modal, .reveal, .wheel-modal, .hud > .clickable, .screen.lobby')].filter((e) => e.checkVisibility({ visibilityProperty: true }));
       const scope = layers.length ? layers[layers.length - 1] : document.getElementById('ui');
-      const skip = '.adslot, .fps, .qtmark, .tags, .hitmark, .dmgind, .minimap, .compass, .mk, .wheel-svg, .announce, .rays, .confetti';
+      const skip = '.bf-bslot, .fps, .qtmark, .tags, .hitmark, .dmgind, .minimap, .compass, .mk, .wheel-svg, .announce, .rays, .confetti';
       const name = (e) => (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : e.tagName.toLowerCase()) + ` "${e.textContent.trim().slice(0, 18)}"`;
       const out = [];
       // where an element can be seen: the viewport, cut by every ancestor that clips without scrolling;

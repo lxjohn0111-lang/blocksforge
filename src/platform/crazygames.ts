@@ -207,7 +207,9 @@ export const platform = {
           if (adblock) notifyAds();
         }).catch(() => undefined);
       }
-      await this.loadUser();
+      // the account is read in the background: a slow or blocked request (an ad blocker) must never
+      // hold the game's start up; the name and picture follow through onUser when they arrive
+      void this.loadUser();
     }
   },
 

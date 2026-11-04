@@ -916,32 +916,32 @@ body.touch .toggle.on i { left: 27px; }
 
 /* ---------------------------------------------------------------- ads */
 /* rewarded-ad offer: bright, with a play badge and a light sweep; never larger than the normal choice */
-.btn.adbtn { gap: 10px; padding: 7px 14px 7px 7px; text-transform: none; letter-spacing: 0.02em; color: #1a1205; background: linear-gradient(135deg, #ffe39a, #f2a93b 55%, #d97a14); border-color: #ffd27a; overflow: hidden; }
-.btn.adbtn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.6) 50%, transparent 65%); transform: translateX(-120%); animation: adSweep 2.8s ease-in-out infinite; pointer-events: none; }
+.btn.rwbtn { gap: 10px; padding: 7px 14px 7px 7px; text-transform: none; letter-spacing: 0.02em; color: #1a1205; background: linear-gradient(135deg, #ffe39a, #f2a93b 55%, #d97a14); border-color: #ffd27a; overflow: hidden; }
+.btn.rwbtn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.6) 50%, transparent 65%); transform: translateX(-120%); animation: adSweep 2.8s ease-in-out infinite; pointer-events: none; }
 @keyframes adSweep { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
-.btn.adbtn:hover { filter: brightness(1.08); transform: translateY(-1px); background: linear-gradient(135deg, #ffe9b0, #f6b54a 55%, #e08a24); color: #1a1205; }
-.btn.adbtn .adtag { display: inline-flex; align-items: center; gap: 3px; padding: 4px 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #ffe39a; background: #1a1205; clip-path: var(--chamfer-sm); flex-shrink: 0; }
-.btn.adbtn .adtag svg { fill: currentColor; }
-.btn.adbtn .adtext { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; min-width: 0; }
-.btn.adbtn .adl { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.btn.adbtn small { font-size: 11px; font-weight: 600; opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.btn.adbtn.violet { color: #fff; background: linear-gradient(135deg, #d39bff, #8a4aff 55%, #5a24c8); border-color: #dcb2ff; }
-.btn.adbtn.violet:hover { color: #fff; background: linear-gradient(135deg, #ddb0ff, #9a5aff 55%, #6a30d8); }
-.btn.adbtn.violet .adtag { color: #5a24c8; background: #fff; }
-.btn.adbtn.big { padding: 10px 20px 10px 10px; }
-.btn.adbtn.big .adl { font-size: 16px; }
-.btn.adbtn.loading { pointer-events: none; opacity: 0.7; }
-.btn.adbtn.loading .adtag { animation: pulse 0.8s infinite; }
-.adtoast { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 60; white-space: nowrap; }
+.btn.rwbtn:hover { filter: brightness(1.08); transform: translateY(-1px); background: linear-gradient(135deg, #ffe9b0, #f6b54a 55%, #e08a24); color: #1a1205; }
+.btn.rwbtn .rwtag { display: inline-flex; align-items: center; gap: 3px; padding: 4px 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #ffe39a; background: #1a1205; clip-path: var(--chamfer-sm); flex-shrink: 0; }
+.btn.rwbtn .rwtag svg { fill: currentColor; }
+.btn.rwbtn .rwtext { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; min-width: 0; }
+.btn.rwbtn .rwl { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.btn.rwbtn small { font-size: 11px; font-weight: 600; opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.btn.rwbtn.violet { color: #fff; background: linear-gradient(135deg, #d39bff, #8a4aff 55%, #5a24c8); border-color: #dcb2ff; }
+.btn.rwbtn.violet:hover { color: #fff; background: linear-gradient(135deg, #ddb0ff, #9a5aff 55%, #6a30d8); }
+.btn.rwbtn.violet .rwtag { color: #5a24c8; background: #fff; }
+.btn.rwbtn.big { padding: 10px 20px 10px 10px; }
+.btn.rwbtn.big .rwl { font-size: 16px; }
+.btn.rwbtn.loading { pointer-events: none; opacity: 0.7; }
+.btn.rwbtn.loading .rwtag { animation: pulse 0.8s infinite; }
+.rwtoast { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 60; white-space: nowrap; }
 
 /* menu banner: the SDK's 320×50 ad straight on the menu background (no frame of our own); the menu's
    content ends above it, and the menu background darkens a little behind it */
 /* the room for the 320x50 banner at the bottom of the menu: no background of its own (the banner sits
    right on the game's background), there from the start so nothing shifts when the ad loads, and the
    menu ends above it */
-.adfoot { position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 62px); display: flex; align-items: center; justify-content: center; z-index: 1; pointer-events: none; }
-.adslot { flex: none; overflow: hidden; pointer-events: auto; }
-body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
+.bf-foot { position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 62px); display: flex; align-items: center; justify-content: center; z-index: 1; pointer-events: none; }
+.bf-bslot { flex: none; overflow: hidden; pointer-events: auto; }
+body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
 
 /* stand-ins off CrazyGames */
 .demo-ad { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(0,0,0,0.93); }
@@ -1025,7 +1025,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 .vaultbox { align-items: center; text-align: center; }
 .vaultart.big { margin: 22px 0 18px; transform: scale(1.5); }
 .perks { display: flex; flex-direction: column; gap: 8px; }
-.perks .adbtn { width: 100%; justify-content: flex-start; }
+.perks .rwbtn { width: 100%; justify-content: flex-start; }
 .perk { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; padding: 8px 12px; background: rgba(91,227,125,0.08); border: 1px solid rgba(91,227,125,0.35); clip-path: var(--chamfer-sm); color: var(--green); }
 .perk b { font-size: 13px; color: var(--text); }
 .perk small { grid-column: 2; font-size: 11px; color: var(--dim); }
@@ -1034,8 +1034,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 .res2-double { display: flex; justify-content: center; }
 .doubled { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green); }
 .x2 { margin-left: 6px; padding: 0 5px; font-size: 11px; color: #1a1205; background: var(--gold); }
-.btn.adbtn.halfbtn { margin-top: 6px; width: 100%; padding: 4px 8px 4px 4px; }
-.btn.adbtn.halfbtn .adl { font-size: 11px; }
+.btn.rwbtn.halfbtn { margin-top: 6px; width: 100%; padding: 4px 8px 4px 4px; }
+.btn.rwbtn.halfbtn .rwl { font-size: 11px; }
 .death .redeploy { margin: -6px 0 16px; }
 .cgavatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line-2); }
 .btn.signin { padding: 4px 10px; font-size: 10.5px; }
@@ -1059,7 +1059,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 .wheel-odds span { margin: 0; }
 .perks { margin-top: 6px; }
 .ladder-guest { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 8px 12px; font-size: 12.5px; color: var(--dim); background: rgba(255,255,255,0.04); border: 1px solid var(--line); clip-path: var(--chamfer-sm); }
-.btn.adbtn.halfbtn small { opacity: 0.9; }
+.btn.rwbtn.halfbtn small { opacity: 0.9; }
 
 /* short screens (CrazyGames' small embeds, landscape phones): the modes become one compact row */
 @media (max-height: 640px) {
@@ -1187,7 +1187,7 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
 /* the play bar is a solid footer: content that scrolls under it is hidden, not overlapped */
 .playbar { background: linear-gradient(180deg, rgba(8,10,13,0) 0, rgba(11,13,17,0.97) 12px); }
 /* offer texts wrap rather than being cut short */
-.btn.adbtn .adl, .btn.adbtn small { white-space: normal; overflow: visible; text-overflow: clip; }
+.btn.rwbtn .rwl, .btn.rwbtn small { white-space: normal; overflow: visible; text-overflow: clip; }
 /* Team Deathmatch scoreboard: teams stacked, or side by side on short wide windows */
 .scoreboard { max-height: calc(100vh - 16px); overflow-y: auto; }
 .tdmsb .sbteam + .sbteam { margin-top: 14px; }
@@ -1224,8 +1224,8 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
   .res2-strip .row-sb { margin-bottom: 3px; }
   .res2-strip .lvl .badge { width: 28px; height: 28px; font-size: 13px; }
   .res2-strip .coins { font-size: 20px; }
-  .res2 .btn.adbtn.big { padding: 6px 14px 6px 6px; }
-  .res2 .btn.adbtn.big .adl { font-size: 13px; }
+  .res2 .btn.rwbtn.big { padding: 6px 14px 6px 6px; }
+  .res2 .btn.rwbtn.big .rwl { font-size: 13px; }
   .res2-actions .btn.big { padding: 9px 18px; font-size: 13px; }
 }
 /* the Locker on short windows: no player card under the categories, tighter rows */
@@ -1314,10 +1314,10 @@ body.ad-on .screen.menu { padding-bottom: var(--adh, 0px); }
   .armorypage > .shopgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .shopitem .nm { font-size: 11.5px; }
   .shopitem .price { font-size: 11px; }
-  .btn.adbtn.halfbtn { gap: 4px; padding: 3px 5px 3px 3px; }
-  .btn.adbtn.halfbtn .adtag { padding: 2px 4px; font-size: 9px; }
-  .btn.adbtn.halfbtn .adl { font-size: 10px; }
-  .btn.adbtn.halfbtn small { font-size: 9.5px; }
+  .btn.rwbtn.halfbtn { gap: 4px; padding: 3px 5px 3px 3px; }
+  .btn.rwbtn.halfbtn .rwtag { padding: 2px 4px; font-size: 9px; }
+  .btn.rwbtn.halfbtn .rwl { font-size: 10px; }
+  .btn.rwbtn.halfbtn small { font-size: 9.5px; }
 }
 @media (max-height: 480px) {
   .menu-left.tdmsel { gap: 5px; }

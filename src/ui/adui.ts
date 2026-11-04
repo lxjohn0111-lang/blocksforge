@@ -11,7 +11,7 @@ let toastEl: HTMLElement | null = null;
 /** a short notice at the top of the screen */
 export function adToast(text: string, kind: 'warn' | 'good' = 'warn') {
   toastEl?.remove();
-  const el = h('div', { class: `toast ${kind} adtoast` }, text);
+  const el = h('div', { class: `toast ${kind} rwtoast` }, text);
   (document.getElementById('ui') ?? document.body).appendChild(el);
   toastEl = el;
   setTimeout(() => el.remove(), 2600);
@@ -39,9 +39,9 @@ export interface AdOffer {
 export function adButton(o: AdOffer): HTMLElement | null {
   if (!platform.rewardedReady) return null;
   let busy = false;
-  const btn = h('button', { class: `btn adbtn${o.big ? ' big' : ''}${o.tone ? ' ' + o.tone : ''}`, title: 'Watch a short video ad for this reward' },
-    h('span', { class: 'adtag' }, h('span', { html: ICON.play(11) }), o.badge ?? 'AD'),
-    h('span', { class: 'adtext' }, h('span', { class: 'adl' }, o.label), o.sub ? h('small', null, o.sub) : null));
+  const btn = h('button', { class: `btn rwbtn${o.big ? ' big' : ''}${o.tone ? ' ' + o.tone : ''}`, title: 'Watch a short video ad for this reward' },
+    h('span', { class: 'rwtag' }, h('span', { html: ICON.play(11) }), o.badge ?? 'AD'),
+    h('span', { class: 'rwtext' }, h('span', { class: 'rwl' }, o.label), o.sub ? h('small', null, o.sub) : null));
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (busy) return;
@@ -92,10 +92,10 @@ export class BannerAds {
   private busy = false;
 
   constructor(parent: HTMLElement) {
-    this.slot = h('div', { id: ID, class: 'adslot' });
+    this.slot = h('div', { id: ID, class: 'bf-bslot' });
     this.slot.style.width = `${SIZE[0]}px`;
     this.slot.style.height = `${SIZE[1]}px`;
-    this.bar = h('div', { class: 'adfoot' }, this.slot);
+    this.bar = h('div', { class: 'bf-foot' }, this.slot);
     this.bar.style.display = 'none';
     // banner + 6 px above and below
     document.documentElement.style.setProperty('--adh', `${SIZE[1] + 12}px`);
@@ -115,7 +115,7 @@ export class BannerAds {
   private place() {
     const on = !!this.spot && platform.adsMode !== 'none';
     this.bar.style.display = on ? '' : 'none';
-    document.body.classList.toggle('ad-on', on);
+    document.body.classList.toggle('foot-room', on);
   }
 
   private async request() {

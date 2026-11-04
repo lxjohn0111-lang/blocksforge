@@ -10,10 +10,10 @@ export default async function (page, h) {
   await h.eval(() => { window.__bfDemoAdMs = 250; });
   // the banner and what it would cover: every visible menu element that intersects it
   const banner = () => h.eval(() => {
-    const bar = document.querySelector('.adslot');
+    const bar = document.querySelector('.bf-bslot');
     if (!bar || !bar.checkVisibility() || !bar.childElementCount) return { shown: false };
     // nothing of the menu may reach into the banner's footer bar
-    const r = bar.closest('.adfoot').getBoundingClientRect();
+    const r = bar.closest('.bf-foot').getBoundingClientRect();
     const hits = [];
     // the part of an element that is really on screen (scrolling columns clip their content)
     const visible = (el) => {
@@ -29,7 +29,7 @@ export default async function (page, h) {
       return box.r > box.l && box.b > box.t ? box : null;
     };
     for (const el of document.querySelectorAll('#ui .screen *, #ui .hud *')) {
-      if (el.closest('.adfoot') || !el.offsetParent || el.children.length) continue;
+      if (el.closest('.bf-foot') || !el.offsetParent || el.children.length) continue;
       const v = visible(el);
       if (!v) continue;
       const b = { left: v.l, top: v.t, right: v.r, bottom: v.b };
@@ -38,7 +38,7 @@ export default async function (page, h) {
       if (b.right > r.left + 1 && b.left < r.right - 1 && b.bottom > r.top + 1 && b.top < r.bottom - 1) hits.push(`${el.className || el.tagName}:${(el.textContent || '').trim().slice(0, 20)}`);
     }
     const slot = bar.getBoundingClientRect();
-    return { shown: true, w: Math.round(slot.width), h: Math.round(slot.height), hits: hits.slice(0, 6), reserved: document.body.classList.contains('ad-on') };
+    return { shown: true, w: Math.round(slot.width), h: Math.round(slot.height), hits: hits.slice(0, 6), reserved: document.body.classList.contains('foot-room') };
   });
   await h.run(1500);
   for (const tab of ['Play', 'Career', 'Locker', 'Armory', 'Ladder']) {
@@ -50,7 +50,7 @@ export default async function (page, h) {
   }
   await h.eval(() => [...document.querySelectorAll('.topbar .tab')].find((b) => b.textContent === 'Play')?.click());
   await h.run(300);
-  const offers = await h.eval(() => [...document.querySelectorAll('.adbtn .adl')].map((e) => e.textContent));
+  const offers = await h.eval(() => [...document.querySelectorAll('.rwbtn .rwl')].map((e) => e.textContent));
   ok(offers.length >= 4, `rewarded offers on the Play tab: ${JSON.stringify(offers)}`);
 
   // ---- Lucky Wheel: free spin, then the cooldown, then a spin for an ad
@@ -62,11 +62,11 @@ export default async function (page, h) {
   await h.run(2500);
   await h.shot('ads_wheel_spinning');
   await h.run(3500);
-  const spin1 = await h.eval(() => ({ result: document.querySelector('.wheel-result')?.textContent, next: window.__bf.meta.wheelReadyIn(), spins: window.__bf.meta.p.ads.wheelSpins, wait: document.querySelector('.wheel-wait')?.textContent, ad: !!document.querySelector('.wheel-actions .adbtn') }));
+  const spin1 = await h.eval(() => ({ result: document.querySelector('.wheel-result')?.textContent, next: window.__bf.meta.wheelReadyIn(), spins: window.__bf.meta.p.ads.wheelSpins, wait: document.querySelector('.wheel-wait')?.textContent, ad: !!document.querySelector('.wheel-actions .rwbtn') }));
   ok(spin1.spins === 1 && spin1.next > 540000 && spin1.ad && /Free spin in/.test(spin1.wait || ''), `free spin, then 10 min cooldown and an ad spin offer: ${JSON.stringify(spin1)}`);
   await h.shot('ads_wheel_result');
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
-  await h.eval(() => document.querySelector('.wheel-actions .adbtn')?.click());
+  await h.eval(() => document.querySelector('.wheel-actions .rwbtn')?.click());
   await h.run(7000);
   const spin2 = await h.eval(() => ({ spins: window.__bf.meta.p.ads.wheelSpins, result: document.querySelector('.wheel-result')?.textContent, coins: window.__bf.meta.p.coins }));
   ok(spin2.spins === 2, `ad spin while on cooldown: ${JSON.stringify(spin2)} (coins before ${coins0})`);
@@ -75,16 +75,16 @@ export default async function (page, h) {
 
   // ---- boosts: supply drop, 2× XP, a vault step
   const c1 = await h.eval(() => window.__bf.meta.p.coins);
-  await h.eval(() => [...document.querySelectorAll('.boostcard .adbtn')].find((b) => /\+\d+/.test(b.textContent))?.click());
+  await h.eval(() => [...document.querySelectorAll('.boostcard .rwbtn')].find((b) => /\+\d+/.test(b.textContent))?.click());
   await h.run(1200);
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
   const c2 = await h.eval(() => ({ coins: window.__bf.meta.p.coins, next: window.__bf.meta.coinsReadyIn() }));
   ok(c2.coins >= c1 + 200 && c2.next > 290000, `supply drop: ${c1} -> ${JSON.stringify(c2)}`);
-  await h.eval(() => [...document.querySelectorAll('.boostcard .adbtn')].find((b) => /XP/.test(b.textContent))?.click());
+  await h.eval(() => [...document.querySelectorAll('.boostcard .rwbtn')].find((b) => /XP/.test(b.textContent))?.click());
   await h.run(1200);
   const boost = await h.eval(() => ({ left: window.__bf.meta.xpBoostLeft(), chip: !!document.querySelector('.boostchip') }));
   ok(boost.left > 14 * 60000, `2× XP boost running: ${JSON.stringify(boost)}`);
-  await h.eval(() => [...document.querySelectorAll('.boostcard .adbtn')].find((b) => /Unlock/.test(b.textContent))?.click());
+  await h.eval(() => [...document.querySelectorAll('.boostcard .rwbtn')].find((b) => /Unlock/.test(b.textContent))?.click());
   await h.run(1200);
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
   const vault = await h.eval(() => ({ owned: window.__bf.meta.owns('outfit:gilded_phantom'), vault: window.__bf.meta.p.ads.vault }));
@@ -96,14 +96,14 @@ export default async function (page, h) {
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
   await h.run(300);
   const canDouble = await h.eval(() => window.__bf.meta.canDoubleDaily());
-  await h.eval(() => [...document.querySelectorAll('.adbtn')].find((b) => /Double today/.test(b.textContent))?.click());
+  await h.eval(() => [...document.querySelectorAll('.rwbtn')].find((b) => /Double today/.test(b.textContent))?.click());
   await h.run(1200);
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
   ok(canDouble && !(await h.eval(() => window.__bf.meta.canDoubleDaily())), 'daily reward doubled once');
   await h.shot('ads_menu_boosted');
 
   // ---- starter kit, then a Battle Royale match
-  await h.eval(() => [...document.querySelectorAll('.perks .adbtn')].find((b) => /Drop in loaded/.test(b.textContent))?.click());
+  await h.eval(() => [...document.querySelectorAll('.perks .rwbtn')].find((b) => /Drop in loaded/.test(b.textContent))?.click());
   await h.run(1200);
   ok(await h.eval(() => window.__bf.meta.p.ads.starterKit), 'starter kit armed for the next drop');
   await h.eval(() => { window.__bf.settings.dynamicRes = false; window.__bf.play({ mode: 'br', ranked: false, tdmMap: 'rotation', loadout: 'assault' }); });
@@ -133,7 +133,7 @@ export default async function (page, h) {
   await frames(50);
   await h.run(1600);
   await frames(2);
-  const death = await h.eval(() => ({ overlay: window.__bf.hud.overlay, redeploy: !!document.querySelector('.death .redeploy .adbtn') }));
+  const death = await h.eval(() => ({ overlay: window.__bf.hud.overlay, redeploy: !!document.querySelector('.death .redeploy .rwbtn') }));
   ok(death.overlay === 'death' && death.redeploy, `death screen with Redeploy: ${JSON.stringify(death)}`);
   const spec2 = await banner();
   ok(!spec2.shown, 'no banner on the death screen');
@@ -141,7 +141,7 @@ export default async function (page, h) {
   ok(await h.eval(() => window.__breaks === 0), `no break ad next to the Redeploy offer (${await h.eval(() => window.__breaks)})`);
   await h.eval(() => { window.__noRender = false; });
   await h.shot('ads_spectate');
-  await h.eval(() => { window.__pause = true; window.__noRender = true; document.querySelector('.death .redeploy .adbtn')?.click(); });
+  await h.eval(() => { window.__pause = true; window.__noRender = true; document.querySelector('.death .redeploy .rwbtn')?.click(); });
   await h.run(1200);
   await frames(3);
   const back = await h.eval(() => ({ alive: window.__bf.match.player.alive, dropping: window.__bf.match.player.dropping, overlay: window.__bf.hud.overlay, redeployed: window.__bf.match.redeployed }));
@@ -163,13 +163,13 @@ export default async function (page, h) {
   await h.eval(() => { window.__pause = false; window.__noRender = false; });
   await h.waitFor(() => window.__bf.state === 'results' && !!document.querySelector('.res2'), 60000);
   await h.run(800);
-  const before = await h.eval(() => ({ coins: window.__bf.meta.p.coins, xp: window.__bf.meta.p.xp, level: window.__bf.meta.p.level, offer: !!document.querySelector('.res2-double .adbtn'), xpLine: document.querySelector('.xpv')?.textContent }));
+  const before = await h.eval(() => ({ coins: window.__bf.meta.p.coins, xp: window.__bf.meta.p.xp, level: window.__bf.meta.p.level, offer: !!document.querySelector('.res2-double .rwbtn'), xpLine: document.querySelector('.xpv')?.textContent }));
   const rb = await banner();
   ok(before.offer && !rb.shown, `results: 2× offer, no banner: ${JSON.stringify(before)}`);
   ok(await h.eval(() => window.__breaks === 1), 'no break ad on Continue (navigation)');
   await h.eval(() => { window.__bfDemoPacingMs = undefined; });
   await h.shot('ads_results');
-  await h.eval(() => document.querySelector('.res2-double .adbtn')?.click());
+  await h.eval(() => document.querySelector('.res2-double .rwbtn')?.click());
   await h.run(1200);
   const after = await h.eval(() => ({ coins: window.__bf.meta.p.coins, xp: window.__bf.meta.p.xp, level: window.__bf.meta.p.level, doubled: !!document.querySelector('.doubled'), xpLine: document.querySelector('.xpv')?.textContent }));
   ok(after.doubled && after.coins > before.coins, `2× rewards granted: ${JSON.stringify(after)}`);
