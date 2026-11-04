@@ -92,7 +92,7 @@ export default async function (page, h) {
   await h.eval(() => window.__bf.match.player.body.pos.set(13.5, window.__st().harvest.y, 68.5));
   await press('KeyF');
   await page.mouse.down({ button: 'left' });
-  ok(await until(() => window.__done('harvest'), 300, () => window.__aim(12.5, window.__st().harvest.y + 1.5, 66.5)), `harvest 30 wood (F + LMB): ${JSON.stringify((await state()).mats)}`);
+  ok(await until(() => window.__done('harvest'), 300, () => window.__aim(12.5, window.__st().harvest.y + 1.5, 66.5)), `harvest 20 wood (F + LMB): ${JSON.stringify((await state()).mats)}`);
   await page.mouse.up({ button: 'left' });
   // 11 build: Q, Ramp (3), face the ledge, place, walk up
   await h.eval(() => { const p = window.__bf.match.player; p.body.pos.set(55.5, window.__st().ledge.y - 3, 66.5); p.yaw = 0; });
