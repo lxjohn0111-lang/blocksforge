@@ -109,6 +109,14 @@ export class BannerAds {
     this.spot = spot;
     this.place();
     if (spot) this.request();
+    // off to play: the banner is cleared through the SDK, not just hidden
+    else this.clear();
+  }
+
+  private clear() {
+    if (!this.filled) return;
+    platform.clearBanner(ID);
+    this.filled = false;
   }
 
   /** the bar (and the room for it) whenever the menu is up and an ad can come */
@@ -128,6 +136,11 @@ export class BannerAds {
     const res = await platform.requestBanner(ID, SIZE[0], SIZE[1]);
     this.busy = false;
     this.lastRequest = Date.now();
+    // the player left the menu while the banner was on its way: clear it straight away
+    if (!this.spot) {
+      if (res === 'ok') platform.clearBanner(ID);
+      return;
+    }
     if (res === 'ok') {
       this.filled = true;
       this.failures = 0;

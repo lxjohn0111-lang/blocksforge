@@ -39,6 +39,7 @@ interface CrazySDK {
   banner?: {
     requestBanner(b: { id: string; width: number; height: number }): Promise<void> | void;
     clearBanner?: (id: string) => void;
+    clearAllBanners?: () => void;
   };
   user?: {
     isUserAccountAvailable?: boolean;

@@ -58,20 +58,27 @@ export class Input {
       if (document.hidden) this.clearAll();
     });
     document.addEventListener('pointerlockchange', () => {
-      if (this.fallback) return;
       const was = this.locked;
-      this.locked = document.pointerLockElement === this.canvas;
-      if (!this.locked) {
+      if (document.pointerLockElement === this.canvas) {
+        // a real lock always wins, also over cursor steering
+        this.fallback = false;
+        this.locked = true;
+        this.ignoreClickUntil = performance.now() + 120;
+      } else {
+        // cursor steering keeps its own state when the browser's lock goes away
+        if (this.fallback) return;
+        this.locked = false;
         this.clearAll();
         this.lastUnlock = performance.now();
-      } else this.ignoreClickUntil = performance.now() + 120;
+      }
       if (was !== this.locked) this.onLockChange?.(this.locked);
     });
-    // Chrome refuses a re-lock for about a second after Esc; any other refusal means the host
-    // doesn't allow pointer lock at all, so switch to cursor steering instead of a dead camera
-    // (a request made without a click is refused by every browser, so only a refused click counts)
+    // Chrome refuses a re-lock for about a second after Esc; another refusal of a click (a host that
+    // doesn't allow pointer lock) switches to cursor steering for now rather than a dead camera, and
+    // the next click asks for a real lock again (a request without a click is refused by every
+    // browser, so only a refused click counts)
     document.addEventListener('pointerlockerror', () => {
-      if (this.requestedWithGesture && performance.now() - this.lastUnlock > 2500) this.enterFallback();
+      if (this.requestedWithGesture && performance.now() - this.lastUnlock > 1500) this.enterFallback();
     });
     // no browser context menu anywhere in the game (text fields keep theirs)
     window.addEventListener('contextmenu', (e) => {
@@ -91,27 +98,25 @@ export class Input {
 
   requestLock() {
     this.focus();
-    if (this.locked) return;
     if (this.touchMode) {
       this.setFallbackLocked(true);
       return;
     }
-    const el = this.canvas as HTMLElement & { requestPointerLock?: unknown };
-    if (this.fallback || typeof el.requestPointerLock !== 'function') {
+    // already a real lock (with cursor steering, every click asks for the real one again)
+    if (this.locked && !this.fallback) return;
+    const el = this.canvas as HTMLElement & { requestPointerLock?: (o?: object) => Promise<void> | void };
+    if (typeof el.requestPointerLock !== 'function') {
       this.enterFallback();
       return;
     }
     const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
-    this.requestedWithGesture = ua ? ua.isActive : false;
+    this.requestedWithGesture = ua ? ua.isActive : true;
     try {
-      const p = (this.canvas as any).requestPointerLock?.({ unadjustedMovement: true });
-      if (p && typeof p.catch === 'function') p.catch(() => (this.canvas as any).requestPointerLock?.());
+      // a plain request: some systems refuse the raw-input (unadjustedMovement) option outright
+      const p = el.requestPointerLock();
+      if (p && typeof (p as Promise<void>).catch === 'function') (p as Promise<void>).catch(() => undefined);
     } catch {
-      try {
-        (this.canvas as any).requestPointerLock?.();
-      } catch {
-        /* not supported */
-      }
+      /* refused: pointerlockerror decides */
     }
   }
 
