@@ -1483,3 +1483,22 @@ body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
   .menu-left.tdmsel .playbar { padding-top: 2px; }
   .menu-left.tdmsel .playbar .btn.big { padding: 4px 18px; font-size: 13px; }
 }
+/* the shortest windows (about 330 px high): the last few panels tightened */
+@media (max-height: 420px) {
+  /* the training panel sits just under the compass, clear of the materials on the left */
+  .hud:not(.touch) .tut { top: 48px; }
+}
+@media (max-height: 350px) {
+  .shopitem .sw { height: 32px; }
+  .shopitem { gap: 3px; }
+  .locker .swatch { width: 18px; height: 18px; }
+  .locker .swatchrow { gap: 3px; }
+  .vaultart.big { margin: 6px 0 4px; transform: scale(1); }
+  .vaultbox { gap: 6px !important; padding: 12px 16px !important; }
+  .vaultbox .h2 { font-size: 15px; }
+  .inv h3, .inv h3[style] { display: none; }
+  /* without the section titles the groups keep a little air between them */
+  .inv .invweapons, .inv .invgrid { margin-bottom: 4px; }
+  .sbt td { padding: 2px 8px; }
+  .sbmodal .box { padding: 8px 12px; gap: 4px; }
+}
