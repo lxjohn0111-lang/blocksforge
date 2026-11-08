@@ -259,7 +259,10 @@ export default async function (page, h) {
   await h.waitFor(() => window.__bf.state === 'menu', 30000);
 
   // ---------------------------------------------------------------- Team Deathmatch
-  await h.eval(() => window.__bf.play({ mode: 'tdm', ranked: false, tdmMap: 'hamlet', loadout: 'assault' }));
+  // (not awaited: play() resolves only once the intro is over)
+  await h.eval(() => { void window.__bf.play({ mode: 'tdm', ranked: false, tdmMap: 'hamlet', loadout: 'assault' }); });
+  // the intro (both teams and the countdown) is on screen for about two seconds
+  if (await h.waitFor(() => !!document.querySelector('.lobby .vs .vsmid .countdown') || window.__bf.state === 'match', 120000).catch(() => false) && (await h.eval(() => !!document.querySelector('.lobby .vs')))) await audit('tdm intro');
   await h.waitFor(() => window.__bf.state === 'match', 120000);
   await h.eval(() => { window.__pause = true; window.__noRender = true; window.__bf.simulate(2); });
   await frames(5);

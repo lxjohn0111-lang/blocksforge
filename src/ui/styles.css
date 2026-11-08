@@ -1472,3 +1472,14 @@ body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
   .vsmid .countdown { font-size: 44px; }
   .lobby > .countdown { font-size: 56px; }
 }
+/* the shortest windows (about 330 px high, a small CrazyGames frame): a wider play column with the
+   mode names on one line and tighter rows, so the Team Deathmatch picker fits without scrolling */
+@media (max-height: 350px) and (min-width: 600px) {
+  .menu-body { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+  .modes .modecard, .menu-left.tdmsel .modes .modecard { padding: 5px 8px; }
+  .modes .modecard .title, .menu-left.tdmsel .modes .modecard .title { font-size: 15px; white-space: nowrap; }
+  .menu-left.tdmsel { gap: 3px; }
+  .menu-left.tdmsel .seg button { padding: 4px 6px; }
+  .menu-left.tdmsel .playbar { padding-top: 2px; }
+  .menu-left.tdmsel .playbar .btn.big { padding: 4px 18px; font-size: 13px; }
+}
