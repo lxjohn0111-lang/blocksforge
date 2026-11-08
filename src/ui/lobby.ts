@@ -39,6 +39,7 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
       root.remove();
       resolve();
     };
+    let vsMid: HTMLElement | null = null;
     (async () => {
       if (o.mode !== 'tutorial') {
         // phase 1: lobby assembly
@@ -66,20 +67,22 @@ export function runLobby(parent: HTMLElement, o: LobbyOpts): Promise<void> {
         await o.ready;
         clear(root);
         // phase 2: intro
-        root.appendChild(h('div', { class: 'label', style: { textAlign: 'center' } }, o.mode === 'br' ? 'Drop zone' : 'Arena'));
+        root.appendChild(h('div', { class: 'label intro-kind', style: { textAlign: 'center' } }, o.mode === 'br' ? 'Drop zone' : 'Arena'));
         root.appendChild(h('div', { class: 'intro-map' }, o.mapName));
-        root.appendChild(h('div', { class: 'dim', style: { textAlign: 'center', letterSpacing: '0.2em', textTransform: 'uppercase', fontSize: '13px', marginBottom: '22px' } }, o.mapSub));
+        root.appendChild(h('div', { class: 'dim intro-sub' }, o.mapSub));
         if (o.teams) {
           const team = (list: Identity[], cls: string, label: string) => h('div', { class: 'team ' + cls }, h('div', { class: 'label' }, label), ...list.map((id) => playerCard(id)));
-          root.appendChild(h('div', { class: 'vs' }, team(o.teams[0], 'team-blue', 'Your team'), h('div', { class: 'vsmark' }, 'VS'), team(o.teams[1], 'team-red', 'Enemy team')));
+          // the countdown goes under the VS mark, between the teams, so the screen stays one block high
+          vsMid = h('div', { class: 'vsmid' }, h('div', { class: 'vsmark' }, 'VS'));
+          root.appendChild(h('div', { class: 'vs' }, team(o.teams[0], 'team-blue', 'Your team'), vsMid, team(o.teams[1], 'team-red', 'Enemy team')));
         }
       } else {
         await o.ready;
         root.appendChild(h('div', { class: 'intro-map' }, o.mapName));
-        root.appendChild(h('div', { class: 'dim', style: { textAlign: 'center', letterSpacing: '0.2em', textTransform: 'uppercase', fontSize: '13px' } }, o.mapSub));
+        root.appendChild(h('div', { class: 'dim intro-sub' }, o.mapSub));
       }
       const cd = h('div', { class: 'countdown' });
-      root.appendChild(cd);
+      (vsMid ?? root).appendChild(cd);
       for (const n of [3, 2, 1]) {
         cd.textContent = String(n);
         audio.ui('countdown', 0.8);
