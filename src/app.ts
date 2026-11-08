@@ -252,7 +252,7 @@ export class App {
     this.canvas.addEventListener('click', () => {
       // with the mouse captured, clicks land here (also on "Click to play")
       if (this.state === 'match') this.engaged = true;
-      if (this.state === 'match' && this.hud && this.hud.overlay === 'none' && (!this.input.locked || this.input.cursorSteering)) this.lockPointer();
+      if (this.state === 'match' && this.hud && this.hud.overlay === 'none' && !this.input.locked) this.lockPointer();
     });
     window.addEventListener('beforeunload', () => this.meta?.save());
   }

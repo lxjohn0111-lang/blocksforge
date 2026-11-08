@@ -20,6 +20,7 @@ export class Input {
   /** pointer lock refused by this page's host (some embedded views): steer with plain mouse movement */
   private fallback = false;
   private lastUnlock = -1e9;
+  private lastRetry = -1e9;
   private requestedWithGesture = false;
   /** touch-screen controls drive input: no pointer lock, mouse events ignored */
   touchMode = false;
@@ -78,6 +79,8 @@ export class Input {
     // the next click asks for a real lock again (a request without a click is refused by every
     // browser, so only a refused click counts)
     document.addEventListener('pointerlockerror', () => {
+      // a late refusal of an earlier request does not undo a lock that a later one got
+      if (document.pointerLockElement === this.canvas) return;
       if (this.requestedWithGesture && performance.now() - this.lastUnlock > 1500) this.enterFallback();
     });
     // no browser context menu anywhere in the game (text fields keep theirs)
@@ -224,6 +227,11 @@ export class Input {
     if (!this.locked) {
       if (!isDown) this.down.delete(code);
       return;
+    }
+    // steering with the cursor: a click (it is a user action) asks for a real lock again
+    if (isDown && this.fallback && performance.now() - this.lastRetry > 2000) {
+      this.lastRetry = performance.now();
+      this.requestLock();
     }
     if (isDown && performance.now() < this.ignoreClickUntil) return;
     if (isDown) {
