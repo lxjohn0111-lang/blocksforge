@@ -1547,7 +1547,8 @@ body.phone .menu-right > .fineprint { margin-top: 2px; }
   body.phone .armorypage > .row.panel { padding: 5px 14px !important; }
   body.phone .armorypage .h1 { font-size: 18px; }
   body.phone .ptile { min-height: 44px; padding: 4px 8px; }
-  body.phone .ptile b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.phone .ptiles { gap: 5px; }
+  body.phone .ptile b { font-size: 12px; }
   body.phone .menu-right > .fineprint { font-size: 10px; line-height: 1.25; }
   body.phone .res2 { gap: 6px; padding-bottom: 8px; }
   body.phone .res2-head .score { margin-top: 2px; }
