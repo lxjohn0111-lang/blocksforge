@@ -1538,6 +1538,15 @@ body.phone .hud.touch .tut .dots { margin-top: 5px; }
 /* the Locker's lists on a short phone: slightly lower tap rows so a category and its options fit without scrolling */
 body.phone .locker > .panel:first-child .btn { min-height: 34px; }
 body.phone .locker .swatchrow .btn { min-height: 30px; }
+body.phone .menu-right > .fineprint { margin-top: 2px; }
+/* the shortest phone screens (an iPhone SE with Safari's bars, about 320 px high) */
+@media (max-height: 340px) {
+  body.phone .menu-left .playbar .btn.big { min-height: 36px; }
+  body.phone .locker > .panel:first-child .btn { min-height: 32px; }
+  body.phone .locker > .panel.scroll > .h2 { display: none; }
+  body.phone .armorypage > .row.panel { padding: 5px 14px !important; }
+  body.phone .armorypage .h1 { font-size: 18px; }
+}
 body.phone .tbtn { background: rgba(12,15,20,0.3); border-color: rgba(255,255,255,0.22); }
 body.phone .tbtn.corner { width: calc(var(--T) * 0.66); height: calc(var(--T) * 0.66); }
 body.phone .tbtn.small { width: calc(var(--T) * 0.74); height: calc(var(--T) * 0.74); }

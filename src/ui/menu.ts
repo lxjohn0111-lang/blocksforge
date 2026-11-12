@@ -318,9 +318,11 @@ export class Menu {
       }
       left.appendChild(lo);
     }
+    // on a phone the note sits under the tiles, where the short screen has room for it
+    const fine = h('div', { class: 'fineprint' }, 'All other players in BlockForge are computer-controlled.');
     const play = h('div', { class: 'playbar' },
       h('button', { class: 'btn primary big', onclick: () => { audio.ui('confirm'); this.api.play({ ...this.sel }); }, onmouseenter: () => audio.ui('hover', 0.3) }, h('span', { html: ICON.play(18) }), this.sel.mode === 'tutorial' ? 'Start training' : 'Find match'),
-      h('div', { class: 'fineprint' }, 'All other players in BlockForge are computer-controlled.'),
+      isPhone() ? null : fine,
       !persistent() ? h('div', { class: 'honesty', style: { color: '#ffb3a8' } }, h('span', { html: ICON.info(14) }), 'Browser storage is blocked — progress will not be saved after this session.') : null,
     );
     left.appendChild(play);
@@ -333,7 +335,7 @@ export class Menu {
     wrap.appendChild(hero);
     // right: daily, quests, events, rank (on a phone as tiles, each opening its card on a sheet)
     const right = h('div', { class: 'menu-right scroll', style: { overflowY: 'auto' } });
-    if (isPhone()) right.appendChild(this.phoneTiles());
+    if (isPhone()) right.append(this.phoneTiles(), fine);
     else {
       right.appendChild(this.wheelCard());
       right.appendChild(this.boostCard());
