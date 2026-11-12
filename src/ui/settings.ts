@@ -1,4 +1,4 @@
-import { h, clear } from './dom';
+import { h, clear, isPhone } from './dom';
 import { ACTION_LABELS, DEFAULT_BINDINGS, DEFAULT_SETTINGS, keyLabel, saveSettings, SHARED_OK, type Action, type Settings, type TouchMode } from '../core/settings';
 import type { Input } from '../core/input';
 import { QUALITY_PRESETS, type Quality } from '../render/engine';
@@ -94,10 +94,13 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
       }
       main.appendChild(h('div', { class: 'setrow' }, h('div', null, 'Touch controls', h('div', { class: 'd' }, 'On-screen stick and buttons. Auto turns them on for touch screens. Takes effect from the next match.')), tseg));
       main.appendChild(slider('Touch look speed', 'How far the camera turns when you drag.', 0.3, 3, 0.05, () => s.touchLook, (v) => (s.touchLook = v)));
-      main.appendChild(slider('Mouse sensitivity', '', 0.1, 4, 0.05, () => s.sensitivity, (v) => (s.sensitivity = v)));
+      // phones have no mouse or keyboard: their rows (and the key bindings) only crowd the small screen
+      const phone = isPhone();
+      if (!phone) main.appendChild(slider('Mouse sensitivity', '', 0.1, 4, 0.05, () => s.sensitivity, (v) => (s.sensitivity = v)));
       main.appendChild(slider('Aim-down-sights sensitivity', 'Multiplier while aiming with iron sights / red dots.', 0.2, 1.5, 0.05, () => s.adsSens, (v) => (s.adsSens = v)));
       main.appendChild(slider('Scoped sensitivity', 'Multiplier while looking through magnified scopes (scales with zoom).', 0.2, 2, 0.05, () => s.scopeSens, (v) => (s.scopeSens = v)));
       main.appendChild(toggle('Invert vertical look', '', () => s.invertY, (v) => (s.invertY = v)));
+      if (phone) return;
       main.appendChild(toggle('Toggle aim', 'Press instead of hold to aim.', () => s.aimToggle, (v) => (s.aimToggle = v)));
       main.appendChild(toggle('Toggle crouch', 'Press instead of hold to crouch.', () => s.crouchToggle, (v) => (s.crouchToggle = v)));
       main.appendChild(h('div', { class: 'row', style: { justifyContent: 'space-between', margin: '16px 0 4px' } }, h('div', { class: 'label' }, 'Key bindings'), h('button', { class: 'btn ghost', style: { fontSize: '11px' }, onclick: () => { s.bindings = { ...DEFAULT_BINDINGS }; commit(); render(); } }, 'Reset to defaults')));
