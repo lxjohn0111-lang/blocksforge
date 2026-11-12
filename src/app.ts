@@ -108,6 +108,7 @@ export class App {
     this.settings = loadSettings();
     this.input = new Input(this.canvas, this.settings);
     this.setTouch(touchControlsActive(this.settings));
+    addEventListener('resize', this.updatePhone);
     this.lockPrompt = h('div', { class: 'overlay', style: { display: 'none', background: 'rgba(6,8,11,0.35)', zIndex: '5', cursor: 'pointer' } },
       h('div', { class: 'panel', style: { padding: '18px 28px', textAlign: 'center' } }, h('div', { class: 'h2' }, 'Click to play'), h('div', { class: 'dim', style: { fontSize: '12px', marginTop: '4px' } }, 'Mouse is captured for aiming · P to pause')));
     this.lockPrompt.addEventListener('click', () => {
@@ -550,7 +551,17 @@ export class App {
     this.touch = on;
     this.input.touchMode = on;
     document.body.classList.toggle('touch', on);
+    this.updatePhone();
   }
+
+  /** phones get roomier layouts (fewer on-screen parts in play, rewards as tiles in the menu); turning
+   *  the phone can cross the line, so the menu is drawn again when it does */
+  private updatePhone = () => {
+    const phone = this.touch && Math.min(innerWidth, innerHeight) <= 500;
+    if (phone === document.body.classList.contains('phone')) return;
+    document.body.classList.toggle('phone', phone);
+    this.menu?.render();
+  };
 
   applySettings(s: Settings) {
     saveSettings(s);

@@ -52,3 +52,8 @@ export function timeAgo(t: number) {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
+
+/** a phone (touch screen, short side up to 500 px): the roomier phone layouts apply */
+export function isPhone() {
+  return document.body.classList.contains('phone');
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { h, clear } from './dom';
+import { h, clear, isPhone } from './dom';
 import { ICON, avatarCanvas } from './icons';
 import { drawMap } from './minimap';
 import type { Match, DamageEvent, KillEvent } from '../game/match';
@@ -565,7 +565,7 @@ export class HUD {
         const hs = h('div', { class: 'slot small' + (p.slot === 3 ? ' on' : '') + (healCount ? '' : ' empty'), 'data-act': 'slot4' }, h('span', { class: 'k' }, keyOf('slot4')), itemCanvas(p.healSel), h('span', { class: 'n' }, String(healCount)));
         S.appendChild(hs);
       }
-      const ts = h('div', { class: 'slot small' + (p.slot === 4 ? ' on' : '') + (p.throws[p.throwSel] ? '' : ' empty'), 'data-act': 'slot5' }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
+      const ts = h('div', { class: 'slot small thr' + (p.slot === 4 ? ' on' : '') + (p.throws[p.throwSel] ? '' : ' empty'), 'data-act': 'slot5' }, h('span', { class: 'k' }, keyOf('slot5')), itemCanvas(p.throwSel), h('span', { class: 'n' }, String(p.throws[p.throwSel])));
       S.appendChild(ts);
       if (m.harvestEnabled) S.appendChild(h('div', { class: 'slot small tool' + (p.slot === 5 ? ' on' : ''), 'data-act': 'tool' }, h('span', { class: 'k' }, keyOf('tool')), itemCanvas('pickaxe')));
       if (m.buildingEnabled) S.appendChild(h('div', { class: 'slot small ham' + (p.slot === 6 ? ' on' : ''), 'data-act': 'build' }, h('span', { class: 'k' }, keyOf('build')), itemCanvas('hammer')));
@@ -608,7 +608,8 @@ export class HUD {
         clear(E.mats);
         for (const k of BUILD_MATS) E.mats.appendChild(h('div', { class: 'm' }, matCanvas(k), h('span', null, String(p.mats[k]))));
       }
-      E.mats.style.display = p.alive && !inShip && p.slot !== 6 && m.buildingEnabled ? 'flex' : 'none';
+      // phones show the counts only while the pick is out, to keep the small screen clear
+      E.mats.style.display = p.alive && !inShip && p.slot !== 6 && m.buildingEnabled && (!this.touch || !isPhone() || p.slot === 5) ? 'flex' : 'none';
     } else E.mats.style.display = 'none';
 
     // build panel (on touch screens it takes the hotbar's place) and the first-time coach card

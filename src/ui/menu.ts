@@ -1,4 +1,4 @@
-import { h, clear, fmt, timeAgo } from './dom';
+import { h, clear, fmt, timeAgo, isPhone } from './dom';
 import { ICON, rankEmblem, avatarCanvas, logoMark } from './icons';
 import type { Meta, Reward } from '../meta/meta';
 import { DAILY_TRACK } from '../meta/meta';
@@ -190,6 +190,8 @@ export class Menu {
         break;
     }
     this.api.setMenuView(this.tab === 'locker' ? 'showcase' : 'orbit');
+    if (this.sheet && this.tab === 'play' && isPhone()) this.openSheet(this.sheet);
+    else this.sheet = null;
     if (sameTab)
       for (const [sel, top] of keep) {
         const el = this.root.querySelector(sel);
@@ -329,15 +331,67 @@ export class Menu {
     hero.appendChild(h('div', { class: 'sub' }, this.sel.mode === 'br' ? 'Battle Royale' : this.sel.mode === 'tdm' ? 'Team Deathmatch' : 'Tutorial'));
     hero.appendChild(h('div', { class: 'map' }, mapName));
     wrap.appendChild(hero);
-    // right: daily, quests, events, rank
+    // right: daily, quests, events, rank (on a phone as tiles, each opening its card on a sheet)
     const right = h('div', { class: 'menu-right scroll', style: { overflowY: 'auto' } });
-    right.appendChild(this.wheelCard());
-    right.appendChild(this.boostCard());
-    right.appendChild(this.rankCard());
-    right.appendChild(this.dailyCard());
-    right.appendChild(this.questCard());
-    right.appendChild(this.eventCard());
+    if (isPhone()) right.appendChild(this.phoneTiles());
+    else {
+      right.appendChild(this.wheelCard());
+      right.appendChild(this.boostCard());
+      right.appendChild(this.rankCard());
+      right.appendChild(this.dailyCard());
+      right.appendChild(this.questCard());
+      right.appendChild(this.eventCard());
+    }
     wrap.appendChild(right);
+  }
+
+  /** the card open on a sheet (phones), kept open while the menu draws itself again */
+  private sheet: 'boosts' | 'rank' | 'daily' | 'quests' | 'event' | null = null;
+
+  /** phones: the menu's extras as compact tiles, so the play column keeps its room */
+  private phoneTiles() {
+    const meta = this.api.meta;
+    const p = meta.p;
+    // read live on every tick: the day, the quests and the event can turn over while the menu is open
+    const daily = () => meta.dailyStatus();
+    const quests = () => p.quests.list;
+    const ready = () => quests().filter((q) => q.progress >= q.target && !q.claimed).length;
+    const done = () => quests().filter((q) => q.progress >= q.target).length;
+    const ev = meta.events();
+    const evNow = () => meta.events();
+    const r = rankOf(p.rank.rp);
+    const tile = (icon: Node, title: string, status: () => string, hot: () => boolean, open: () => void) => {
+      const small = h('small', null, status());
+      const el = h('button', { class: 'ptile' + (hot() ? ' hot' : ''), onclick: () => { audio.ui('click', 0.5); open(); } }, h('span', { class: 'pt-ic' }, icon), h('span', { class: 'pt-tx' }, h('b', null, title), small));
+      this.timers.push(() => {
+        small.textContent = status();
+        el.classList.toggle('hot', hot());
+      });
+      return el;
+    };
+    const wheelIn = () => meta.wheelReadyIn();
+    return h('div', { class: 'ptiles' },
+      tile(h('span', { class: 'miniwheel' }), 'Lucky Wheel', () => (wheelIn() === 0 ? 'Free spin ready' : `Free in ${fmtDuration(wheelIn())}`), () => wheelIn() === 0, () => this.openWheel()),
+      tile(h('span', { html: ICON.xp(20) }), 'Boosts', () => 'Free rewards', () => false, () => this.openSheet('boosts')),
+      tile(h('span', { html: ICON.calendar(20) }), 'Daily reward', () => (daily().claimable ? 'Ready to claim' : `Next in ${fmtDuration(Math.max(0, daily().nextReset - Date.now()))}`), () => daily().claimable, () => this.openSheet('daily')),
+      tile(h('span', { html: ICON.check(20) }), 'Daily quests', () => (ready() ? `${ready()} to claim` : `${done()}/${quests().length} done`), () => ready() > 0, () => this.openSheet('quests')),
+      tile(h('span', { html: rankEmblem(r.tier, r.division, 24) }), 'Season', () => r.label, () => false, () => this.openSheet('rank')),
+      tile(h('span', { html: ICON.flame(20) }), ev.current ? ev.current.def.name : ev.next.def.name, () => { const e = evNow(); return e.current ? 'Live now' : `Starts in ${fmtDuration(Math.max(0, e.next.start - Date.now()))}`; }, () => !!evNow().current, () => this.openSheet('event')),
+    );
+  }
+
+  /** phones: one of the menu's cards on a sheet over the menu */
+  private openSheet(kind: NonNullable<Menu['sheet']>) {
+    this.sheet = kind;
+    this.root.querySelector('.psheet')?.remove();
+    const card = kind === 'boosts' ? this.boostCard() : kind === 'rank' ? this.rankCard() : kind === 'daily' ? this.dailyCard() : kind === 'quests' ? this.questCard() : this.eventCard();
+    const close = () => {
+      this.sheet = null;
+      sheet.remove();
+    };
+    const sheet = h('div', { class: 'modal psheet', onclick: (e: MouseEvent) => { if (e.target === sheet) close(); } },
+      h('div', { class: 'box panel' }, card, h('button', { class: 'btn ghost', onclick: close }, 'Close')));
+    this.root.appendChild(sheet);
   }
 
   /** match perks for the selected mode: the BR starter kit, the ranked Rank Shield */

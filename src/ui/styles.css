@@ -1502,3 +1502,46 @@ body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
   .sbt td { padding: 2px 8px; }
   .sbmodal .box { padding: 8px 12px; gap: 4px; }
 }
+
+/* ---- phones (touch screens with a short side up to 500 px): a roomier layout ------------------- */
+/* menu: the extras as tiles (each opens its card on a sheet), so the play column has room */
+.ptiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ptile { display: flex; align-items: center; gap: 8px; min-height: 50px; padding: 6px 10px; text-align: left; color: var(--text); background: var(--panel); border: 1px solid var(--line); clip-path: var(--chamfer-sm); font: inherit; cursor: pointer; }
+.ptile.hot { border-color: var(--accent); background: linear-gradient(90deg, rgba(242,169,59,0.22), var(--panel)); }
+.ptile .pt-ic { flex: none; width: 28px; height: 28px; display: grid; place-items: center; color: var(--accent); }
+.ptile .pt-tx { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.ptile b { font-size: 12.5px; line-height: 1.15; }
+.ptile small { font-size: 10.5px; color: var(--dim); line-height: 1.2; }
+.ptile.hot small { color: var(--accent-2); }
+.psheet .box { width: min(460px, 92vw); max-height: calc(100% - 20px); overflow-y: auto; padding: 10px 12px; gap: 8px; }
+.psheet .box > .card { margin: 0; }
+.psheet .box > .btn { align-self: center; }
+body.phone .menu-right { gap: 6px; }
+
+/* play: the view first. Healing and building have their own buttons, so their hotbar slots go;
+   the materials (shown while building and in the bag), the weapon's name and the tip strip go too;
+   the buttons get a little smaller and lighter */
+body.phone .hud.touch .slot.small:not(.tool):not(.thr) { display: none; }
+body.phone .hud.touch .slot.ham { display: none; }
+body.phone .hud.touch .slot { width: calc(var(--T) * 1.05); height: calc(var(--T) * 0.72); }
+body.phone .hud.touch .slot.small { width: calc(var(--T) * 0.78); }
+body.phone .hud.touch .ammo .wn { display: none; }
+body.phone .hud.touch .tipbar { display: none !important; }
+body.phone .hud.touch .toasts .toast:nth-child(n+2) { display: none; }
+body.phone .hud.touch .toast { font-size: 11px; padding: 4px 10px; }
+body.phone .hud.touch .vitals { width: min(170px, 24vw); }
+body.phone .tbtn { background: rgba(12,15,20,0.3); border-color: rgba(255,255,255,0.22); }
+body.phone .tbtn.corner { width: calc(var(--T) * 0.66); height: calc(var(--T) * 0.66); }
+body.phone .tbtn.small { width: calc(var(--T) * 0.74); height: calc(var(--T) * 0.74); }
+body.phone .tbtn.t-aim, body.phone .tbtn.t-reload, body.phone .tbtn.t-crouch { width: calc(var(--T) * 0.84); height: calc(var(--T) * 0.84); }
+
+/* phones in landscape: the Locker's category list and the TDM scoreboard fit */
+@media (max-height: 360px) {
+  .locker > .panel:first-child .btn { padding: 4px 10px; font-size: 10.5px; margin-bottom: 2px !important; }
+  .locker > .panel.scroll .h2 { font-size: 13px; margin-bottom: 4px !important; }
+  .locker .panel .label { margin: 0 0 1px; }
+  .locker .swatch { width: 17px; height: 17px; }
+  .locker .swatchrow .btn { padding: 2px 6px !important; font-size: 9.5px !important; }
+  .scoreboard.tdmsb { column-gap: 10px; width: min(1080px, 98vw); }
+  .tdmsb .sbt th, .tdmsb .sbt td { padding: 2px 5px; }
+}
