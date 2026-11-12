@@ -50,11 +50,26 @@ export default async function (page, h) {
   }
   await h.eval(() => [...document.querySelectorAll('.topbar .tab')].find((b) => b.textContent === 'Play')?.click());
   await h.run(300);
+  // phones show the Play tab's extras as tiles: each card (and its offers) is on a sheet the tile opens
+  const phone = await h.eval(() => document.body.classList.contains('phone'));
+  const openTile = async (name) => {
+    if (!phone) return;
+    await h.eval((n) => [...document.querySelectorAll('.ptile')].find((t) => t.textContent.includes(n))?.click(), name);
+    await h.run(300);
+  };
+  const closeSheet = async () => {
+    if (!phone) return;
+    await h.eval(() => [...document.querySelectorAll('.psheet .btn')].find((b) => b.textContent === 'Close')?.click());
+    await h.run(200);
+  };
+  await openTile('Boosts');
   const offers = await h.eval(() => [...document.querySelectorAll('.rwbtn .rwl')].map((e) => e.textContent));
   ok(offers.length >= 4, `rewarded offers on the Play tab: ${JSON.stringify(offers)}`);
 
   // ---- Lucky Wheel: free spin, then the cooldown, then a spin for an ad
-  await h.eval(() => document.querySelector('.wheelcard')?.click());
+  await closeSheet();
+  if (phone) await openTile('Lucky Wheel');
+  else await h.eval(() => document.querySelector('.wheelcard')?.click());
   await h.run(500);
   await h.shot('ads_wheel_ready');
   const coins0 = await h.eval(() => window.__bf.meta.p.coins);
@@ -74,6 +89,7 @@ export default async function (page, h) {
   await h.run(400);
 
   // ---- boosts: supply drop, 2× XP, a vault step
+  await openTile('Boosts');
   const c1 = await h.eval(() => window.__bf.meta.p.coins);
   await h.eval(() => [...document.querySelectorAll('.boostcard .rwbtn')].find((b) => /\+\d+/.test(b.textContent))?.click());
   await h.run(1200);
@@ -91,6 +107,8 @@ export default async function (page, h) {
   ok(vault.owned, `Ad Vault item unlocked by one ad: ${JSON.stringify(vault)}`);
 
   // ---- daily reward, then doubling it
+  await closeSheet();
+  await openTile('Daily reward');
   await h.eval(() => [...document.querySelectorAll('.card .btn.primary')].find((b) => /Claim daily/.test(b.textContent))?.click());
   await h.run(600);
   await h.eval(() => document.querySelector('.reveal .btn')?.click());
@@ -103,9 +121,12 @@ export default async function (page, h) {
   await h.shot('ads_menu_boosted');
 
   // ---- starter kit, then a Battle Royale match
+  await closeSheet();
+  await openTile('Boosts');
   await h.eval(() => [...document.querySelectorAll('.perks .rwbtn')].find((b) => /Drop in loaded/.test(b.textContent))?.click());
   await h.run(1200);
   ok(await h.eval(() => window.__bf.meta.p.ads.starterKit), 'starter kit armed for the next drop');
+  await closeSheet();
   await h.eval(() => { window.__bf.settings.dynamicRes = false; window.__bf.play({ mode: 'br', ranked: false, tdmMap: 'rotation', loadout: 'assault' }); });
   await h.run(1500);
   await h.eval(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' })));
