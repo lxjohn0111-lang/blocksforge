@@ -166,7 +166,9 @@ export class TutorialMatch extends Match {
       case 'harvest':
         return at(st.harvest, 1.5);
       case 'build':
-        return at(st.ledge, 0.4);
+        // Basics: a wall placed anywhere counts, so there is nowhere to go (the training's ledge sits
+        // behind a wall from the Basics route, and a marker there sent players walking into it)
+        return this.quick ? null : at(st.ledge, 0.4);
       case 'grenade': {
         const d = this.dummies.find((x) => x.key === 'nadeDummy');
         return d ? d.c.body.pos.clone().add(new THREE.Vector3(0, 2.3, 0)) : at(st.nadeDummy, 2);

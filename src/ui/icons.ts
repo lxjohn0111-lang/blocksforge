@@ -7,6 +7,8 @@ const s = (inner: string, size = 20, extra = '') =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" ${extra}>${inner}</svg>`;
 
 export const ICON = {
+  /** the rewarded-ad mark: a little TV (never the play triangle, which starts matches) */
+  adtv: (z = 14) => s('<path d="M7.5 2.5L12 6.5l4.5-4" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="6.5" width="20" height="14.5" rx="3" fill="none" stroke-width="2.4"/><path d="M6.5 11v5.5" fill="none" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>', z),
   play: (z = 20) => s('<path d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>', z),
   gear: (z = 20) => s('<path d="M12 3l2 2.5 3-.6.8 3 2.7 1.5-1.2 2.8 1.2 2.8-2.7 1.5-.8 3-3-.6L12 21l-2-2.5-3 .6-.8-3L3.5 14.6 4.7 12 3.5 9.2l2.7-1.5.8-3 3 .6z"/><rect x="9.5" y="9.5" width="5" height="5"/>', z),
   coin: (z = 18) => `<svg width="${z}" height="${z}" viewBox="0 0 24 24"><path d="M12 1.5l9.5 5.25v10.5L12 22.5 2.5 17.25V6.75z" fill="#f2a93b"/><path d="M12 4l7.2 4v8L12 20l-7.2-4V8z" fill="#ffcf7a"/><path d="M9 8h6v2h-4v1.5h3v2h-3V16H9z" fill="#8a4a0a"/></svg>`,

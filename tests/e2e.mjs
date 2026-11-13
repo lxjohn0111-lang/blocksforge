@@ -14,6 +14,7 @@ if (!fs.existsSync('dist/index.html')) {
 const server = await preview({ preview: { port: 4179, strictPort: true }, logLevel: 'silent' });
 const URL = 'http://localhost:4179/';
 const browser = await chromium.launch({
+  ...(process.env.BF_CHROME ? { executablePath: process.env.BF_CHROME } : {}),
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });

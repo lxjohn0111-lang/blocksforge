@@ -281,8 +281,9 @@ export class HUD {
     const E = this.els;
     const goal = tut.objective();
     const mark = E.qtmark;
-    // once the player is there, the marker would only sit on top of the prompt
-    if (!goal || !tut.player.alive || goal.distanceTo(tut.player.body.pos) < 3.2) {
+    // once the player is there, the marker would only sit on top of the prompt; and it never shows
+    // through a panel (pause, inventory, map, death screen)
+    if (!goal || !tut.player.alive || this.overlay !== 'none' || goal.distanceTo(tut.player.body.pos) < 3.2) {
       mark.style.display = 'none';
       return;
     }
@@ -656,6 +657,10 @@ export class HUD {
     // prompt
     let prompt = '';
     let warn = false;
+    // Basics' build step happens right where the player stands: say the next press in place, and on
+    // touch screens light up the button to tap
+    const qtBuild = !!tut?.quick && tut.step.id === 'build' && p.alive && this.overlay === 'none' && this.qtHold <= 0;
+    let guide = false;
     if (p.alive && !inShip) {
       if (p.slot === 6 && pc.buildReason) {
         prompt = pc.buildReason;
@@ -665,9 +670,18 @@ export class HUD {
         prompt = 'Out of ammo';
         warn = true;
       } else if (g && g.mag === 0 && p.slot <= 2 && g.reloading <= 0) prompt = this.touch ? 'Tap reload' : `<span class="kbd">${keyLabel(this.settings.bindings.reload)}</span> Reload`;
+      else if (qtBuild) {
+        const b = this.settings.bindings;
+        guide = true;
+        if (p.slot === 6) prompt = this.touch ? 'Tap fire to place the wall' : `<span class="kbd">${keyLabel(b.fire)}</span> Place the wall here`;
+        else prompt = this.touch ? `${ICON.wall(16)} Tap the build button` : `<span class="kbd">${keyLabel(b.build)}</span> Build mode`;
+      }
     }
     E.prompt.style.display = prompt ? 'flex' : 'none';
     E.prompt.classList.toggle('warn', warn);
+    E.prompt.classList.toggle('guide', guide);
+    document.body.classList.toggle('qt-build', qtBuild && p.slot !== 6);
+    document.body.classList.toggle('qt-place', qtBuild && p.slot === 6);
     this.setHTML('prompt', E.prompt, prompt);
 
     // progress ring (heal / reload)
@@ -1167,6 +1181,7 @@ export class HUD {
 
   dispose() {
     window.removeEventListener('resize', this.fit);
+    document.body.classList.remove('qt-build', 'qt-place');
     this.root.remove();
   }
 }

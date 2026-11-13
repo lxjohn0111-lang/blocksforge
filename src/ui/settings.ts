@@ -14,8 +14,10 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
   let tab: Tab = 'graphics';
   const main = h('div', { class: 'main' });
   const side = h('div', { class: 'side' });
-  const modal = h('div', { class: 'modal', style: { zIndex: '25' } }, h('div', { class: 'settings panel-solid' }, side, main));
+  const modal = h('div', { class: 'modal setmodal', style: { zIndex: '25' } }, h('div', { class: 'settings panel-solid' }, side, main));
   parent.appendChild(modal);
+  // from the menu the banner stays on screen under the panel (see .setmodal in the styles)
+  document.body.classList.add('set-open');
   const commit = () => {
     saveSettings(s);
     apply(s);
@@ -23,6 +25,7 @@ export function openSettings(parent: HTMLElement, s: Settings, input: Input, app
   const close = () => {
     input.captureNext = null;
     modal.remove();
+    document.body.classList.remove('set-open');
     onClose?.();
   };
   const slider = (label: string, desc: string, min: number, max: number, step: number, get: () => number, set: (v: number) => void, fmtv = (v: number) => v.toFixed(2)) => {

@@ -307,6 +307,11 @@ input { font-family: var(--font); }
 
 .prompt { position: absolute; left: 50%; top: calc(50% + 46px); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(10,12,16,0.7); clip-path: var(--chamfer-sm); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .prompt.warn { color: #ffb3a8; }
+/* Basics' build step: the next press, said in place */
+.prompt.guide { color: var(--accent-2); border: 1px solid rgba(242,169,59,0.55); background: rgba(10,12,16,0.82); animation: qtGuide 1.2s ease-in-out infinite; }
+@keyframes qtGuide { 50% { border-color: rgba(242,169,59,0.15); } }
+body.qt-build .touch-ui .tbtn.t-build, body.qt-place .touch-ui .tbtn.t-fire { box-shadow: 0 0 0 3px var(--accent), 0 0 18px rgba(242,169,59,0.7); animation: qtGuideBtn 1.1s ease-in-out infinite; }
+@keyframes qtGuideBtn { 50% { box-shadow: 0 0 0 3px rgba(242,169,59,0.35), 0 0 6px rgba(242,169,59,0.2); } }
 .ring { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; transform: translate(-50%, -50%); }
 .dmgind { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; transform: translate(-50%, -50%); }
 .dmgnum { position: absolute; font-family: var(--display); font-size: 20px; text-shadow: 0 2px 4px #000; transform: translate(-50%, -50%); white-space: nowrap; }
@@ -505,7 +510,8 @@ input { font-family: var(--font); }
 .qt.ok .qt-tick { display: flex; justify-content: center; animation: qtTick .35s cubic-bezier(.2,1.6,.4,1); }
 .qt.ok .qt-title { color: var(--green); }
 @keyframes qtTick { from { transform: scale(0.3); opacity: 0; } }
-.qtmark { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; }
+/* under every panel and prompt: it points into the world, never at the UI */
+.qtmark { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; }
 .qtmark i { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; background: var(--accent); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: 0 0 0 2px #000; animation: qtPulse 1.1s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(242,169,59,0.8)); }
 .qtmark b { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent-2); text-shadow: 0 1px 3px #000; white-space: nowrap; }
 .qtmark.edge i { background: var(--accent-2); }
@@ -921,7 +927,8 @@ body.touch .toggle.on i { left: 27px; }
 @keyframes adSweep { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
 .btn.rwbtn:hover { filter: brightness(1.08); transform: translateY(-1px); background: linear-gradient(135deg, #ffe9b0, #f6b54a 55%, #e08a24); color: #1a1205; }
 .btn.rwbtn .rwtag { display: inline-flex; align-items: center; gap: 3px; padding: 4px 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #ffe39a; background: #1a1205; clip-path: var(--chamfer-sm); flex-shrink: 0; }
-.btn.rwbtn .rwtag svg { fill: currentColor; }
+.btn.rwbtn .rwtag svg { display: block; }
+.btn.rwbtn .rwtv { display: flex; margin-top: -1px; }
 .btn.rwbtn .rwtext { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; min-width: 0; }
 .btn.rwbtn .rwl { font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 .btn.rwbtn small { font-size: 11px; font-weight: 600; opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -942,6 +949,10 @@ body.touch .toggle.on i { left: 27px; }
 .bf-foot { position: fixed; left: 0; right: 0; bottom: 0; height: var(--adh, 62px); display: flex; align-items: center; justify-content: center; z-index: 1; pointer-events: none; }
 .bf-bslot { flex: none; overflow: hidden; pointer-events: auto; }
 body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
+/* settings over the menu: the panel ends above the banner, which stays on screen beneath it */
+body.foot-room .setmodal { padding-bottom: var(--adh, 0px); }
+body.foot-room .setmodal .settings { max-height: calc(100% - 12px); }
+body.foot-room.set-open .bf-foot { z-index: 26; }
 
 /* stand-ins off CrazyGames */
 .demo-ad { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(0,0,0,0.93); }

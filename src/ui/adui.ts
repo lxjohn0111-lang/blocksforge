@@ -40,7 +40,7 @@ export function adButton(o: AdOffer): HTMLElement | null {
   if (!platform.rewardedReady) return null;
   let busy = false;
   const btn = h('button', { class: `btn rwbtn${o.big ? ' big' : ''}${o.tone ? ' ' + o.tone : ''}`, title: 'Watch a short video ad for this reward' },
-    h('span', { class: 'rwtag' }, h('span', { html: ICON.play(11) }), o.badge ?? 'AD'),
+    h('span', { class: 'rwtag' }, h('span', { class: 'rwtv', html: ICON.adtv(14) }), o.badge ?? 'AD'),
     h('span', { class: 'rwtext' }, h('span', { class: 'rwl' }, o.label), o.sub ? h('small', null, o.sub) : null));
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -130,8 +130,12 @@ export class BannerAds {
     if (!this.spot || this.busy || this.maxed || platform.adsMode === 'none') return;
     const now = Date.now();
     if (now < this.retryAt) return;
-    if (this.filled && now - this.lastRequest < BANNER_REFRESH_MS) return;
+    // (the stand-in banners off CrazyGames let tests shorten the wait)
+    const every = platform.adsMode === 'demo' ? ((window as unknown as { __bfDemoBannerMs?: number }).__bfDemoBannerMs ?? BANNER_REFRESH_MS) : BANNER_REFRESH_MS;
+    if (this.filled && now - this.lastRequest < every) return;
     if (document.visibilityState === 'hidden' || platform.adPlaying) return;
+    // never refresh a banner nobody can see: a panel, sheet or pop-up over the menu covers it
+    if (!this.seen()) return;
     this.busy = true;
     const res = await platform.requestBanner(ID, SIZE[0], SIZE[1]);
     this.busy = false;
@@ -151,6 +155,18 @@ export class BannerAds {
       this.failures++;
       this.retryAt = Date.now() + Math.min(600000, 60000 * this.failures);
     }
+  }
+
+  /** the banner's spot is on screen and nothing covers it (sampled across the slot) */
+  private seen() {
+    if (this.bar.style.display === 'none') return false;
+    const r = this.slot.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false;
+    for (const fx of [0.12, 0.5, 0.88]) {
+      const el = document.elementFromPoint(r.left + r.width * fx, r.top + r.height * 0.5);
+      if (!el || !this.slot.contains(el)) return false;
+    }
+    return true;
   }
 
   private tick() {

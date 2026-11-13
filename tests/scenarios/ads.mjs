@@ -50,6 +50,32 @@ export default async function (page, h) {
   }
   await h.eval(() => [...document.querySelectorAll('.topbar .tab')].find((b) => b.textContent === 'Play')?.click());
   await h.run(300);
+
+  // ---- the banner under Settings, and no refresh while something covers it (refresh every 3 s here)
+  await h.eval(() => {
+    window.__bfDemoBannerMs = 3000;
+    window.__bfBanners = 0;
+    new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.classList?.contains('demo-banner')) window.__bfBanners++; }).observe(document.getElementById('bf-banner-slot'), { childList: true });
+  });
+  const onTop = () => h.eval(() => { const s = document.querySelector('.bf-bslot').getBoundingClientRect(); return !!document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2)?.closest('.bf-bslot'); });
+  await h.eval(() => document.querySelector('[title="Settings"]').click());
+  await h.run(4500);
+  const set = await h.eval(() => ({ panel: Math.round(document.querySelector('.setmodal .settings').getBoundingClientRect().bottom), foot: Math.round(document.querySelector('.bf-foot').getBoundingClientRect().top), n: window.__bfBanners }));
+  ok((await onTop()) && set.panel <= set.foot && set.n >= 1, `banner shown and refreshed under Settings: ${JSON.stringify(set)}`);
+  await h.eval(() => [...document.querySelectorAll('.settings .btn')].find((b) => b.textContent === 'Done')?.click());
+  await h.eval(() => document.querySelector('.wheelcard, .ptile')?.click());
+  await h.run(500);
+  const hid0 = await h.eval(() => window.__bfBanners);
+  const covered = !(await onTop());
+  await h.run(7000);
+  const hid1 = await h.eval(() => window.__bfBanners);
+  ok(covered && hid1 === hid0, `no refresh while a pop-up covers the banner: ${hid0} -> ${hid1} (covered ${covered})`);
+  await h.eval(() => document.querySelector('.wheel-close')?.click());
+  await h.run(2000);
+  const hid2 = await h.eval(() => window.__bfBanners);
+  ok(hid2 === hid1 + 1, `refreshed once it shows again: ${hid1} -> ${hid2}`);
+  await h.eval(() => { delete window.__bfDemoBannerMs; });
+
   // phones show the Play tab's extras as tiles: each card (and its offers) is on a sheet the tile opens
   const phone = await h.eval(() => document.body.classList.contains('phone'));
   const openTile = async (name) => {
