@@ -953,6 +953,15 @@ body.foot-room .screen.menu { padding-bottom: var(--adh, 0px); }
 body.foot-room .setmodal { padding-bottom: var(--adh, 0px); }
 body.foot-room .setmodal .settings { max-height: calc(100% - 12px); }
 body.foot-room.set-open .bf-foot { z-index: 26; }
+/* phones: Settings tighter, so a tab fits between the top and the banner without scrolling */
+body.phone.foot-room .setmodal .settings { max-height: 100%; }
+body.phone .settings .side .btn { min-height: 32px; padding-top: 6px; padding-bottom: 6px; }
+body.phone .settings .side button { padding-top: 7px; padding-bottom: 7px; }
+body.phone .settings .main { padding-top: 4px; padding-bottom: 6px; }
+body.phone .settings .setrow { padding: 1px 0; }
+body.phone .settings .main > .label { margin-bottom: 3px !important; }
+body.phone .settings .main > .seg { margin-bottom: 4px !important; }
+body.phone .settings .main .seg button { padding: 5px 8px; }
 
 /* stand-ins off CrazyGames */
 .demo-ad { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(0,0,0,0.93); }
